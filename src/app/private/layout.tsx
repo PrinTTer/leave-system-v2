@@ -165,7 +165,7 @@ export default function PersonnelAdminLayout({
                     style: { fontSize: 16, color: "#FDFEFE" },
                     label: "ประวัติการอนุมัติ",
                     onClick: () => {
-                      router.push(`/private/user`);
+                      router.push(`/private/leave-and-history/approval-history`);
                     },
                   },
                   {
@@ -174,7 +174,7 @@ export default function PersonnelAdminLayout({
                     style: { fontSize: 16, color: "#FDFEFE" },
                     label: "ประวัติการลา",
                     onClick: () => {
-                      router.push(`/private/user/pendingApprovalUser`);
+                      router.push(`/private/leave-and-history/leave-history`);
                     },
                   },
                   {
@@ -183,7 +183,7 @@ export default function PersonnelAdminLayout({
                     style: { fontSize: 16, color: "#FDFEFE" },
                     label: "สถิติการลาบุคคลใต้บังคับบัญชา",
                     onClick: () => {
-                      router.push(`/private/user/pendingApprovalUser`);
+                      router.push(`/private/leave-and-history`);
                     },
                   },
                   {
@@ -192,7 +192,7 @@ export default function PersonnelAdminLayout({
                     style: { fontSize: 16, color: "#FDFEFE" },
                     label: "สถิติการลา",
                     onClick: () => {
-                      router.push(`/private/user/pendingApprovalUser`);
+                      router.push(`/private/leave-and-history`);
                     },
                   },
                 ],
