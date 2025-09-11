@@ -1,0 +1,357 @@
+"use client";
+import { useEffect, useState } from "react";
+import {
+  Button,
+  Col,
+  Form,
+  Input,
+  Pagination,
+  PaginationProps,
+  Row,
+  Space,
+  Table,
+  TableProps,
+  Typography,
+  Tooltip,
+  InputNumber,
+  Popconfirm,
+  Switch,
+} from "antd";
+import { useRouter } from "next/navigation";
+import * as Icons from "lucide-react";
+import { convertDateTimeFormate, convertDateTimeToNumber } from "@/app/utils";
+
+export default function SystemIndexPage() {
+  const { Title } = Typography;
+  const [form] = Form.useForm();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [systems, setSystems] = useState<SystemList>({
+    data: [],
+    page: 0,
+    totalPage: 1,
+    limit: 0,
+    totalCount: 0,
+  });
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [currentSearch, setcurrentSearch] = useState({
+    thaiName: "",
+    shortName: "",
+  });
+
+  const columns: TableProps["columns"] = [
+    {
+      title: "Id",
+      dataIndex: "id",
+      key: "id",
+      align: "center",
+      sorter: (a, b) => a.id - b.id,
+      hidden: true,
+    },
+    {
+      title: "ชื่อภาษาไทย",
+      onHeaderCell: () => {
+        return { style: { textAlign: "center" } }; // Center-align the header
+      },
+      align: "left",
+      dataIndex: "thaiName",
+      key: "thaiName",
+      sorter: (a, b) => a.thaiName.length - b.thaiName.length,
+    },
+    {
+      title: "ชื่อภาษาอังกฤษ",
+      onHeaderCell: () => {
+        return { style: { textAlign: "center" } }; // Center-align the header
+      },
+      align: "left",
+      dataIndex: "englishName",
+      key: "englishName",
+      sorter: (a, b) => a.englishName.length - b.englishName.length,
+    },
+    {
+      title: "ชื่อย่อ",
+      onHeaderCell: () => {
+        return { style: { textAlign: "center" } }; // Center-align the header
+      },
+      align: "left",
+      dataIndex: "shortName",
+      key: "shortName",
+      sorter: (a, b) => a.shortName.length - b.shortName.length,
+    },
+    {
+      title: "การมองเห็น",
+      dataIndex: "visibility",
+      key: "visibility",
+      align: "center",
+      render: (_, record) => {
+        return (
+          <Space
+            size="middle"
+            style={{
+              textAlign: "center",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}>
+            <Row gutter={[16, 16]}>
+              {record.visibility === "show" && (
+                <Col span={8}>
+                  <Popconfirm
+                    okText="ใช่"
+                    cancelText="ไม่"
+                    title="ซ่อน"
+                    description="คุณต้องการซ่อนระบบ?"
+                    okButtonProps={{ loading: confirmLoading }}>
+                    <Switch
+                      checkedChildren="แสดง"
+                      unCheckedChildren="ซ่อน"
+                      checked={record.visibility === "show"}
+                    />
+                  </Popconfirm>
+                </Col>
+              )}
+              {record.visibility !== "show" && (
+                <Col span={8}>
+                  <Popconfirm
+                    okText="ใช่"
+                    cancelText="ไม่"
+                    title="แสดง"
+                    description="คุณต้องการแสดงระบบ?"
+                    okButtonProps={{ loading: confirmLoading }}>
+                    <Switch
+                      checkedChildren="แสดง"
+                      unCheckedChildren="ซ่อน"
+                      checked={record.visibility === "show"}
+                    />
+                  </Popconfirm>
+                </Col>
+              )}
+            </Row>
+          </Space>
+        );
+      },
+      filters: [
+        {
+          text: "แสดง",
+          value: "show",
+        },
+        {
+          text: "ซ่อน",
+          value: "hide",
+        },
+      ],
+      onFilter: (value, record) =>
+        record.visibility.startsWith(value as string),
+    },
+    {
+      title: "แก้ไขล่าสุด",
+      align: "center",
+      dataIndex: "updatedAt",
+      key: "updatedAt",
+      sorter: (a, b) =>
+        convertDateTimeToNumber(a.updatedAt) -
+        convertDateTimeToNumber(b.updatedAt),
+      render: (_, record) => {
+        return convertDateTimeFormate(record.updatedAt);
+      },
+    },
+    {
+      title: "",
+      key: "id",
+      dataIndex: "id",
+      align: "center",
+      width: "10%",
+      render: (_, record) => {
+        return (
+          <Row
+            gutter={[16, 16]}
+            style={{
+              textAlign: "center",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}>
+            <Col span={8}>
+              <Tooltip title="รายละเอียด">
+                <Icons.BookOpenText
+                  onClick={() => {
+                    setLoading(true);
+                    router.push(`/private/system/${record.id}/detail`);
+                  }}
+                  size={16}
+                />
+              </Tooltip>
+            </Col>
+            <Col span={8}>
+              <Tooltip title="จัดการสิทธิ์ระบบ">
+                <Icons.ShieldPlus
+                  onClick={() => {
+                    setLoading(true);
+                    router.push(`/private/system/${record.id}/role`);
+                  }}
+                  size={16}
+                />
+              </Tooltip>
+            </Col>
+          </Row>
+        );
+      },
+    },
+  ];
+
+  const fetchSystem = async () => {
+    try {
+      const data = {
+        data: [
+          {
+            id: 1,
+            thaiName: "ระบบบุคลากร",
+            englishName: "Personnel system",
+            shortName: "PN",
+            description: "xxxx",
+            visibility: "show",
+            updatedAt: "2025-07-03T10:15:23Z",
+            createdAt: "2025-07-03T10:15:23Z",
+          },
+          {
+            id: 2,
+            thaiName: "ระบบลา",
+            englishName: "Leave system",
+            shortName: "L",
+            description: "xxxx",
+            visibility: "hide",
+            updatedAt: "2025-07-03T10:17:45Z",
+            createdAt: "2025-07-03T10:15:23Z",
+          },
+          {
+            id: 3,
+            thaiName: "ระบบใช้รถ",
+            englishName: "Vehicle use system",
+            shortName: "VC",
+            description: "xxxx",
+            visibility: "hide",
+            updatedAt: "2025-07-03T10:18:12Z",
+            createdAt: "2025-07-03T10:15:23Z",
+          },
+        ],
+        page: 1,
+        totalPage: 1,
+        limit: 10,
+        totalCount: 3,
+      };
+      setSystems(data);
+      setLoading(false);
+      setTableLoading(false);
+    } catch (error) {
+      console.log("error: ", error);
+      setLoading(false);
+      setTableLoading(false);
+    }
+  };
+
+  const onPageChange: PaginationProps["onChange"] = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const onSearch = () => {
+    setcurrentSearch({
+      thaiName: form.getFieldValue("thaiName"),
+      shortName: form.getFieldValue("shortName"),
+    });
+    setCurrentPage(1);
+  };
+
+  useEffect(() => {
+    setTableLoading(true);
+    fetchSystem();
+  }, [currentPage, currentSearch]);
+
+  return (
+    <>
+      <div style={{ padding: 10 }}>
+        <Space direction="vertical" style={{ width: "100%" }} size={10}>
+          <Row>
+            <Col span={12}>
+              <Title
+                style={{
+                  marginTop: 0,
+                  marginBottom: 0,
+                  fontSize: 18,
+                }}>
+                {"ระบบที่เปิดใช้งาน"}
+              </Title>
+            </Col>
+          </Row>
+          <div className="chemds-container">
+            <Row style={{ marginBottom: "1%" }}>
+              <Col span={16}>
+                <Form layout="inline" form={form}>
+                  <Col>
+                    <Form.Item name="thaiName">
+                      <Input placeholder="ชื่อภาษาไทย" allowClear />
+                    </Form.Item>
+                  </Col>
+                  <Col>
+                    <Form.Item name="shortName">
+                      <Input placeholder="ชื่อย่อ" allowClear />
+                    </Form.Item>
+                  </Col>
+                  <Col>
+                    <Button
+                      className="chemds-button"
+                      type="primary"
+                      onClick={() => {
+                        onSearch();
+                      }}>
+                      ค้นหา
+                    </Button>
+                  </Col>
+                </Form>
+              </Col>
+              <Col
+                span={8}
+                style={{ display: "flex", justifyContent: "right" }}>
+                <Button
+                  className="chemds-button"
+                  type="primary"
+                  onClick={() => {
+                    setLoading(true);
+                    router.push(`/private/system/new`);
+                  }}>
+                  เพิ่ม
+                </Button>
+              </Col>
+            </Row>
+            <Row style={{ marginBottom: "1%" }}>
+              <Col span={24}>
+                <Table
+                  columns={columns}
+                  rowKey={(record) => record.id}
+                  dataSource={systems.data}
+                  style={{ width: "100%" }}
+                  pagination={false}
+                  bordered
+                  loading={tableLoading}
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
+                <Pagination
+                  defaultCurrent={1}
+                  total={systems.totalCount}
+                  showSizeChanger={false}
+                  pageSize={10}
+                  onChange={onPageChange}
+                  align="end"
+                />
+              </Col>
+            </Row>
+          </div>
+        </Space>
+      </div>
+    </>
+  );
+}
