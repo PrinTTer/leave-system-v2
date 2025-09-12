@@ -160,10 +160,21 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
 
   // กำหนดการ/วันหยุดของวัน
   const getSchedulesForDay = (value: Dayjs): CalendarSchedule[] => {
+    const orderType: Record<CalendarType, number> = { academic: 0, standard: 1, fiscal: 2 };
     return calendarSchedulesMock
       .filter((s) => selectedCalendars.includes(s.calendarType))
-      .filter((s) => value.isBetween(dayjs(s.startDate), dayjs(s.endDate), null, '[]'))
-      .sort((a, b) => a.id.localeCompare(b.id));
+      .filter((s) =>
+        value.isBetween(dayjs(s.startDate), dayjs(s.endDate), null, '[]')
+      )
+      .sort((a, b) => {
+        const lenA = dayjs(a.endDate).diff(dayjs(a.startDate), 'day');
+        const lenB = dayjs(b.endDate).diff(dayjs(b.startDate), 'day');
+        if (lenA !== lenB) return lenB - lenA;                             // ช่วงยาวมาก่อน
+        if (orderType[a.calendarType] !== orderType[b.calendarType]) {
+          return orderType[a.calendarType] - orderType[b.calendarType];    // academic → standard → fiscal
+        }
+        return a.id.localeCompare(b.id);
+      });
   };
 
   // ลาที่อนุมัติของวัน
@@ -333,8 +344,8 @@ const renderQuarterView = () => {
               return (
                 <div className="tt-cell" onClick={() => openDetail(current)}>
                   <div className="tt-day">{current.date()}</div>
-                  <div className="tt-leave-row">{renderLeaveRow(current)}</div>
-                  <ul className="tt-bars">{renderScheduleBars(current)}</ul>
+                  {renderLeaveRow(current)}
+                  {renderScheduleBars(current)}
                 </div>
               );
             }}
@@ -487,116 +498,88 @@ const renderQuarterView = () => {
 
       {/* ---- Global styles เฉพาะในกล่องนี้ เพื่อ “ตรึงความสูงเซลล์ + layout 2 แถว” ---- */}
       <style jsx global>{`
-        /* Layout และขนาดคงที่ต่อเซลล์ */
-        .ttleave-cal {
-          --cell-pad-y: 8px;
-          --daynum-h: 22px;
-          --leave-row-h: 26px;
-          --sched-row-h: 24px;
-          --row-gap: 4px;
-          --sched-rows: 3; /* สูงสุด 3 แถวย่อย */
-          --sched-rows-h: calc(var(--sched-rows) * var(--sched-row-h) + (var(--sched-rows) - 1) * var(--row-gap));
-          --cell-h: calc(var(--cell-pad-y)*2 + var(--daynum-h) + var(--leave-row-h) + var(--sched-rows-h));
-        }
+      .ttleave-cal {
+        --cell-pad-y: 8px;
+        --daynum-h: 22px;       /* แถว 1: เลขวัน */
+        --leave-row-h: 26px;    /* แถว 2: โปรไฟล์ลา */
+        --sched-row-h: 24px;    /* ความสูง 1 แถวย่อยของกำหนดการ */
+        --row-gap: 4px;
+        --sched-rows: 3;        /* แถวย่อยของกำหนดการสูงสุด = 3 */
 
-        /* โครงสร้างเซลล์ 3 แถว: เลขวัน / แถวลา / แถบกำหนดการ */
-        .ttleave-cal .tt-cell {
-          height: var(--cell-h);
-          padding: var(--cell-pad-y) 8px;
-          box-sizing: border-box;
-          display: grid;
-          grid-template-rows: var(--daynum-h) var(--leave-row-h) var(--sched-rows-h);
-          overflow-y: hidden;   /* กันล้นลงล่าง ไม่คร่อมสัปดาห์ถัดไป */
-          overflow-x: visible;  /* ให้แถบเชื่อมข้ามวันได้ด้วย negative margin */
-          position: relative;   /* สำหรับ badge / +more */
-        }
+        /* รวมเป็น 5 แถว (1 + 1 + 3) */
+        --sched-rows-h: calc(var(--sched-rows) * var(--sched-row-h)
+                        + (var(--sched-rows) - 1) * var(--row-gap));
+        --cell-h: calc(var(--cell-pad-y)*2 + var(--daynum-h) + var(--leave-row-h) + var(--sched-rows-h));
+      }
 
-        /* แถวเลขวัน: จัดให้เรียงแนวเดียวกันทุกเซลล์ */
-        .ttleave-cal .tt-day {
-          height: var(--daynum-h);
-          line-height: var(--daynum-h);
-          font-weight: 600;
-          text-align: left; /* จะได้ชิดซ้ายเท่ากันทุกวัน */
-        }
+      /* โครงร่าง 3 แถวยักษ์: วัน / ลา / ลิสต์กำหนดการ */
+      .ttleave-cal .tt-cell {
+        height: var(--cell-h);
+        padding: var(--cell-pad-y) 0;   /* เอา padding X ออก เพื่อให้แถบชนขอบซ้าย-ขวา */
+        display: grid;
+        grid-template-rows: var(--daynum-h) var(--leave-row-h) var(--sched-rows-h);
+        box-sizing: border-box;
+        position: relative;             /* ให้ .tt-more อ้างอิงตำแหน่งในกล่องนี้ */
+        overflow-y: hidden;             /* ไม่ให้ดันลงสัปดาห์ถัดไป */
+        overflow-x: visible;            /* ให้แถบคาบข้ามวันได้ */
+      }
 
-        /* แถวโปรไฟล์ลา */
-        .ttleave-cal .tt-leave-row {
-          height: var(--leave-row-h);
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          overflow: hidden; /* เผื่อชื่อยาว/เนื้อหามากเกิน */
-        }
+      /* แถวเลขวัน: จัดให้เรียงแนวเดียวกันทุกเซลล์ */
+      .ttleave-cal .tt-day {
+        height: var(--daynum-h);
+        line-height: var(--daynum-h);
+        font-weight: 600;
+        text-align: left;
+        padding: 0 8px;                 /* padding กลับเฉพาะบรรทัดนี้ */
+      }
 
-        /* รายการแถบกำหนดการ (3 แถวย่อยสูงสุด) */
-        .ttleave-cal .tt-sched-list {
-          height: var(--sched-rows-h);
-          display: flex;
-          flex-direction: column;
-          gap: var(--row-gap);
-          margin: 0;
-          padding: 0;
-          list-style: none;
-          overflow: hidden; /* ถ้ามากกว่า 3 แถบจะถูกซ่อน ไม่ดันความสูงเซลล์ */
-        }
+      /* แถวโปรไฟล์ลา */
+      .ttleave-cal .tt-leave-row {
+        height: var(--leave-row-h);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        overflow: hidden;
+        padding: 0 8px;                 /* padding กลับเฉพาะบรรทัดนี้ */
+      }
 
-        /* ปุ่ม +more ในแถบสุดท้าย (ถ้ามี overflow) */
-        .ttleave-cal .tt-more {
-          position: absolute;
-          right: 4px;
-          top: 2px;
-          font-size: 11px;
-          color: #8c8c8c;
-          pointer-events: none;
-        }
-        /* เอา padding ของโครงสร้างภายใน AntD ออก ไม่งั้นแถบจะไม่ชนขอบ */
-        .ttleave-cal .ant-picker-cell-inner { padding: 0 !important; }
+      /* รายการแถบกำหนดการ (สูงเท่าพื้นที่ 3 แถวย่อยพอดี) */
+      .ttleave-cal .tt-sched-list {
+        height: var(--sched-rows-h);
+        display: flex;
+        flex-direction: column;
+        gap: var(--row-gap);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        overflow: hidden;               /* ถ้าเกิน 3 แถบจะถูกซ่อน */
+      }
 
-        /* ถ้าอยากให้แถบเชื่อมแนบขอบซ้าย-ขวาแบบไร้ช่องว่าง แนะนำตัด padding X ออกจาก cell */
-        .ttleave-cal .tt-cell {
-          padding: var(--cell-pad-y) 0;                 /* เดิม 8px */
-        }
+      /* 1 รายการ = 1 แถวย่อย สูงตายตัว */
+      .ttleave-cal .tt-sched-item {
+        height: var(--sched-row-h);
+        display: block;
+      }
 
-        /* ใส่ padding กลับเฉพาะเลขวัน + แถวโปรไฟล์ลา เพื่อไม่ให้ชิดเกินไป */
-        .ttleave-cal .tt-day,
-        .ttleave-cal .tt-leave-row { padding: 0 8px; }
+      /* ตัวแถบเองกินเต็มแถว */
+      .ttleave-cal .tt-bar {
+        height: 100%;
+        display: block;
+      }
 
-        /* คุมรายการแถบให้เป็นคอลัมน์สูงคงที่ */
-        .ttleave-cal .tt-sched-list {
-          height: var(--sched-rows-h);
-          display: flex;
-          flex-direction: column;
-          gap: var(--row-gap);
-          margin: 0;
-          padding: 0;
-          list-style: none;
-          overflow: hidden;
-        }
+      /* ป้าย +more โชว์บนแถบสุดท้ายถ้า overflow */
+      .ttleave-cal .tt-more {
+        position: absolute;
+        right: 4px;
+        top: 2px;
+        font-size: 11px;
+        color: #8c8c8c;
+        pointer-events: none;
+      }
 
-        /* 1 รายการ = 1 แถว สูงตายตัว เพื่อไม่ให้ทับกัน/ถูกตัด */
-        .ttleave-cal .tt-sched-item {
-          height: var(--sched-row-h);    /* 24px */
-          display: block;                /* ชัดเจน */
-        }
-
-        /* ตัวแถบเองกินเต็มแถว */
-        .ttleave-cal .tt-bar {
-          height: 100%;
-          display: block;
-        }
-
-        /* ปุ่ม +more */
-        .ttleave-cal .tt-more {
-          position: absolute;
-          right: 4px;
-          top: 2px;
-          font-size: 11px;
-          color: #8c8c8c;
-          pointer-events: none;
-        }
-      `}</style>
-
-
+      /* เอา padding โครงสร้างภายใน AntD ออก ไม่งั้นแถบจะไม่ชนขอบ */
+      .ttleave-cal .ant-picker-cell-inner { padding: 0 !important; }
+    `}</style>
 
     </div>
   );

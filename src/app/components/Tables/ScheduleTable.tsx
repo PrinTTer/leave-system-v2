@@ -157,7 +157,8 @@ function MonthBlock({
     );
 
   return (
-    <Card bordered style={{ marginBottom: 16 }} title={headerTitle}>
+    <Card variant="outlined" style={{ marginBottom: 16 }} title={headerTitle}>
+
       {data.length === 0 ? (
         <Empty description="ไม่มีกำหนดการในเดือนนี้" />
       ) : (
