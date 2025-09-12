@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Calendar, Button, Select, Avatar, Tooltip, Flex, Modal, Tag, Divider } from 'antd';
+import { Calendar, Button, Avatar, Tooltip, Flex, Modal, Tag, Divider } from 'antd';
 import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -27,6 +27,7 @@ const users: UserRef[] = [
   { id: '10', name: 'Ivy Jackson' },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const monthsShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const CAL_TYPE_LABEL: Record<CalendarType, string> = {
@@ -40,15 +41,14 @@ const CALENDAR_TYPE_STYLES: Record<
   CalendarType,
   { bg: string; border: string; text: string }
 > = {
-  standard: { bg: '#E6F7FF', border: '#91D5FF', text: '#003A8C' }, // ฟ้า
-  academic: { bg: '#F9F0FF', border: '#D3ADF7', text: '#391085' }, // ม่วง
-  fiscal:   { bg: '#F6FFED', border: '#B7EB8F', text: '#135200' }, // เขียว
+  standard: { bg: '#E6F7FF', border: '#91D5FF', text: '#003A8C' },
+  academic: { bg: '#F9F0FF', border: '#D3ADF7', text: '#391085' },
+  fiscal:   { bg: '#F6FFED', border: '#B7EB8F', text: '#135200' },
 };
 
 // ----------------- Helpers -----------------
 type BarPosition = 'single' | 'start' | 'middle' | 'end';
 
-/** ย่อชื่อแบบไทยให้สั้น เช่น "วันเฉลิมพระชนมพรรษา …" -> "วันเฉลิม…" */
 const shortLabel = (title: string) => {
   const clean = title.replace(/\s+/g, ' ').trim();
   if (clean.length <= 12) return clean;
@@ -57,11 +57,10 @@ const shortLabel = (title: string) => {
   return `${base}…`;
 };
 
-const BRIDGE_PX = 6; // ล้ำขอบซ้าย/ขวาเพื่อเชื่อมแท่งในสัปดาห์เดียวกัน
+const BRIDGE_PX = 6;
 const startOfWeek = (d: Dayjs) => d.startOf('week'); // อาทิตย์-เสาร์
 const endOfWeek = (d: Dayjs) => d.endOf('week');
 
-/** intersect ช่วง s กับ week ของ date -> ได้ช่วงย่อยในสัปดาห์นั้น */
 const weekSegmentOf = (date: Dayjs, s: CalendarSchedule) => {
   const wStart = startOfWeek(date);
   const wEnd = endOfWeek(date);
@@ -74,14 +73,11 @@ const weekSegmentOf = (date: Dayjs, s: CalendarSchedule) => {
   return { valid, segStart, segEnd, len };
 };
 
-/** เลือก “สัปดาห์ที่มีพื้นที่มากที่สุด” ของ schedule สำหรับวาง label */
 const pickLabelWeekForSchedule = (s: CalendarSchedule) => {
   const sStart = dayjs(s.startDate).startOf('day');
   const sEnd = dayjs(s.endDate).startOf('day');
-
   let bestWeekStart: Dayjs | null = null;
   let bestLen = -1;
-
   for (let w = startOfWeek(sStart); !w.isAfter(endOfWeek(sEnd), 'day'); w = w.add(1, 'week')) {
     const seg = weekSegmentOf(w, s);
     if (seg.valid && seg.len > bestLen) {
@@ -89,7 +85,6 @@ const pickLabelWeekForSchedule = (s: CalendarSchedule) => {
       bestWeekStart = w;
     }
   }
-
   if (bestWeekStart) {
     const { segStart, len } = weekSegmentOf(bestWeekStart, s);
     const midOffset = Math.floor((len - 1) / 2);
@@ -99,7 +94,6 @@ const pickLabelWeekForSchedule = (s: CalendarSchedule) => {
   return null;
 };
 
-/** หาตำแหน่งแถบของ s สำหรับวันที่ value */
 const getBarPosition = (value: Dayjs, s: CalendarSchedule): BarPosition => {
   const sStart = dayjs(s.startDate);
   const sEnd = dayjs(s.endDate);
@@ -110,46 +104,6 @@ const getBarPosition = (value: Dayjs, s: CalendarSchedule): BarPosition => {
 };
 // -------------------------------------------
 
-/** Header เฉพาะช่องแรกในโหมด 4 เดือน */
-function QuarterHeader({
-  isMaster,
-  baseDate,
-  setBaseDate,
-  displayDate,
-}: {
-  isMaster: boolean;
-  baseDate: Dayjs;
-  setBaseDate: (d: Dayjs) => void;
-  displayDate: Dayjs;
-}) {
-  const center = baseDate.year();
-  const years = Array.from({ length: 9 }, (_, i) => center - 4 + i);
-  const onChangeYear = (y: number) => setBaseDate(baseDate.year(y));
-  const onChangeMonth = (m: number) => setBaseDate(baseDate.month(m));
-
-  return (
-    <Flex gap={8} align="center" style={{ padding: '4px 8px' }}>
-      {isMaster ? (
-        <>
-          <Select size="small" style={{ width: 90 }} value={baseDate.year()}
-                  onChange={onChangeYear}
-                  options={years.map((y) => ({ label: y, value: y }))} />
-          <Select size="small" style={{ width: 90 }} value={baseDate.month()}
-                  onChange={onChangeMonth}
-                  options={monthsShort.map((m, idx) => ({ label: m, value: idx }))} />
-          <Button size="small" onClick={() => setBaseDate(dayjs())}>Today</Button>
-        </>
-      ) : (
-        <>
-          <Select size="small" style={{ width: 90 }} value={displayDate.year()} disabled
-                  options={[{ label: displayDate.year(), value: displayDate.year() }]} />
-          <Select size="small" style={{ width: 90 }} value={displayDate.month()} disabled
-                  options={[{ label: monthsShort[displayDate.month()], value: displayDate.month() }]} />
-        </>
-      )}
-    </Flex>
-  );
-}
 
 export default function CalendarBox({ viewMode }: CalendarBoxProps) {
   const [selectedCalendars, setSelectedCalendars] = useState<string[]>(['standard', 'academic', 'fiscal']);
@@ -164,14 +118,14 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
 
   const getFiscalYear = (date: Dayjs) => {
     const year = date.year();
-    const month = date.month(); // 0-11 (กันยายน = 8)
+    const month = date.month();
     const fiscalYearStartMonth = 8;
     const fiscalYear = month >= fiscalYearStartMonth ? year + 1 : year;
     const fiscalMonth = month >= fiscalYearStartMonth ? month - fiscalYearStartMonth + 1 : month + 4;
     return `ปีงบประมาณที่ ${fiscalYear + 543} เดือนที่ ${fiscalMonth}`;
   };
 
-  // ===== การตั้งค่าการมองเห็นผู้ใช้ (จากหน้า leave-visibility) =====
+  // การตั้งค่าการมองเห็นผู้ใช้
   const STORAGE_KEY = 'leaveVisibilitySelectedUserIds';
   const [visibleUserIds, setVisibleUserIds] = useState<string[]>([]);
   useEffect(() => {
@@ -184,7 +138,7 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
     }
   }, []);
 
-  // ===== ดึงรายการกำหนดการ/วันหยุดของวันนั้น =====
+  // กำหนดการ/วันหยุดของวัน
   const getSchedulesForDay = (value: Dayjs): CalendarSchedule[] => {
     return calendarSchedulesMock
       .filter((s) => selectedCalendars.includes(s.calendarType))
@@ -192,7 +146,7 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
       .sort((a, b) => a.id.localeCompare(b.id));
   };
 
-  // ===== ดึงรายการลา (approved) ของวันนั้น (ตาม visibility) =====
+  // ลาที่อนุมัติของวัน
   const getLeavesForDay = (value: Dayjs): LeaveItem[] => {
     return leavesMock.filter((l) =>
       value.isBetween(dayjs(l.startDate), dayjs(l.endDate), null, '[]') &&
@@ -201,52 +155,34 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
     );
   };
 
-  // ===== เปิด modal เมื่อคลิกวัน =====
   const openDetail = (date: Dayjs) => {
     setDetailDate(date.startOf('day'));
     setDetailOpen(true);
   };
 
-  // ===== แถวกลาง: แสดงโปรไฟล์คนลา (จำกัด 1 + bubble นับยอดที่เหลือ) =====
+  // ===== แถวกลาง: โปรไฟล์ลา (จำกัด 1 + bubble จำนวนที่เหลือ) =====
   const renderLeaveRow = (value: Dayjs) => {
-    if (!showApprovedLeaves) return null;
+    if (!showApprovedLeaves) return <div className="tt-leave-row" />;
     const leaves = getLeavesForDay(value);
-    if (!leaves.length) return null;
+    if (!leaves.length) return <div className="tt-leave-row" />;
 
     const first = leaves[0];
     const others = leaves.length - 1;
-
-    const getInitials = (name: string) =>
-      name.split(' ').map((n) => n[0]).join('').toUpperCase();
+    const getInitials = (name: string) => name.split(' ').map((n) => n[0]).join('').toUpperCase();
 
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          height: 24,           // ความสูงคงที่เพื่อไม่ให้ชนกับกำหนดการ
-          overflow: 'hidden',
-        }}
-      >
+      <div className="tt-leave-row">
         <Tooltip title={`${userMap.get(first.userId) ?? 'User'} (${first.type})`}>
           <Avatar size={20}>{getInitials(userMap.get(first.userId) ?? 'U')}</Avatar>
         </Tooltip>
-
         {others > 0 && (
           <div
             title={`+${others} more`}
             style={{
-              width: 20,
-              height: 20,
-              borderRadius: '50%',
-              background: '#f0f0f0',
-              color: '#595959',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 12,
-              fontWeight: 600,
+              width: 20, height: 20, borderRadius: '50%',
+              background: '#f0f0f0', color: '#595959',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 600,
             }}
           >
             +{others}
@@ -256,23 +192,15 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
     );
   };
 
-  // ===== แถวล่าง: แถบกำหนดการ (ช่วงต่อเนื่อง + label กลางสัปดาห์ที่ยาวที่สุด) =====
+  // ===== แถวล่าง: แถบกำหนดการ =====
   const renderScheduleBars = (value: Dayjs) => {
     const schedules = getSchedulesForDay(value);
     const maxBars = 3;
+    const overflowCount = Math.max(0, schedules.length - maxBars);
 
     return (
-      <ul
-        style={{
-          listStyle: 'none',
-          padding: 0,
-          margin: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4,
-        }}
-      >
-        {schedules.slice(0, maxBars).map((s) => {
+      <ul className="tt-sched-list">
+        {schedules.slice(0, maxBars).map((s, idx, arr) => {
           const style = CALENDAR_TYPE_STYLES[s.calendarType];
           const pos = getBarPosition(value, s);
 
@@ -287,8 +215,7 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
             pos === 'start'  ? '6px 0 0 6px' :
             pos === 'end'    ? '0 6px 6px 0' : '0';
 
-          // เชื่อมแท่งด้วย negative margins
-          const bridgeStyle: React.CSSProperties = { width: '100%' };
+          const bridgeStyle: React.CSSProperties = { width: '100%', height: '100%' };
           if (pos === 'start') {
             bridgeStyle.marginRight = -BRIDGE_PX;
             bridgeStyle.width = `calc(100% + ${BRIDGE_PX}px)`;
@@ -301,8 +228,10 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
             bridgeStyle.width = `calc(100% + ${BRIDGE_PX}px)`;
           }
 
+          const isLastRow = idx === arr.length - 1;
+
           return (
-            <li key={`${s.id}-${value.format('YYYYMMDD')}`}>
+            <li key={`${s.id}-${value.format('YYYYMMDD')}`} className="tt-sched-item">
               <div
                 title={s.title}
                 style={{
@@ -318,63 +247,91 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
                   whiteSpace: 'nowrap',
                   textAlign: showLabel ? 'center' : 'left',
                   boxSizing: 'border-box',
+                  position: 'relative',
                   ...bridgeStyle,
                 }}
               >
                 {pos === 'single' ? shortLabel(s.title) : (showLabel ? shortLabel(s.title) : '\u00A0')}
+                {isLastRow && overflowCount > 0 && <span className="tt-more">+{overflowCount}</span>}
               </div>
             </li>
           );
         })}
-        {schedules.length > maxBars && (
-          <li style={{ fontSize: 12, color: '#8c8c8c' }}>+{schedules.length - maxBars} more</li>
-        )}
       </ul>
     );
   };
 
-  // ===== เรนเดอร์ cell รายวัน: แถวกลาง (leave) + แถวล่าง (schedule) =====
+
+  // ===== dateCellRender: ใช้พื้นที่ content เป็น grid (แถวกลาง + แถวล่าง) =====
   const dateCellRender = (value: Dayjs) => {
     return (
-      <div onClick={() => openDetail(value)} style={{ cursor: 'pointer' }}>
-        {/* แถวกลาง: โปรไฟล์คนลา (จำกัด 1 + bubble นับยอด) */}
+      <div onDoubleClick={() => openDetail(value)} style={{ cursor: 'default' }}>
+        {/* แถวกลาง */}
         {renderLeaveRow(value)}
-
-        {/* แถวล่าง: แถบกำหนดการ */}
+        {/* แถวล่าง */}
         {renderScheduleBars(value)}
       </div>
     );
   };
 
   /** มุมมอง 4 เดือน */
-  const renderQuarterView = () => {
-    const base = selectedDate.startOf('month');
-    const months = Array.from({ length: 4 }, (_, i) => base.add(i, 'month'));
-    return (
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
-        {months.map((m, idx) => (
-          <div key={m.format('YYYY-MM')} style={{ border: '1px solid #eee', borderRadius: 8, background: '#fff' }}>
-            <Calendar
-              value={m}
-              fullscreen={false}
-              headerRender={() => (
-                <QuarterHeader
-                  isMaster={idx === 0}
-                  baseDate={selectedDate}
-                  setBaseDate={setSelectedDate}
-                  displayDate={m}
-                />
-              )}
-              cellRender={dateCellRender}
-              onSelect={(d) => openDetail(d)}
-            />
-          </div>
-        ))}
-      </div>
-    );
-  };
+/** มุมมอง 4 เดือน (current + next 3) และล็อก 3 กล่องหลัง */
+const renderQuarterView = () => {
+  const base = selectedDate.startOf('month');
+  const months = Array.from({ length: 4 }, (_, i) => base.add(i, 'month'));
 
-  // ===== Legend สีของชนิดปฏิทิน (เล็ก ๆ) =====
+  // header แบบอ่านอย่างเดียว (ไม่มีปุ่ม/ตัวเลือกเดือนปี)
+  const ReadonlyHeader = ({ label }: { label: string }) => (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '6px 8px', fontWeight: 600
+    }}>
+      {label}
+    </div>
+  );
+
+  return (
+    <div className="ttleave-cal" style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
+      {months.map((m, idx) => (
+        <div key={m.format('YYYY-MM')} style={{ border: '1px solid #eee', borderRadius: 8, background: '#fff' }}>
+          <Calendar
+            /* คุมเดือนของแต่ละกล่องให้เป็นเดือนถัดไปตาม index */
+            value={m}
+            fullscreen={false}
+
+            /* กล่องแรก: ให้ผู้ใช้เปลี่ยนเดือน/ปีได้ → อัปเดต selectedDate */
+            headerRender={idx === 0
+              ? undefined
+              : () => <ReadonlyHeader label={m.format('MMMM YYYY')} />
+            }
+            onPanelChange={(val) => {
+              if (idx === 0) {
+                // อิงเฉพาะเดือน/ปีที่ผู้ใช้เปลี่ยน แล้ว propagate ไปยังอีก 3 กล่อง
+                setSelectedDate(val.startOf('month'));
+              }
+            }}
+
+            /* ป้องกัน “เลื่อนเดือน” ทาง header สำหรับ 3 กล่องหลัง (เราไม่มี header control แล้ว)
+               และล็อก state ให้ไม่เปลี่ยน ด้วยการคุม value แบบ controlled */
+            fullCellRender={(current, info) => {
+              if (info.type !== 'date') return info.originNode;
+              return (
+                <div className="tt-cell" onClick={() => openDetail(current)}>
+                  <div className="tt-day">{current.date()}</div>
+                  <div className="tt-leave-row">{renderLeaveRow(current)}</div>
+                  <ul className="tt-bars">{renderScheduleBars(current)}</ul>
+                </div>
+              );
+            }}
+            onSelect={(d) => openDetail(d)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+  // ===== Legend =====
   const Legend = () => (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
       {(['standard','academic','fiscal'] as const).map((t) => {
@@ -390,7 +347,7 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
     </div>
   );
 
-  // ===== ข้อมูลใน Modal รายละเอียด =====
+  // ===== Data ใน Modal =====
   const detailSchedules = useMemo(() => {
     if (!detailDate) return [];
     return getSchedulesForDay(detailDate);
@@ -426,18 +383,20 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
         <Legend />
       </div>
 
-      {/* Render calendar */}
-      {viewMode === 'month' ? (
-        <Calendar
-          value={selectedDate}
-          onChange={(d) => setSelectedDate(d)}
-          onSelect={(d) => openDetail(d)}
-          fullscreen={false}
-          cellRender={dateCellRender}
-        />
-      ) : (
-        renderQuarterView()
-      )}
+      {/* Calendar */}
+      <div className="ttleave-cal">
+        {viewMode === 'month' ? (
+          <Calendar
+            value={selectedDate}
+            onChange={(d) => setSelectedDate(d)}
+            onSelect={(d) => openDetail(d)}
+            fullscreen={false}
+            cellRender={dateCellRender}
+          />
+        ) : (
+          renderQuarterView()
+        )}
+      </div>
 
       {/* Modal รายละเอียดของวัน */}
       <Modal
@@ -495,6 +454,69 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
           <div style={{ color: '#999' }}>ไม่มีคนลาในวันนี้</div>
         )}
       </Modal>
+
+      {/* ---- Global styles เฉพาะในกล่องนี้ เพื่อ “ตรึงความสูงเซลล์ + layout 2 แถว” ---- */}
+      <style jsx global>{`
+        /* ครอบ Calendar ด้วย .ttleave-cal ที่ container */
+        .ttleave-cal {
+          --cell-pad-y: 8px;      /* padding บน/ล่างของเซลล์ */
+          --daynum-h: 22px;       /* แถวเลขวัน */
+          --leave-row-h: 26px;    /* แถวโปรไฟล์ลา (1 avatar + bubble +N) */
+          --sched-row-h: 24px;    /* ความสูงแท่งกำหนดการต่อบรรทัด */
+          --row-gap: 4px;         /* ช่องว่างระหว่างแท่ง */
+          --sched-rows: 3;        /* รองรับ 3 แถบ */
+          --sched-rows-h: calc(var(--sched-rows) * var(--sched-row-h) + (var(--sched-rows) - 1) * var(--row-gap));
+          --cell-h: calc(var(--cell-pad-y)*2 + var(--daynum-h) + var(--leave-row-h) + var(--sched-rows-h));
+        }
+
+        /* โครง cell ของเราเอง */
+        .ttleave-cal .tt-cell {
+          height: var(--cell-h);
+          padding: var(--cell-pad-y) 8px;
+          box-sizing: border-box;
+          display: grid;
+          grid-template-rows: var(--daynum-h) var(--leave-row-h) var(--sched-rows-h);
+          overflow-y: hidden;   /* กันล้นลงล่าง ไม่คร่อมสัปดาห์ถัดไป */
+          overflow-x: visible;  /* ให้แท่งเชื่อมข้ามวันได้ */
+        }
+        .ttleave-cal .tt-day {
+          height: var(--daynum-h);
+          line-height: var(--daynum-h);
+        }
+        .ttleave-cal .tt-leave-row {
+          height: var(--leave-row-h);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          overflow: hidden;
+        }
+        .ttleave-cal .tt-bars {
+          height: var(--sched-rows-h);
+          display: flex;
+          flex-direction: column;
+          gap: var(--row-gap);
+          margin: 0;
+          padding: 0;
+          list-style: none;
+          overflow: hidden;     /* ถ้า >3 แถบ จะถูกซ่อนไม่ดันความสูง */
+        }
+        .ttleave-cal .tt-bar {  /* ใช้กับแต่ละรายการกำหนดการ */
+          height: var(--sched-row-h);
+          box-sizing: border-box;
+          /* ใส่สี/ขอบ/bridge margin ต่อเนื่องข้ามวันตามที่คุณทำไว้ */
+        }
+        .ttleave-cal .tt-more {
+          position: absolute;
+          right: 4px;
+          top: 2px;
+          font-size: 11px;
+          color: #8c8c8c;
+          pointer-events: none;
+        }
+      `}</style>
+
+
+
     </div>
   );
 }

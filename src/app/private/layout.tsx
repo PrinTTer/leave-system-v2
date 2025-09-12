@@ -20,6 +20,9 @@ import "@ant-design/v5-patch-for-react-19";
 
 import * as Icons from "lucide-react";
 import { ThemWebColor } from "../utils/constants";
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+dayjs.locale('th');
 
 export default function PersonnelAdminLayout({
   children,

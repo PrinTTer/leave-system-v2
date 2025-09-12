@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Form, message } from 'antd';
+import { message } from 'antd';
 import UserCheckboxList from '@/app/components/FormElements/UserCheckboxList';
 import LeaveTable from '@/app/components/Tables/LeaveTable';
 import { usersMock } from '@/mock/users';
@@ -32,26 +32,19 @@ export default function LeaveVisibilityPage() {
     <div className="p-4">
       <h2 className="text-xl font-semibold">การตั้งค่าการมองเห็นวันลา</h2>
 
+      {/* ใช้ UserCheckboxList + ปุ่ม save อยู่ใน Card ใหญ่ */}
       <div className="mt-4 mb-4">
-        <Form layout="vertical">
-          <Form.Item label="เลือกผู้ใช้ที่ต้องการดูวันลา">
-            <UserCheckboxList
-              users={usersMock}
-              selectedUsers={selectedUsers}
-              search={search}
-              onCheckboxChange={setSelectedUsers}
-              onSearchChange={(e) => setSearch(e.target.value)}
-              maxHeight={360}
-              showSelectAllActions
-            />
-          </Form.Item>
-        </Form>
-      </div>
-
-      <div className="flex justify-end mt-4">
-        <Button type="primary" onClick={onSave}>
-          บันทึกการตั้งค่า
-        </Button>
+        <UserCheckboxList
+          users={usersMock}
+          selectedUsers={selectedUsers}
+          search={search}
+          onCheckboxChange={setSelectedUsers}
+          onSearchChange={(e) => setSearch(e.target.value)}
+          maxHeight={360}
+          showSelectAllActions
+          // ส่ง callback save ลงไป
+          onSave={onSave}
+        />
       </div>
 
       <div className="mt-8">

@@ -9,6 +9,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import type { CalendarSchedule, CalendarType, HolidayCategory } from '@/types/calendar';
 import { calendarSchedulesMock } from '@/mock/calendarSchedules';
 import { classifyPublicHoliday, countInclusiveDays } from '@/utils/calendar';
+import { mergeMockWithDiff, loadDiff, saveDiff, buildDiffFromData } from '@/utils/scheduleStorage';
 
 const { RangePicker } = DatePicker;
 
@@ -28,23 +29,19 @@ export default function ScheduleManagePage() {
   const [editing, setEditing] = useState<CalendarSchedule | null>(null);
   const [form] = Form.useForm();
 
-  // โหลด/บันทึก localStorage (demo)
   useEffect(() => {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-    if (raw) {
-      try {
-        setData(JSON.parse(raw));
-        return;
-      } catch {}
-    }
-    setData(calendarSchedulesMock);
-  }, []);
+  const diff = loadDiff();
+  const merged = mergeMockWithDiff(calendarSchedulesMock, diff);
+  setData(merged);
+}, []);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
-  }, [data]);
+// SAVE: เมื่อ data เปลี่ยน ให้คำนวน diff แล้วบันทึกแค่ diff (mock อยู่เป็น baseline ไม่หาย)
+useEffect(() => {
+  // ถ้าหน้ายังไม่ได้ mount ด้วย merged จริงๆ ให้กัน edge case ที่ data ว่าง
+  if (!data || data.length === 0) return;
+  const diff = buildDiffFromData(data, calendarSchedulesMock);
+  saveDiff(diff);
+}, [data]);
 
   const columns: ColumnsType<CalendarSchedule> = useMemo(() => [
     {
@@ -113,6 +110,7 @@ export default function ScheduleManagePage() {
         </Space>
       ),
     },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [data]);
 
   const onAdd = () => {
@@ -230,7 +228,7 @@ export default function ScheduleManagePage() {
         onCancel={handleCancel}
         okText="บันทึก"
         cancelText="ยกเลิก"
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" preserve={false}>
           <Form.Item name="id" hidden><Input /></Form.Item>

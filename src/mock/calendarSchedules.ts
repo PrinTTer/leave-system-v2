@@ -1,11 +1,8 @@
 // src/mock/calendarSchedules.ts
 import type { CalendarSchedule } from '@/types/calendar';
 
-// ปฏิทินวันหยุดราชการ พ.ศ. 2568 (ค.ศ. 2025) — เฉพาะปฏิทินธรรมดา
-// holidayCategory:
-//   - 'public_contiguous'     = นักขัตฯ ที่ต่อเนื่อง/ชิดเสาร์อาทิตย์
-//   - 'public_non_contiguous' = นักขัตฯ ที่ไม่ต่อเนื่อง/ไม่ชิดเสาร์อาทิตย์
 export const calendarSchedulesMock: CalendarSchedule[] = [
+  // ---------- [ปฏิทินราชการเดิม - ยกมาของเดิมทั้งหมด] ----------
   // มกราคม 2568
   {
     id: 'th-2568-0101',
@@ -15,7 +12,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     endDate: '2025-01-01',
     dayCount: 1,
     isHoliday: true,
-    holidayCategory: 'public_non_contiguous', // พุธ ไม่ติดเสาร์-อาทิตย์
+    holidayCategory: 'public_non_contiguous',
   },
 
   // กุมภาพันธ์ 2568
@@ -27,7 +24,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     endDate: '2025-02-12',
     dayCount: 1,
     isHoliday: true,
-    holidayCategory: 'public_non_contiguous', // พุธ
+    holidayCategory: 'public_non_contiguous',
   },
 
   // มีนาคม 2568 — ไม่มีวันหยุดราชการ
@@ -37,32 +34,32 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0406',
     calendarType: 'standard',
     title: 'วันจักรี',
-    startDate: '2025-04-06', // อาทิตย์
+    startDate: '2025-04-06',
     endDate: '2025-04-06',
     dayCount: 1,
     isHoliday: true,
-    holidayCategory: 'public_contiguous', // ตรงวันอาทิตย์
+    holidayCategory: 'public_contiguous',
   },
   {
     id: 'th-2568-0407',
     calendarType: 'standard',
     title: 'ชดเชยวันจักรี',
-    startDate: '2025-04-07', // จันทร์
+    startDate: '2025-04-07',
     endDate: '2025-04-07',
     dayCount: 1,
     isHoliday: true,
-    holidayCategory: 'public_contiguous', // จันทร์ชิดอาทิตย์
+    holidayCategory: 'public_contiguous',
   },
   {
     id: 'th-2568-0413-16',
     calendarType: 'standard',
     title: 'วันสงกรานต์ และชดเชย',
     description: '13–16 เม.ย. 2568',
-    startDate: '2025-04-13', // อาทิตย์
-    endDate: '2025-04-16',   // พุธ (ชดเชย)
+    startDate: '2025-04-13',
+    endDate: '2025-04-16',
     dayCount: 4,
     isHoliday: true,
-    holidayCategory: 'public_contiguous', // มีอาทิตย์ในช่วง
+    holidayCategory: 'public_contiguous',
   },
 
   // พฤษภาคม 2568
@@ -70,7 +67,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0501',
     calendarType: 'standard',
     title: 'วันแรงงานแห่งชาติ',
-    startDate: '2025-05-01', // พฤหัสฯ
+    startDate: '2025-05-01',
     endDate: '2025-05-01',
     dayCount: 1,
     isHoliday: true,
@@ -80,7 +77,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0504',
     calendarType: 'standard',
     title: 'วันฉัตรมงคล',
-    startDate: '2025-05-04', // อาทิตย์
+    startDate: '2025-05-04',
     endDate: '2025-05-04',
     dayCount: 1,
     isHoliday: true,
@@ -90,7 +87,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0505',
     calendarType: 'standard',
     title: 'ชดเชยวันฉัตรมงคล',
-    startDate: '2025-05-05', // จันทร์
+    startDate: '2025-05-05',
     endDate: '2025-05-05',
     dayCount: 1,
     isHoliday: true,
@@ -100,7 +97,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0511',
     calendarType: 'standard',
     title: 'วันวิสาขบูชา',
-    startDate: '2025-05-11', // อาทิตย์
+    startDate: '2025-05-11',
     endDate: '2025-05-11',
     dayCount: 1,
     isHoliday: true,
@@ -110,7 +107,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0512',
     calendarType: 'standard',
     title: 'ชดเชยวันวิสาขบูชา',
-    startDate: '2025-05-12', // จันทร์
+    startDate: '2025-05-12',
     endDate: '2025-05-12',
     dayCount: 1,
     isHoliday: true,
@@ -122,7 +119,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0602',
     calendarType: 'standard',
     title: 'วันหยุดพิเศษ',
-    startDate: '2025-06-02', // จันทร์
+    startDate: '2025-06-02',
     endDate: '2025-06-02',
     dayCount: 1,
     isHoliday: true,
@@ -132,7 +129,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0603',
     calendarType: 'standard',
     title: 'วันเฉลิมพระชนมพรรษา สมเด็จพระนางเจ้าสุทิดา',
-    startDate: '2025-06-03', // อังคาร
+    startDate: '2025-06-03',
     endDate: '2025-06-03',
     dayCount: 1,
     isHoliday: true,
@@ -144,7 +141,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0710',
     calendarType: 'standard',
     title: 'วันอาสาฬหบูชา',
-    startDate: '2025-07-10', // พฤหัสฯ
+    startDate: '2025-07-10',
     endDate: '2025-07-10',
     dayCount: 1,
     isHoliday: true,
@@ -154,17 +151,17 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0711',
     calendarType: 'standard',
     title: 'วันเข้าพรรษา',
-    startDate: '2025-07-11', // ศุกร์
+    startDate: '2025-07-11',
     endDate: '2025-07-11',
     dayCount: 1,
     isHoliday: true,
-    holidayCategory: 'public_contiguous', // ศุกร์ชิดเสาร์
+    holidayCategory: 'public_contiguous',
   },
   {
     id: 'th-2568-0728',
     calendarType: 'standard',
     title: 'วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระเจ้าอยู่หัว',
-    startDate: '2025-07-28', // จันทร์
+    startDate: '2025-07-28',
     endDate: '2025-07-28',
     dayCount: 1,
     isHoliday: true,
@@ -176,7 +173,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0811',
     calendarType: 'standard',
     title: 'วันหยุดพิเศษ',
-    startDate: '2025-08-11', // จันทร์
+    startDate: '2025-08-11',
     endDate: '2025-08-11',
     dayCount: 1,
     isHoliday: true,
@@ -186,7 +183,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-0812',
     calendarType: 'standard',
     title: 'วันเฉลิมพระชนมพรรษา สมเด็จพระนางเจ้าสิริกิติ์ฯ และวันแม่แห่งชาติ',
-    startDate: '2025-08-12', // อังคาร
+    startDate: '2025-08-12',
     endDate: '2025-08-12',
     dayCount: 1,
     isHoliday: true,
@@ -200,7 +197,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-1013',
     calendarType: 'standard',
     title: 'วันคล้ายวันสวรรคต ร.9',
-    startDate: '2025-10-13', // จันทร์
+    startDate: '2025-10-13',
     endDate: '2025-10-13',
     dayCount: 1,
     isHoliday: true,
@@ -210,7 +207,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-1023',
     calendarType: 'standard',
     title: 'วันปิยมหาราช',
-    startDate: '2025-10-23', // พฤหัสฯ
+    startDate: '2025-10-23',
     endDate: '2025-10-23',
     dayCount: 1,
     isHoliday: true,
@@ -224,17 +221,17 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-1205',
     calendarType: 'standard',
     title: 'วันคล้ายวันพระบรมราชสมภพ ร.9 / วันชาติ / วันพ่อแห่งชาติ',
-    startDate: '2025-12-05', // ศุกร์
+    startDate: '2025-12-05',
     endDate: '2025-12-05',
     dayCount: 1,
     isHoliday: true,
-    holidayCategory: 'public_contiguous', // ศุกร์ชิดเสาร์
+    holidayCategory: 'public_contiguous',
   },
   {
     id: 'th-2568-1210',
     calendarType: 'standard',
     title: 'วันรัฐธรรมนูญ',
-    startDate: '2025-12-10', // พุธ
+    startDate: '2025-12-10',
     endDate: '2025-12-10',
     dayCount: 1,
     isHoliday: true,
@@ -244,10 +241,174 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     id: 'th-2568-1231',
     calendarType: 'standard',
     title: 'วันสิ้นปี',
-    startDate: '2025-12-31', // พุธ
+    startDate: '2025-12-31',
     endDate: '2025-12-31',
     dayCount: 1,
     isHoliday: true,
     holidayCategory: 'public_non_contiguous',
+  },
+
+  // ---------- [ปฏิทินปีการศึกษา 2568–2569 (calendarType: 'academic')] ----------
+  {
+    id: 'ac-2568-0615',
+    calendarType: 'academic',
+    title: 'โครงการผู้บริหารพบผู้ปกครอง',
+    startDate: '2025-06-15',
+    endDate: '2025-06-15',
+    dayCount: 1,
+    isHoliday: false,
+    description: 'อา. 15 มิ.ย. 68',
+  },
+  {
+    id: 'ac-2568-0617-0620',
+    calendarType: 'academic',
+    title: 'ลงทะเบียนเรียนภาคต้น',
+    startDate: '2025-06-17',
+    endDate: '2025-06-20',
+    dayCount: 4,
+    isHoliday: false,
+    description: 'อ. 17 – ศ. 20 มิ.ย. 68',
+  },
+  {
+    id: 'ac-2568-0617-0619',
+    calendarType: 'academic',
+    title: 'โครงการก้าวแรกฯ',
+    startDate: '2025-06-17',
+    endDate: '2025-06-19',
+    dayCount: 3,
+    isHoliday: false,
+    description: 'อ. 17 – พฤ. 19 มิ.ย. 68',
+  },
+  {
+    id: 'ac-2568-0623',
+    calendarType: 'academic',
+    title: 'วันเปิดภาคการศึกษาภาคต้น',
+    startDate: '2025-06-23',
+    endDate: '2025-06-23',
+    dayCount: 1,
+    isHoliday: false,
+    description: 'จ. 23 มิ.ย. 68',
+  },
+  {
+    id: 'ac-2568-0717',
+    calendarType: 'academic',
+    title: 'โครงการเกษตราบูชาครู',
+    startDate: '2025-07-17',
+    endDate: '2025-07-17',
+    dayCount: 1,
+    isHoliday: false,
+    description: 'พฤ. 17 ก.ค. 68',
+  },
+  {
+    id: 'ac-2568-0809-0817',
+    calendarType: 'academic',
+    title: 'วันสอบกลางภาคต้น',
+    startDate: '2025-08-09',
+    endDate: '2025-08-17',
+    dayCount: 9,
+    isHoliday: false,
+    description: 'ส. 9 – อา. 17 ส.ค. 68',
+  },
+  {
+    id: 'ac-2568-1020-1031',
+    calendarType: 'academic',
+    title: 'วันสอบไล่ภาคต้น',
+    startDate: '2025-10-20',
+    endDate: '2025-10-31',
+    dayCount: 12,
+    isHoliday: false,
+    description: 'จ. 20 – ศ. 31 ต.ค. 68',
+  },
+  {
+    id: 'ac-2568-1103',
+    calendarType: 'academic',
+    title: 'วันปิดภาคการศึกษาภาคต้น',
+    startDate: '2025-11-03',
+    endDate: '2025-11-03',
+    dayCount: 1,
+    isHoliday: false,
+    description: 'จ. 3 พ.ย. 68',
+  },
+  {
+    id: 'ac-2568-1118-1121',
+    calendarType: 'academic',
+    title: 'ลงทะเบียนเรียนภาคปลาย',
+    startDate: '2025-11-18',
+    endDate: '2025-11-21',
+    dayCount: 4,
+    isHoliday: false,
+    description: 'อ. 18 – ศ. 21 พ.ย. 68',
+  },
+  {
+    id: 'ac-2568-1124',
+    calendarType: 'academic',
+    title: 'วันเปิดภาคการศึกษาภาคปลาย',
+    startDate: '2025-11-24',
+    endDate: '2025-11-24',
+    dayCount: 1,
+    isHoliday: false,
+    description: 'จ. 24 พ.ย. 68',
+  },
+  {
+    id: 'ac-2568-1129-1210',
+    calendarType: 'academic',
+    title: 'งานเกษตรกำแพงแสน',
+    startDate: '2025-11-29',
+    endDate: '2025-12-10',
+    dayCount: 12,
+    isHoliday: false,
+    description: 'ส. 29 พ.ย. – พ. 10 ธ.ค. 68',
+  },
+  {
+    id: 'ac-2569-0110-0118',
+    calendarType: 'academic',
+    title: 'วันสอบกลางภาคปลาย',
+    startDate: '2026-01-10',
+    endDate: '2026-01-18',
+    dayCount: 9,
+    isHoliday: false,
+    description: 'ส. 10 – อา. 18 ม.ค. 69',
+  },
+  {
+    id: 'ac-2569-0316-0327',
+    calendarType: 'academic',
+    title: 'วันสอบไล่ภาคปลาย',
+    startDate: '2026-03-16',
+    endDate: '2026-03-27',
+    dayCount: 12,
+    isHoliday: false,
+    description: 'จ. 16 – ศ. 27 มี.ค. 69',
+  },
+  {
+    id: 'ac-2569-0330',
+    calendarType: 'academic',
+    title: 'วันปิดภาคการศึกษาภาคปลาย',
+    startDate: '2026-03-30',
+    endDate: '2026-03-30',
+    dayCount: 1,
+    isHoliday: false,
+    description: 'จ. 30 มี.ค. 69',
+  },
+
+  // ---------- [ปฏิทินปีงบประมาณ (calendarType: 'fiscal')] ----------
+  {
+    id: 'fiscal-2568-0930-end',
+    calendarType: 'fiscal',
+    title: 'วันสิ้นสุดปฏิทินปีงบประมาณ 2568',
+    startDate: '2025-09-30',
+    endDate: '2025-09-30',
+    dayCount: 1,
+    isHoliday: false,
+    description: '30 กันยายน 2568',
+  },
+  {
+    id: 'fiscal-2569-1001-start',
+    calendarType: 'fiscal',
+    title: 'วันเริ่มต้นปฏิทินปีงบประมาณ 2569',
+    startDate: '2025-10-01',
+    endDate: '2025-10-01',
+    dayCount: 1,
+    isHoliday: false,
+    description: '1 ตุลาคม 2568',
   },
 ];
