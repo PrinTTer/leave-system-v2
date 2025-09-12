@@ -20,6 +20,9 @@ import "@ant-design/v5-patch-for-react-19";
 
 import * as Icons from "lucide-react";
 import { ThemWebColor } from "../utils/constants";
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+dayjs.locale('th');
 
 export default function PersonnelAdminLayout({
   children,
@@ -111,9 +114,26 @@ export default function PersonnelAdminLayout({
                 icon: <Icons.Calendar />,
                 style: { fontSize: 16, color: "#FDFEFE" },
                 label: "ปฏิทิน",
-                onClick: () => {
-                  router.push(`/private/setting`);
-                },
+                children: [
+                  {
+                    key: "viewCalendar",
+                    icon: <Icons.CalendarCheck />,
+                    style: { fontSize: 16, color: "#FDFEFE" },
+                    label: "ดูปฏิทิน",
+                    onClick: () => {
+                      router.push(`/private/calendar`);
+                    },
+                  },
+                  {
+                    key: "manageCalendar",
+                    icon: <Icons.CalendarCog />,
+                    style: { fontSize: 16, color: "#FDFEFE" },
+                    label: "จัดการปฏิทิน",
+                    onClick: () => {
+                      router.push(`/private/calendar/manage`);
+                    },
+                  },
+                ],
               },
               // {
               //   key: "approval",
@@ -163,7 +183,7 @@ export default function PersonnelAdminLayout({
                     style: { fontSize: 16, color: "#FDFEFE" },
                     label: "ประวัติการอนุมัติ",
                     onClick: () => {
-                      router.push(`/private/user`);
+                      router.push(`/private/leave-and-history/approval-history`);
                     },
                   },
                   {
@@ -172,7 +192,7 @@ export default function PersonnelAdminLayout({
                     style: { fontSize: 16, color: "#FDFEFE" },
                     label: "ประวัติการลา",
                     onClick: () => {
-                      router.push(`/private/user/pendingApprovalUser`);
+                      router.push(`/private/leave-and-history/leave-history`);
                     },
                   },
                   {
@@ -181,7 +201,7 @@ export default function PersonnelAdminLayout({
                     style: { fontSize: 16, color: "#FDFEFE" },
                     label: "สถิติการลาบุคคลใต้บังคับบัญชา",
                     onClick: () => {
-                      router.push(`/private/user/pendingApprovalUser`);
+                      router.push(`/private/leave-and-history`);
                     },
                   },
                   {
@@ -190,7 +210,7 @@ export default function PersonnelAdminLayout({
                     style: { fontSize: 16, color: "#FDFEFE" },
                     label: "สถิติการลา",
                     onClick: () => {
-                      router.push(`/private/user/pendingApprovalUser`);
+                      router.push(`/private/leave-and-history`);
                     },
                   },
                 ],
@@ -201,7 +221,7 @@ export default function PersonnelAdminLayout({
                 style: { fontSize: 16, color: "#FDFEFE" },
                 label: "การตั้งค่าการมองเห็นการลา",
                 onClick: () => {
-                  router.push(`/private/system`);
+                  router.push(`/private/leave-visibility`);
                 },
               },
               {
