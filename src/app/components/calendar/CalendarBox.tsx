@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, Button, Avatar, Tooltip, Flex, Modal, Tag, Divider } from 'antd';
 import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
@@ -24,7 +24,27 @@ const users: UserRef[] = [
   { id: '7', name: 'Frank Green' },
   { id: '8', name: 'Grace Harris' },
   { id: '9', name: 'Hank Irving' },
-  { id: '10', name: 'Ivy Jackson' },
+  { id: '10', name: 'Axl Rose' },
+  { id: '11', name: 'Jack King' },
+  { id: '12', name: 'Kathy Lee' },
+  { id: '13', name: 'Larry Moore' },
+  { id: '14', name: 'Mona Nelson' },
+  { id: '15', name: 'Nina Owens' },
+  { id: '16', name: 'Oscar Perez' },
+  { id: '17', name: 'Paula Quinn' },
+  { id: '18', name: 'Quincy Roberts' },
+  { id: '19', name: 'Rachel Scott' },
+  { id: '20', name: 'Steve Turner' },
+  { id: '21', name: 'Tina Underwood' },
+  { id: '22', name: 'Uma Vargas' },
+  { id: '23', name: 'Victor White' },
+  { id: '24', name: 'Wendy Xu' },
+  { id: '25', name: 'Xander Young' },
+  { id: '26', name: 'Yara Zimmerman' },
+  { id: '27', name: 'Zack Allen' },
+  { id: '28', name: 'Amy Baker' },
+  { id: '29', name: 'Brian Carter' },
+  { id: '30', name: 'Cathy Diaz' },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -57,7 +77,7 @@ const shortLabel = (title: string) => {
   return `${base}…`;
 };
 
-const BRIDGE_PX = 6;
+const BRIDGE_PX = 8;
 const startOfWeek = (d: Dayjs) => d.startOf('week'); // อาทิตย์-เสาร์
 const endOfWeek = (d: Dayjs) => d.endOf('week');
 
@@ -155,13 +175,13 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
     );
   };
 
-  const openDetail = (date: Dayjs) => {
-    setDetailDate(date.startOf('day'));
-    setDetailOpen(true);
-  };
+  const openDetail = useCallback((date: Dayjs) => {
+  setDetailDate(date.startOf('day'));
+  setDetailOpen(true);
+}, []);
 
   // ===== แถวกลาง: โปรไฟล์ลา (จำกัด 1 + bubble จำนวนที่เหลือ) =====
-  const renderLeaveRow = (value: Dayjs) => {
+  const renderLeaveRow = useCallback((value: Dayjs) => {
     if (!showApprovedLeaves) return <div className="tt-leave-row" />;
     const leaves = getLeavesForDay(value);
     if (!leaves.length) return <div className="tt-leave-row" />;
@@ -190,10 +210,11 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
         )}
       </div>
     );
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showApprovedLeaves, visibleUserIds]);
 
   // ===== แถวล่าง: แถบกำหนดการ =====
-  const renderScheduleBars = (value: Dayjs) => {
+  const renderScheduleBars = useCallback((value: Dayjs) => {
     const schedules = getSchedulesForDay(value);
     const maxBars = 3;
     const overflowCount = Math.max(0, schedules.length - maxBars);
@@ -231,8 +252,12 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
           const isLastRow = idx === arr.length - 1;
 
           return (
-            <li key={`${s.id}-${value.format('YYYYMMDD')}`} className="tt-sched-item">
+            <li
+              key={`${s.id}-${value.format('YYYYMMDD')}`}
+              className="tt-sched-item"              // << เพิ่ม
+            >
               <div
+                className="tt-bar"                   // << เพิ่ม
                 title={s.title}
                 style={{
                   background: style.bg,
@@ -259,20 +284,10 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
         })}
       </ul>
     );
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCalendars]);
 
 
-  // ===== dateCellRender: ใช้พื้นที่ content เป็น grid (แถวกลาง + แถวล่าง) =====
-  const dateCellRender = (value: Dayjs) => {
-    return (
-      <div onDoubleClick={() => openDetail(value)} style={{ cursor: 'default' }}>
-        {/* แถวกลาง */}
-        {renderLeaveRow(value)}
-        {/* แถวล่าง */}
-        {renderScheduleBars(value)}
-      </div>
-    );
-  };
 
   /** มุมมอง 4 เดือน */
 /** มุมมอง 4 เดือน (current + next 3) และล็อก 3 กล่องหลัง */
@@ -384,19 +399,33 @@ const renderQuarterView = () => {
       </div>
 
       {/* Calendar */}
-      <div className="ttleave-cal">
-        {viewMode === 'month' ? (
+     {viewMode === 'month' ? (
+        <div className="ttleave-cal">
           <Calendar
+            key={`month-${selectedCalendars.sort().join('|')}-${showApprovedLeaves ? '1' : '0'}`}
             value={selectedDate}
             onChange={(d) => setSelectedDate(d)}
             onSelect={(d) => openDetail(d)}
             fullscreen={false}
-            cellRender={dateCellRender}
+            // ใช้ fullCellRender เพื่อคุมโครงสร้างเซลล์เอง (เหมือน quarter view)
+            fullCellRender={(current, info) => {
+              if (info.type !== 'date') return info.originNode;
+              return (
+                <div className="tt-cell" onDoubleClick={() => openDetail(current)}>
+                  <div className="tt-day">{current.date()}</div>
+                  {/* แถวโปรไฟล์ลา (1 โปรไฟล์ + bubble +n) */}
+                  {renderLeaveRow(current)}
+                  {/* แถบกำหนดการ สูงสุด 3 แถวย่อย + ต่อเนื่องข้ามวัน */}
+                  {renderScheduleBars(current)}
+                </div>
+              );
+            }}
           />
-        ) : (
-          renderQuarterView()
-        )}
-      </div>
+        </div>
+      ) : (
+        renderQuarterView()
+      )}
+
 
       {/* Modal รายละเอียดของวัน */}
       <Modal
@@ -454,22 +483,23 @@ const renderQuarterView = () => {
           <div style={{ color: '#999' }}>ไม่มีคนลาในวันนี้</div>
         )}
       </Modal>
+      
 
       {/* ---- Global styles เฉพาะในกล่องนี้ เพื่อ “ตรึงความสูงเซลล์ + layout 2 แถว” ---- */}
       <style jsx global>{`
-        /* ครอบ Calendar ด้วย .ttleave-cal ที่ container */
+        /* Layout และขนาดคงที่ต่อเซลล์ */
         .ttleave-cal {
-          --cell-pad-y: 8px;      /* padding บน/ล่างของเซลล์ */
-          --daynum-h: 22px;       /* แถวเลขวัน */
-          --leave-row-h: 26px;    /* แถวโปรไฟล์ลา (1 avatar + bubble +N) */
-          --sched-row-h: 24px;    /* ความสูงแท่งกำหนดการต่อบรรทัด */
-          --row-gap: 4px;         /* ช่องว่างระหว่างแท่ง */
-          --sched-rows: 3;        /* รองรับ 3 แถบ */
+          --cell-pad-y: 8px;
+          --daynum-h: 22px;
+          --leave-row-h: 26px;
+          --sched-row-h: 24px;
+          --row-gap: 4px;
+          --sched-rows: 3; /* สูงสุด 3 แถวย่อย */
           --sched-rows-h: calc(var(--sched-rows) * var(--sched-row-h) + (var(--sched-rows) - 1) * var(--row-gap));
           --cell-h: calc(var(--cell-pad-y)*2 + var(--daynum-h) + var(--leave-row-h) + var(--sched-rows-h));
         }
 
-        /* โครง cell ของเราเอง */
+        /* โครงสร้างเซลล์ 3 แถว: เลขวัน / แถวลา / แถบกำหนดการ */
         .ttleave-cal .tt-cell {
           height: var(--cell-h);
           padding: var(--cell-pad-y) 8px;
@@ -477,20 +507,29 @@ const renderQuarterView = () => {
           display: grid;
           grid-template-rows: var(--daynum-h) var(--leave-row-h) var(--sched-rows-h);
           overflow-y: hidden;   /* กันล้นลงล่าง ไม่คร่อมสัปดาห์ถัดไป */
-          overflow-x: visible;  /* ให้แท่งเชื่อมข้ามวันได้ */
+          overflow-x: visible;  /* ให้แถบเชื่อมข้ามวันได้ด้วย negative margin */
+          position: relative;   /* สำหรับ badge / +more */
         }
+
+        /* แถวเลขวัน: จัดให้เรียงแนวเดียวกันทุกเซลล์ */
         .ttleave-cal .tt-day {
           height: var(--daynum-h);
           line-height: var(--daynum-h);
+          font-weight: 600;
+          text-align: left; /* จะได้ชิดซ้ายเท่ากันทุกวัน */
         }
+
+        /* แถวโปรไฟล์ลา */
         .ttleave-cal .tt-leave-row {
           height: var(--leave-row-h);
           display: flex;
           align-items: center;
           gap: 6px;
-          overflow: hidden;
+          overflow: hidden; /* เผื่อชื่อยาว/เนื้อหามากเกิน */
         }
-        .ttleave-cal .tt-bars {
+
+        /* รายการแถบกำหนดการ (3 แถวย่อยสูงสุด) */
+        .ttleave-cal .tt-sched-list {
           height: var(--sched-rows-h);
           display: flex;
           flex-direction: column;
@@ -498,13 +537,55 @@ const renderQuarterView = () => {
           margin: 0;
           padding: 0;
           list-style: none;
-          overflow: hidden;     /* ถ้า >3 แถบ จะถูกซ่อนไม่ดันความสูง */
+          overflow: hidden; /* ถ้ามากกว่า 3 แถบจะถูกซ่อน ไม่ดันความสูงเซลล์ */
         }
-        .ttleave-cal .tt-bar {  /* ใช้กับแต่ละรายการกำหนดการ */
-          height: var(--sched-row-h);
-          box-sizing: border-box;
-          /* ใส่สี/ขอบ/bridge margin ต่อเนื่องข้ามวันตามที่คุณทำไว้ */
+
+        /* ปุ่ม +more ในแถบสุดท้าย (ถ้ามี overflow) */
+        .ttleave-cal .tt-more {
+          position: absolute;
+          right: 4px;
+          top: 2px;
+          font-size: 11px;
+          color: #8c8c8c;
+          pointer-events: none;
         }
+        /* เอา padding ของโครงสร้างภายใน AntD ออก ไม่งั้นแถบจะไม่ชนขอบ */
+        .ttleave-cal .ant-picker-cell-inner { padding: 0 !important; }
+
+        /* ถ้าอยากให้แถบเชื่อมแนบขอบซ้าย-ขวาแบบไร้ช่องว่าง แนะนำตัด padding X ออกจาก cell */
+        .ttleave-cal .tt-cell {
+          padding: var(--cell-pad-y) 0;                 /* เดิม 8px */
+        }
+
+        /* ใส่ padding กลับเฉพาะเลขวัน + แถวโปรไฟล์ลา เพื่อไม่ให้ชิดเกินไป */
+        .ttleave-cal .tt-day,
+        .ttleave-cal .tt-leave-row { padding: 0 8px; }
+
+        /* คุมรายการแถบให้เป็นคอลัมน์สูงคงที่ */
+        .ttleave-cal .tt-sched-list {
+          height: var(--sched-rows-h);
+          display: flex;
+          flex-direction: column;
+          gap: var(--row-gap);
+          margin: 0;
+          padding: 0;
+          list-style: none;
+          overflow: hidden;
+        }
+
+        /* 1 รายการ = 1 แถว สูงตายตัว เพื่อไม่ให้ทับกัน/ถูกตัด */
+        .ttleave-cal .tt-sched-item {
+          height: var(--sched-row-h);    /* 24px */
+          display: block;                /* ชัดเจน */
+        }
+
+        /* ตัวแถบเองกินเต็มแถว */
+        .ttleave-cal .tt-bar {
+          height: 100%;
+          display: block;
+        }
+
+        /* ปุ่ม +more */
         .ttleave-cal .tt-more {
           position: absolute;
           right: 4px;
