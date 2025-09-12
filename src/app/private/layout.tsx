@@ -53,7 +53,7 @@ export default function PersonnelAdminLayout({
     },
   ];
 
-  useEffect(() => {}, []);
+  useEffect(() => { }, []);
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -135,23 +135,41 @@ export default function PersonnelAdminLayout({
                   },
                 ],
               },
-              {
-                key: "approval",
-                icon: <Icons.UserSearch />,
-                style: { fontSize: 16, color: "#FDFEFE" },
-                label: "การอนุมัติ",
-                onClick: () => {
-                  router.push(`/private/setting`);
-                },
-              },
+              // {
+              //   key: "approval",
+              //   icon: <Icons.UserSearch />,
+              //   style: { fontSize: 16, color: "#FDFEFE" },
+              //   label: "การอนุมัติ",
+              //   onClick: () => {
+              //     router.push(`/private/approve`);
+              //   },
+              // },
               {
                 key: "leaveManagement",
                 icon: <Icons.Settings />,
                 style: { fontSize: 16, color: "#FDFEFE" },
                 label: "การลาของบุคคลใต้บังคับบัญชา",
-                onClick: () => {
-                  router.push(`/private/setting`);
+                children: [
+                  {
+                    key: "genaral",
+                    icon: <Icons.UserSearch />,
+                    style: { fontSize: 16, color: "#FDFEFE" },
+                    label: "คำขออนุมัติลา",
+                    onClick: () => {
+                  router.push(`/private/approve-hitory`);
                 },
+                  },
+                  {
+                    key: "officer",
+                    icon: <Icons.UserSearch />,
+                    style: { fontSize: 16, color: "#FDFEFE" },
+                    label: "ลาราชการ",
+                    onClick: () => {
+                  router.push(`/private/approve-hitory/Overseas`);
+                },
+                  },
+                ],
+                
               },
               {
                 key: "history",
@@ -204,6 +222,15 @@ export default function PersonnelAdminLayout({
                 label: "การตั้งค่าการมองเห็นการลา",
                 onClick: () => {
                   router.push(`/private/leave-visibility`);
+                },
+              },
+              {
+                key: "manageApprover",
+                icon: <Icons.UserCheck />,
+                style: { fontSize: 16, color: "#FDFEFE" },
+                label: "การจัดการผู้อนุมัติ",
+                onClick: () => {
+                  router.push(`/private/manageApprover`);
                 },
               },
             ]}
