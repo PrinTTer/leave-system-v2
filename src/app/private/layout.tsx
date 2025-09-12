@@ -248,15 +248,15 @@ export default function PersonnelAdminLayout({
                       router.push(`/private/manage-leave`);
                     },
                   },
-                  {
-                    key: "privilege",
-                    icon: <Icons.UserCheck />,
-                    style: { fontSize: 16, color: "#FDFEFE" },
-                    label: "สิทธิการลา",
-                    onClick: () => {
-                      router.push(`/private/manage-privilege`);
-                    },
-                  }
+                  // {
+                  //   key: "privilege",
+                  //   icon: <Icons.UserCheck />,
+                  //   style: { fontSize: 16, color: "#FDFEFE" },
+                  //   label: "สิทธิการลา",
+                  //   onClick: () => {
+                  //     router.push(`/private/manage-privilege`);
+                  //   },
+                  // }
                 ]
               },
             ]}
