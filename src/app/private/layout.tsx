@@ -156,8 +156,8 @@ export default function PersonnelAdminLayout({
                     style: { fontSize: 16, color: "#FDFEFE" },
                     label: "คำขออนุมัติลา",
                     onClick: () => {
-                  router.push(`/private/approve-hitory`);
-                },
+                      router.push(`/private/approve-hitory`);
+                    },
                   },
                   {
                     key: "officer",
@@ -165,11 +165,11 @@ export default function PersonnelAdminLayout({
                     style: { fontSize: 16, color: "#FDFEFE" },
                     label: "ลาราชการ",
                     onClick: () => {
-                  router.push(`/private/approve-hitory/Overseas`);
-                },
+                      router.push(`/private/approve-hitory/Overseas`);
+                    },
                   },
                 ],
-                
+
               },
               {
                 key: "history",
@@ -225,13 +225,39 @@ export default function PersonnelAdminLayout({
                 },
               },
               {
-                key: "manageApprover",
+                key: "manageLeave",
                 icon: <Icons.UserCheck />,
                 style: { fontSize: 16, color: "#FDFEFE" },
-                label: "การจัดการผู้อนุมัติ",
-                onClick: () => {
-                  router.push(`/private/manageApprover`);
-                },
+                label: "การจัดการลา",
+                children: [
+                  {
+                    key: "approver",
+                    icon: <Icons.UserCheck />,
+                    style: { fontSize: 16, color: "#FDFEFE" },
+                    label: "ผู้อนุม้ติ",
+                    onClick: () => {
+                      router.push(`/private/manage-approver`);
+                    },
+                  },
+                  {
+                    key: "leave",
+                    icon: <Icons.UserCheck />,
+                    style: { fontSize: 16, color: "#FDFEFE" },
+                    label: "ประเภทการลา",
+                    onClick: () => {
+                      router.push(`/private/manage-leave`);
+                    },
+                  },
+                  {
+                    key: "privilege",
+                    icon: <Icons.UserCheck />,
+                    style: { fontSize: 16, color: "#FDFEFE" },
+                    label: "สิทธิการลา",
+                    onClick: () => {
+                      router.push(`/private/manage-privilege`);
+                    },
+                  }
+                ]
               },
             ]}
           />

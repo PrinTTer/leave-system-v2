@@ -198,7 +198,7 @@ export default function ManageApproverPage() {
                                             </Button>
                                             <Button
                                                 className="chemds-button"
-                                                onClick={() => router.push("/private/manageApprover")}
+                                                onClick={() => router.push("/private/manage-approver")}
                                             >
                                                 ยกเลิก
                                             </Button>

@@ -81,7 +81,7 @@ export default function UserIndexPage() {
             <Icons.UserPlus
                 size={18}
                 style={{ cursor: "pointer" }}
-                onClick={() => router.push(`/private/manageApprover/${record.id}`)}
+                onClick={() => router.push(`/private/manage-approver/${record.id}`)}
             />
             </Tooltip>
         </Space>
@@ -233,7 +233,7 @@ export default function UserIndexPage() {
                                     </Col>
                                 </Form>
                             </Col>
-                            <Col
+                            {/* <Col
                                 span={8}
                                 style={{ display: "flex", justifyContent: "right" }}>
                                 <Button
@@ -245,7 +245,7 @@ export default function UserIndexPage() {
                                     }}>
                                     เพิ่ม
                                 </Button>
-                            </Col>
+                            </Col> */}
                         </Row>
                         <Row style={{ marginBottom: "1%" }}>
                             <Col span={24}>
