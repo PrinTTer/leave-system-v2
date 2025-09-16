@@ -8,51 +8,72 @@ import {
   useEffect,
 } from "react";
 
-// Define the type for the user details
+export type Role = "admin" | "approver" | "user" | null;
+
 interface User {
   firstname: string;
   lastname: string;
   email: string;
+  role: Role;
 }
 
-// Define the type for the context value
 interface UserContextType {
   user: User | null;
   setUserDetails: (user: User) => void;
+  setUserRole: (role: Role) => void; // เพิ่ม
+  logout: () => void;
 }
 
-// Create the User Context with a default value
+
 const defaultUserContext: UserContextType = {
   user: null,
-  setUserDetails: () => {}, // No-op function
+  setUserDetails: () => {},
+  setUserRole: () => {},
+  logout: () => {},
 };
+
 
 const UserContext = createContext<UserContextType>(defaultUserContext);
 
-// Create a provider component
 export const UserProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>({
+    firstname: "Test User",
+    lastname: "Lastname",
+    email: "test@gmail.com",
+    role: "user", // default role
+  });
 
   const setUserDetails = (userDetails: User) => {
     setUser(userDetails);
+    localStorage.setItem("user", JSON.stringify(userDetails));
+  };
+
+  const setUserRole = (role: Role) => {
+  if (!user) return;
+  const updatedUser = { ...user, role };
+  setUser(updatedUser);
+  localStorage.setItem("user", JSON.stringify(updatedUser));
+};
+
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("user");
   };
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, setUserDetails }}>
-      {children}
-    </UserContext.Provider>
-  );
+  <UserContext.Provider value={{ user, setUserDetails, setUserRole, logout }}>
+    {children}
+  </UserContext.Provider>
+);
+
 };
 
-// Custom hook to use the UserContext
-export const useUser = () => {
-  return useContext(UserContext);
-};
+export const useUser = () => useContext(UserContext);
