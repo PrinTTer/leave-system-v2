@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { Table, Tag, Typography } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Table, Tag, Typography, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { LeaveItem, UserRef } from '@/types/calendar';
 import dayjs, { Dayjs } from 'dayjs';
@@ -16,11 +16,11 @@ interface Props {
   users: UserRef[];
   /** user ที่เลือกให้มองเห็น จากหน้า Leave Visibility (ว่าง = แสดงทุกคน) */
   selectedUserIds?: string[];
-  /** เดือนฐานที่ต้องการแสดง (default: วันนี้) */
+  /** เดือนฐานที่ต้องการแสดง (default: วันนี้) — ยังใช้เป็น base date เมื่อเลือก "เดือนนี้" */
   monthDate?: Dayjs;
 }
 
-// แปลงประเภทการลาเป็นไทย (เติม/ปรับได้ตามระบบจริง)
+// แปลงประเภทการลาเป็นไทย
 const LEAVE_TYPE_TH: Record<string, string> = {
   sick: 'ลาป่วย',
   personal: 'ลากิจ',
@@ -48,12 +48,11 @@ function formatThaiDateRange(start: Dayjs, end: Dayjs): string {
   return `${left} – ${right}`;
 }
 
-function overlapsMonth(item: LeaveItem, month: Dayjs) {
-  const mStart = month.startOf('month');
-  const mEnd = month.endOf('month');
-  const s = dayjs(item.startDate);
-  const e = dayjs(item.endDate || item.startDate);
-  return s.isBefore(mEnd.add(1, 'day'), 'day') && e.isAfter(mStart.subtract(1, 'day'), 'day');
+function overlapsRange(item: LeaveItem, rangeStart: Dayjs, rangeEnd: Dayjs) {
+  const s = dayjs(item.startDate).startOf('day');
+  const e = dayjs(item.endDate || item.startDate).endOf('day');
+  // รวมวันปลายทั้งสองฝั่งแบบ inclusive
+  return s.isBefore(rangeEnd.add(1, 'day'), 'day') && e.isAfter(rangeStart.subtract(1, 'day'), 'day');
 }
 
 function dayCount(item: LeaveItem) {
@@ -62,18 +61,52 @@ function dayCount(item: LeaveItem) {
   return e.diff(s, 'day') + 1;
 }
 
-export default function LeaveScheduleTable({ leaves, users, selectedUserIds = [], monthDate }: Props) {
+type RangeFilter = 'week' | 'month';
+
+export default function LeaveScheduleTable({
+  leaves,
+  users,
+  selectedUserIds = [],
+  monthDate,
+}: Props) {
   const userMap = useMemo(() => new Map(users.map((u) => [String(u.id), u.name])), [users]);
-  const month = (monthDate ?? dayjs()).startOf('month');
+
+  // ฟิลเตอร์ช่วงเวลา (ค่าเริ่มต้น: สัปดาห์นี้)
+  const [rangeFilter, setRangeFilter] = useState<RangeFilter>('week');
+
+  // baseDate ใช้วันนี้เป็นหลัก หากส่ง monthDate มาก็ใช้เป็น base ของ "เดือนนี้"
+  const baseDate = monthDate ?? dayjs();
+
+  // คำนวณช่วงตามฟิลเตอร์
+  const { rangeStart, rangeEnd, rangeTitle } = useMemo(() => {
+    if (rangeFilter === 'week') {
+      // วันอาทิตย์เป็นวันเริ่มต้นสัปดาห์ (0) — ไม่ต้องใช้ปลั๊กอิน
+      const start = baseDate.startOf('day').subtract(baseDate.day(), 'day'); // อาทิตย์
+      const end = start.add(6, 'day').endOf('day'); // เสาร์
+      return {
+        rangeStart: start,
+        rangeEnd: end,
+        rangeTitle: `การลาประจำสัปดาห์ ${formatThaiDateRange(start, end)} ${beYear(start)}`,
+      };
+    }
+    // เดือนนี้
+    const start = baseDate.startOf('month');
+    const end = baseDate.endOf('month');
+    // เพิ่มปี พ.ศ. ต่อท้ายให้ชัดเจน
+    return {
+      rangeStart: start,
+      rangeEnd: end,
+      rangeTitle: `การลาประจำเดือน ${baseDate.format('MMMM')} ${beYear(baseDate)}`,
+    };
+  }, [baseDate, rangeFilter]);
 
   const filtered = useMemo(() => {
     const byUser = selectedUserIds.length
       ? leaves.filter((l) => selectedUserIds.includes(String(l.userId)))
       : leaves;
-    const byMonth = byUser.filter((l) => overlapsMonth(l, month));
-    // เรียงตามวันที่เริ่มลา
-    return byMonth.sort((a, b) => a.startDate.localeCompare(b.startDate));
-  }, [leaves, month, selectedUserIds]);
+    const byRange = byUser.filter((l) => overlapsRange(l, rangeStart, rangeEnd));
+    return byRange.sort((a, b) => a.startDate.localeCompare(b.startDate));
+  }, [leaves, selectedUserIds, rangeStart, rangeEnd]);
 
   const columns: ColumnsType<LeaveItem & { _dateRange: string; _days: number }> = [
     {
@@ -82,7 +115,8 @@ export default function LeaveScheduleTable({ leaves, users, selectedUserIds = []
       key: 'user',
       width: 180,
       render: (v) => userMap.get(String(v)) ?? v,
-      sorter: (a, b) => (userMap.get(String(a.userId)) ?? '').localeCompare(userMap.get(String(b.userId)) ?? ''),
+      sorter: (a, b) =>
+        (userMap.get(String(a.userId)) ?? '').localeCompare(userMap.get(String(b.userId)) ?? ''),
     },
     {
       title: 'ประเภท',
@@ -130,19 +164,32 @@ export default function LeaveScheduleTable({ leaves, users, selectedUserIds = []
     },
   ];
 
-  const dataSource = useMemo(() =>
-    filtered.map((l) => ({
-      ...l,
-      _dateRange: formatThaiDateRange(dayjs(l.startDate), dayjs(l.endDate || l.startDate)),
-      _days: dayCount(l),
-    })),
-  [filtered]);
+  const dataSource = useMemo(
+    () =>
+      filtered.map((l) => ({
+        ...l,
+        _dateRange: formatThaiDateRange(dayjs(l.startDate), dayjs(l.endDate || l.startDate)),
+        _days: dayCount(l),
+      })),
+    [filtered]
+  );
 
   return (
     <div>
-      <Typography.Title level={5} style={{ margin: '0 0 8px' }}>
-        การลาประจำเดือน {month.format('MMMM')} {month.year() + 543}
-      </Typography.Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+        <Typography.Title level={5} style={{ margin: 0 }}>
+          {rangeTitle}
+        </Typography.Title>
+        <Segmented
+          options={[
+            { label: 'สัปดาห์นี้', value: 'week' },
+            { label: 'เดือนนี้', value: 'month' },
+          ]}
+          value={rangeFilter}
+          onChange={(v) => setRangeFilter(v as RangeFilter)}
+        />
+      </div>
+
       <Table
         rowKey="id"
         columns={columns}
