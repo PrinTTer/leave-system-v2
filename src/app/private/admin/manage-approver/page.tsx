@@ -14,6 +14,7 @@ import {
     Typography,
     Tooltip,
     InputNumber,
+    Select,
 } from "antd";
 import { useRouter } from "next/navigation";
 import * as Icons from "lucide-react";
@@ -40,54 +41,54 @@ export default function UserIndexPage() {
     });
 
     const columns: TableProps["columns"] = [
-    {
-        title: "ชื่อ",
-        dataIndex: "thaiName",
-        key: "thaiName",
-        align: "left",
-    },
-    {
-        title: "ตำแหน่ง",
-        dataIndex: "position",
-        key: "position",
-        align: "left",
-    },
-    {
-        title: "แผนก",
-        dataIndex: "department",
-        key: "department",
-        align: "left",
-    },
-    {
-        title: "ผู้อนุมัติ 1",
-        key: "approver1",
-        align: "left",
-        render: (_, record) => record.approver?.[0]?.thaiName || "-",
-    },
-    {
-        title: "ผู้อนุมัติ 2",
-        key: "approver2",
-        align: "left",
-        render: (_, record) => record.approver?.[1]?.thaiName || "-",
-    },
-    {
-        title: "การจัดการ",
-        key: "actions",
-        align: "center",
-        width: "15%",
-        render: (_, record) => (
-        <Space size="middle">
-            <Tooltip title="ผู้อนุมัติ">
-            <Icons.UserPlus
-                size={18}
-                style={{ cursor: "pointer" }}
-                onClick={() => router.push(`/private/manage-approver/${record.id}`)}
-            />
-            </Tooltip>
-        </Space>
-        ),
-    },
-];
+        {
+            title: "ชื่อ",
+            dataIndex: "thaiName",
+            key: "thaiName",
+            align: "left",
+        },
+        {
+            title: "ตำแหน่ง",
+            dataIndex: "position",
+            key: "position",
+            align: "left",
+        },
+        {
+            title: "แผนก",
+            dataIndex: "department",
+            key: "department",
+            align: "left",
+        },
+        {
+            title: "ผู้อนุมัติ 1",
+            key: "approver1",
+            align: "left",
+            render: (_, record) => record.approver?.[0]?.thaiName || "-",
+        },
+        {
+            title: "ผู้อนุมัติ 2",
+            key: "approver2",
+            align: "left",
+            render: (_, record) => record.approver?.[1]?.thaiName || "-",
+        },
+        {
+            title: "การจัดการ",
+            key: "actions",
+            align: "center",
+            width: "15%",
+            render: (_, record) => (
+                <Space size="middle">
+                    <Tooltip title="ผู้อนุมัติ">
+                        <Icons.UserPlus
+                            size={18}
+                            style={{ cursor: "pointer" }}
+                            onClick={() => router.push(`/private/manage-approver/${record.id}`)}
+                        />
+                    </Tooltip>
+                </Space>
+            ),
+        },
+    ];
 
 
     const fetchUsers = async () => {
@@ -203,6 +204,37 @@ export default function UserIndexPage() {
                         </Col>
                     </Row>
                     <div className="chemds-container">
+                        <Row style={{ marginBottom: "1%" }}>
+    <Col span={16}>
+        <Form layout="inline" form={form}>
+            <Col>
+                <Form.Item name="userSelect">
+                    <Select
+                        placeholder="เลือกผู้ใช้"
+                        style={{ minWidth: 250 }}
+                        allowClear
+                        options={users.data.map((u) => ({
+                            value: u.id,
+                            label: u.thaiName,
+                        }))}
+                    />
+                </Form.Item>
+            </Col>
+            <Col>
+                <Button
+                    className="chemds-button"
+                    type="primary"
+                    onClick={() => {
+                        setLoading(true);
+                        router.push(`/private/admin/manage-approver/add`);
+                    }}>
+                    เพิ่ม
+                </Button>
+            </Col>
+        </Form>
+    </Col>
+</Row>
+
                         <Row style={{ marginBottom: "1%" }}>
                             <Col span={16}>
                                 <Form layout="inline" form={form}>
