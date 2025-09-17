@@ -185,7 +185,7 @@ export default function PersonnelAdminLayout({
                                         style: { fontSize: 16, color: "#FDFEFE" },
                                         label: "ผู้อนุม้ติ",
                                         onClick: () => {
-                                            router.push(`/private/manage-approver`);
+                                            router.push(`/private/admin/manage-approver`);
                                         },
                                     },
                                     {
@@ -194,7 +194,7 @@ export default function PersonnelAdminLayout({
                                         style: { fontSize: 16, color: "#FDFEFE" },
                                         label: "ประเภทการลา",
                                         onClick: () => {
-                                            router.push(`/private/manage-leave`);
+                                            router.push(`/private/admin/manage-leave`);
                                         },
                                     },
                                     // {
