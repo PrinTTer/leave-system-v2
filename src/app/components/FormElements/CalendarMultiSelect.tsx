@@ -8,8 +8,8 @@ interface Props {
 }
 
 const OPTIONS = [
-  { label: 'ปฏิทินธรรมดา', value: 'standard' },
-  { label: 'ปฏิทินปีการศึกษา', value: 'academic' },
+  { label: 'ปฏิทินวันหยุดราชการ', value: 'standard' },
+  { label: 'ปฏิทินการศึกษา', value: 'academic' },
   { label: 'ปฏิทินปีงบประมาณ', value: 'fiscal' },
 ];
 

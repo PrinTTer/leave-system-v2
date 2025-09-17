@@ -248,7 +248,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
     holidayCategory: 'public_non_contiguous',
   },
 
-  // ---------- [ปฏิทินปีการศึกษา 2568–2569 (calendarType: 'academic')] ----------
+  // ---------- [ปฏิทินการศึกษา 2568–2569 (calendarType: 'academic')] ----------
   {
     id: 'ac-2568-0615',
     calendarType: 'academic',

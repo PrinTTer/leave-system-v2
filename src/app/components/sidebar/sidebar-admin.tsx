@@ -56,7 +56,7 @@ export default function PersonnelAdminLayout({
         },
         {
             key: "4",
-            label: "position",
+            label: "บทบาท",
             disabled: true,
         },
         {
@@ -70,16 +70,16 @@ export default function PersonnelAdminLayout({
         },
         {
             key: "6",
-            label: "อาจารย์/บุคลากร(ผู้อนุมัติ)",
+            label: "อาจารย์/บุคลากร",
             icon: <Icons.UsersRound />,
             onClick: () => setUserRole("approver"),
         },
-        {
-            key: "7",
-            label: "อาจารย์/บุคลากร",
-            icon: <Icons.UsersRound />,
-            onClick: () => setUserRole("user"),
-        },
+        // {
+        //     key: "7",
+        //     label: "อาจารย์/บุคลากร",
+        //     icon: <Icons.UsersRound />,
+        //     onClick: () => setUserRole("user"),
+        // },
     ];
 
     useEffect(() => { }, []);

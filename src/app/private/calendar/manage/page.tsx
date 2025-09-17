@@ -14,8 +14,8 @@ import { mergeMockWithDiff, loadDiff, saveDiff, buildDiffFromData } from '@/util
 const { RangePicker } = DatePicker;
 
 const CALENDAR_TYPE_OPTIONS = [
-  { label: 'ปฏิทินธรรมดา', value: 'standard' },
-  { label: 'ปฏิทินปีการศึกษา', value: 'academic' },
+  { label: 'ปฏิทินวันหยุดราชการ', value: 'standard' },
+  { label: 'ปฏิทินการศึกษา', value: 'academic' },
   { label: 'ปฏิทินปีงบประมาณ', value: 'fiscal' },
 ];
 
@@ -241,7 +241,7 @@ useEffect(() => {
             <Select options={CALENDAR_TYPE_OPTIONS} />
           </Form.Item>
 
-          {/* เฉพาะปฏิทินธรรมดา: flag วันหยุดนักขัตฤกษ์ (ใช้เพื่อจัดหมวดต่อเนื่อง/ไม่ต่อเนื่อง) */}
+          {/* เฉพาะปฏิทินวันหยุดราชการ: flag วันหยุดนักขัตฤกษ์ (ใช้เพื่อจัดหมวดต่อเนื่อง/ไม่ต่อเนื่อง) */}
           {calendarType === 'standard' && (
             <Form.Item name="isHoliday" valuePropName="checked">
               <Checkbox>วันหยุดนักขัตฤกษ์</Checkbox>

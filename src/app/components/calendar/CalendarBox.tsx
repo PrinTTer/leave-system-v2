@@ -51,8 +51,8 @@ const users: UserRef[] = [
 const monthsShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const CAL_TYPE_LABEL: Record<CalendarType, string> = {
-  standard: 'ปฏิทินธรรมดา',
-  academic: 'ปฏิทินปีการศึกษา',
+  standard: 'ปฏิทินวันหยุดราชการ',
+  academic: 'ปฏิทินการศึกษา',
   fiscal:   'ปฏิทินปีงบประมาณ',
 };
 
