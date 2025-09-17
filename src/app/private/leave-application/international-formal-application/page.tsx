@@ -16,7 +16,7 @@ interface LeaveSummary {
   remaining: number;
 }
 
-const FormalApplicationForm: React.FC = () => {
+const InternationalFormalLeaveForm: React.FC = () => {
   const totalBusinessLeave = 10; // วันลากิจ/ราชการรวมสูงสุดสมมติ
   const totalPersonalLeave = 5; // วันลากิจสูงสุดสมมติ
 
@@ -25,6 +25,7 @@ const FormalApplicationForm: React.FC = () => {
   const [hasPersonalLeave, setHasPersonalLeave] = useState<string>("2"); // 1=มี, 2=ไม่มี
   const [personalLeaveDays, setPersonalLeaveDays] = useState<number>(0);
   const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
+  const [countries, setCountries] = useState<string[]>([]);
 
   const handleRangeChange = (dates: [Dayjs, Dayjs] | null) => {
     setLeaveRange(dates);
@@ -52,7 +53,7 @@ const FormalApplicationForm: React.FC = () => {
   const summaryData: LeaveSummary[] = [
     {
       key: "1",
-      type: "ไปราชการ",
+      type: "ไปราชการต่างประเทศ",
       startDate: leaveRange?.[0].format("YYYY-MM-DD"),
       endDate: leaveRange?.[1].format("YYYY-MM-DD"),
       days: totalBusinessDays,
@@ -86,17 +87,20 @@ const FormalApplicationForm: React.FC = () => {
       <Form layout="vertical" className="max-w-2xl p-6 border rounded-lg bg-white shadow-sm">
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item label="มีความประสงค์จะเดินทางไปจังหวัด" name="province">
+            <Form.Item label="มีความประสงค์จะเดินทางไปประเทศ" name="country">
               <Select
+                mode="multiple"
                 showSearch
-                placeholder="-- กรุณาระบุจังหวัด --"
+                placeholder="-- กรุณาระบุประเทศ --"
                 optionFilterProp="label"
+                value={countries}
+                onChange={(vals) => setCountries(vals)}
                 options={[
-                  { value: "bkk", label: "กรุงเทพมหานคร" },
-                  { value: "chiangmai", label: "เชียงใหม่" },
-                  { value: "phuket", label: "ภูเก็ต" },
-                  { value: "chonburi", label: "ชลบุรี" },
-                  { value: "khonkaen", label: "ขอนแก่น" },
+                  { value: "us", label: "สหรัฐอเมริกา" },
+                  { value: "uk", label: "สหราชอาณาจักร" },
+                  { value: "jp", label: "ญี่ปุ่น" },
+                  { value: "kr", label: "เกาหลีใต้" },
+                  { value: "cn", label: "จีน" },
                 ]}
               />
             </Form.Item>
@@ -214,4 +218,4 @@ const FormalApplicationForm: React.FC = () => {
   );
 };
 
-export default FormalApplicationForm;
+export default InternationalFormalLeaveForm;

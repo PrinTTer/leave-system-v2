@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button, Card, Col, Row, Select } from "antd";
+import { Card, Col, Row, Select } from "antd";
 import GeneralLeaveForm from "./general-application/page";
 import FormalApplicationForm from "./formal-application/page";
-import Link from "next/link";
+import OverseasLeaveForm from "./overseas-general-application/page";
+import InternationalLeaveForm from "./overseas-general-application/page";
+import InternationalFormalLeaveForm from "./international-formal-application/page";
+// import Link from "next/link";
 
 interface User {
   pronoun: string;        // คำนำหน้า เช่น Mr./Ms.
@@ -40,9 +43,10 @@ const LeaveSelectionPage: React.FC = () => {
         placeholder="-- กรุณาเลือกประเภทการลา --"
         onChange={(value) => setSelectedType(value)}
         options={[
-          { value: "ลากิจ", label: "ลากิจ" },
-          { value: "ลาป่วย", label: "ลาป่วย" },
-          { value: "ลาไปราชการ", label: "ลาไปราชการ" },
+          { value: "1", label: "ลาทั่วไป" },
+          { value: "2", label: "ลาทั่วไป (ต่างประเทศ)" },
+          { value: "3", label: "ลาไปราชการ" },
+          { value: "4", label: "ลาไปราชการ (ต่างประเทศ)" },
         ]}
       />
 
@@ -66,17 +70,18 @@ const LeaveSelectionPage: React.FC = () => {
             </Row>
             </Card>
 
-            {selectedType === "ลาไปราชการ" ? (
+            {selectedType === "3" ? (
                 <FormalApplicationForm />
-            ) : (
+            ) : selectedType =="1" ?(
                 <GeneralLeaveForm/>
-            )}
-
-            <Link href="/private" className="flex justify-end">
-              <Button type="primary">
-                ส่งใบลา
-              </Button>
-            </Link>
+            )
+            : selectedType =="2" ?(
+                <InternationalLeaveForm/>
+            )
+            : selectedType =="4" ?(
+                <InternationalFormalLeaveForm />
+            )
+            : null}
         </>
       ) : null}
 

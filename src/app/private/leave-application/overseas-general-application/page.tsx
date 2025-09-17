@@ -6,59 +6,61 @@ import {
   DatePicker,
   Input,
   Button,
-  Upload,
+  Select,
   Radio,
-  TimePicker,
   Table,
   Typography,
+  TimePicker,
 } from "antd";
-import type { UploadFile } from "antd/es/upload/interface";
-import { UploadOutlined } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 import Link from "next/link";
 
 const { RangePicker } = DatePicker;
 const { Text } = Typography;
 
-const GeneralLeaveForm: React.FC = () => {
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
+const countries = [
+  { label: "ญี่ปุ่น", value: "Japan" },
+  { label: "เกาหลีใต้", value: "South Korea" },
+  { label: "สหรัฐอเมริกา", value: "USA" },
+  { label: "อังกฤษ", value: "UK" },
+  { label: "ฝรั่งเศส", value: "France" },
+  { label: "สิงคโปร์", value: "Singapore" },
+];
+
+const InternationalLeaveForm: React.FC = () => {
   const [leaveType, setLeaveType] = useState<string>("");
-  const [halfDay, setHalfDay] = useState<boolean>(false);
   const [dates, setDates] = useState<[Dayjs, Dayjs] | null>(null);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [halfDay, setHalfDay] = useState<boolean>(false);
   const [halfDayTime, setHalfDayTime] = useState<Dayjs | null>(null);
 
   // mock: จำนวนวันลาทั้งหมดที่มีสิทธิ์
   const totalLeaveDays = 10;
 
-  const handleChange = (info: { fileList: UploadFile[] }) => {
-    setFileList(info.fileList);
-  };
-
-  const calculateLeaveDays = (): number => {
+  // คำนวณจำนวนวันลา
+  const leaveDays = useMemo(() => {
     if (!dates) return 0;
-
-    let [start, end] = dates;
+    const [start, end] = dates;
     let days = 0;
     let current = start.startOf("day");
 
     while (current.isBefore(end.endOf("day")) || current.isSame(end, "day")) {
       const day = current.day();
-      // ข้ามเสาร์ (6) อาทิตย์ (0)
+      // ข้ามวันเสาร์-อาทิตย์
       if (day !== 0 && day !== 6) {
         days += 1;
       }
       current = current.add(1, "day");
     }
 
-    // ถ้าเลือกครึ่งวันให้หักออกครึ่ง
+    // ถ้าเลือกครึ่งวัน หักออกครึ่ง
     if (halfDay) {
       days -= 0.5;
     }
 
     return days;
-  };
+  }, [dates, halfDay]);
 
-  const leaveDays = useMemo(() => calculateLeaveDays(), [dates, halfDay]);
   const remainingLeaveDays = totalLeaveDays - leaveDays;
 
   const summaryData = [
@@ -69,14 +71,20 @@ const GeneralLeaveForm: React.FC = () => {
           ? "ลาป่วย"
           : leaveType === "business"
           ? "ลากิจ"
-          : "ลาพักร้อน",
-      leaveDays: leaveDays,
+          : leaveType === "vacation"
+          ? "ลาพักร้อน"
+          : "-",
+      countries: selectedCountries.join(", ") || "-",
+      leaveMode: halfDay ? "ครึ่งวัน" : "เต็มวัน",
+      leaveDays,
       remaining: remainingLeaveDays,
     },
   ];
 
   const columns = [
     { title: "ประเภทการลา", dataIndex: "leaveType" },
+    { title: "ประเทศที่เดินทาง", dataIndex: "countries" },
+    { title: "ลาครึ่งวัน/เต็มวัน", dataIndex: "leaveMode" },
     { title: "จำนวนวันที่ลา", dataIndex: "leaveDays" },
     {
       title: "จำนวนวันลาคงเหลือ",
@@ -91,7 +99,7 @@ const GeneralLeaveForm: React.FC = () => {
     <div>
       <Form
         layout="vertical"
-        className="max-w-lg p-6 border rounded-lg bg-white shadow-sm"
+        className="max-w-2xl p-6 border rounded-lg bg-white shadow-sm"
       >
         {/* ประเภทการลา */}
         <Form.Item
@@ -107,6 +115,23 @@ const GeneralLeaveForm: React.FC = () => {
             <Radio value="business">ลากิจ</Radio>
             <Radio value="vacation">ลาพักร้อน</Radio>
           </Radio.Group>
+        </Form.Item>
+
+        {/* เลือกประเทศ */}
+        <Form.Item
+          label="ประเทศที่ต้องการเดินทาง"
+          name="countries"
+          rules={[{ required: true, message: "กรุณาเลือกประเทศ" }]}
+        >
+          <Select
+            mode="multiple"
+            allowClear
+            style={{ width: "100%" }}
+            placeholder="ค้นหาและเลือกประเทศ"
+            options={countries}
+            value={selectedCountries}
+            onChange={setSelectedCountries}
+          />
         </Form.Item>
 
         {/* เหตุผลการลา */}
@@ -130,7 +155,7 @@ const GeneralLeaveForm: React.FC = () => {
           />
         </Form.Item>
 
-        {/* ครึ่งวัน */}
+        {/* ลาครึ่งวัน/เต็มวัน */}
         <Form.Item label="ลาครึ่งวัน" name="halfDay">
           <Radio.Group
             value={halfDay}
@@ -139,63 +164,49 @@ const GeneralLeaveForm: React.FC = () => {
             <Radio value={false}>เต็มวัน</Radio>
             <Radio value={true}>ครึ่งวัน</Radio>
           </Radio.Group>
-          {halfDay && (
+          {/* {halfDay && (
             <TimePicker
               className="mt-2"
               format="HH:mm"
               value={halfDayTime}
               onChange={setHalfDayTime}
             />
-          )}
+          )} */}
         </Form.Item>
 
-        {/* แนบเอกสาร - แสดงเฉพาะลาป่วย */}
-        {leaveType === "sick" && (
-          <Form.Item label="แนบเอกสารเพิ่มเติม" name="attachments">
-            <Upload fileList={fileList} onChange={handleChange}>
-              <Button icon={<UploadOutlined />}>เลือกไฟล์</Button>
-            </Upload>
-          </Form.Item>
-        )}
-
-         {/* ตารางสรุปการลา */}
-      <div className="mt-6 mb-4">
-        <Table
-          dataSource={summaryData}
-          pagination={false}
-          bordered
-          columns={columns}
-        />
-      </div>
+        {/* ตารางสรุปการลา */}
+        <div className="mt-6 mb-4">
+          <Table
+            dataSource={summaryData}
+            pagination={false}
+            bordered
+            columns={columns}
+          />
+        </div>
 
         {/* ปุ่มส่งใบลา */}
-        
-          <div className="flex justify-end mt-4" style={{ marginTop: 16 }}>
-            <Form.Item>
-             <Link href="/private">
-            <Button
-              type="primary"
-              htmlType="submit"
-              disabled={remainingLeaveDays < 0}
-            >
-              ส่งใบลา
-            </Button>
-          </Link>
-          
-          
-          {remainingLeaveDays < 0 && (
-            <Text type="danger" className="ml-3">
-              ระยะเวลาการลาเกินกว่าที่กำหนด
-            </Text>
-          )}
-        </Form.Item>
-          </div>
-         
-      </Form>
+        <div className="flex justify-end mt-4" style={{ marginTop: 16 }}>
+          <Form.Item>
+            <Link href="/private">
+              <Button
+                type="primary"
+                htmlType="submit"
+                disabled={remainingLeaveDays < 0}
+              >
+                ส่งใบลา
+              </Button>
+            </Link>
 
-     
+            {remainingLeaveDays < 0 && (
+              <Text type="danger" className="ml-3">
+                ระยะเวลาการลาเกินกว่าที่กำหนด
+              </Text>
+            )}
+          </Form.Item>
+        </div>
+      </Form>
     </div>
   );
 };
 
-export default GeneralLeaveForm;
+export default InternationalLeaveForm;
