@@ -184,7 +184,7 @@ export default function PersonnelApproverLayout({
                                         style: { fontSize: 16, color: "#FDFEFE" },
                                         label: "คำขออนุมัติลา",
                                         onClick: () => {
-                                            router.push(`/private/approve-hitory`);
+                                            router.push(`/private/approver/approve-history`);
                                         },
                                     },
                                     {
@@ -193,7 +193,7 @@ export default function PersonnelApproverLayout({
                                         style: { fontSize: 16, color: "#FDFEFE" },
                                         label: "ลาราชการ",
                                         onClick: () => {
-                                            router.push(`/private/approve-hitory/Overseas`);
+                                            router.push(`/private/approver/approve-history/overseas`);
                                         },
                                     },
                                 ],
