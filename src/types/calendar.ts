@@ -10,7 +10,7 @@ export interface CalendarSchedule {
   startDate: string; // ISO (YYYY-MM-DD)
   endDate: string;   // ISO (YYYY-MM-DD)
   dayCount: number;  // รวมวันเสาร์-อาทิตย์
-  // เฉพาะปฏิทินธรรมดา ที่ติ๊ก "วันหยุดนักขัตฤกษ์"
+  // เฉพาะปฏิทินวันหยุดราชการ ที่ติ๊ก "วันหยุดนักขัตฤกษ์"
   isHoliday?: boolean;
   holidayCategory?: HolidayCategory; // ต่อเนื่อง/ไม่ต่อเนื่องกับเสาร์-อาทิตย์
 }

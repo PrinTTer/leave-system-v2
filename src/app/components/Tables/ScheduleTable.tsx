@@ -27,8 +27,8 @@ export interface ScheduleTableProps {
 
 // Mapping ชนิดปฏิทิน -> แสดงผลภาษาไทย
 const CAL_TYPE_TH: Record<string, string> = {
-  standard: "ปฏิทินธรรมดา",
-  academic: "ปฏิทินปีการศึกษา",
+  standard: "ปฏิทินวันหยุดราชการ",
+  academic: "ปฏิทินการศึกษา",
   fiscal: "ปฏิทินปีงบประมาณ",
   leave: "ปฏิทินการลา",
 };

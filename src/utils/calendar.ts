@@ -15,7 +15,7 @@ const rangeIncludesWeekend = (start: Dayjs, end: Dayjs) => {
   return false;
 };
 
-/** ใช้เฉพาะกรณี "ปฏิทินธรรมดา" และผู้ใช้ติ๊ก "วันหยุดนักขัตฤกษ์" */
+/** ใช้เฉพาะกรณี "ปฏิทินวันหยุดราชการ" และผู้ใช้ติ๊ก "วันหยุดนักขัตฤกษ์" */
 export const classifyPublicHoliday = (
   start: Dayjs,
   end: Dayjs
