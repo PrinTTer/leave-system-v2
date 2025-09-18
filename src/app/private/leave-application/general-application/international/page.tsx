@@ -10,9 +10,8 @@ import {
   Radio,
   Table,
   Typography,
-  TimePicker,
 } from "antd";
-import dayjs, { Dayjs } from "dayjs";
+import { Dayjs } from "dayjs";
 import Link from "next/link";
 
 const { RangePicker } = DatePicker;
@@ -32,7 +31,6 @@ const InternationalLeaveForm: React.FC = () => {
   const [dates, setDates] = useState<[Dayjs, Dayjs] | null>(null);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [halfDay, setHalfDay] = useState<boolean>(false);
-  const [halfDayTime, setHalfDayTime] = useState<Dayjs | null>(null);
 
   // mock: จำนวนวันลาทั้งหมดที่มีสิทธิ์
   const totalLeaveDays = 10;
@@ -84,7 +82,6 @@ const InternationalLeaveForm: React.FC = () => {
   const columns = [
     { title: "ประเภทการลา", dataIndex: "leaveType" },
     { title: "ประเทศที่เดินทาง", dataIndex: "countries" },
-    { title: "ลาครึ่งวัน/เต็มวัน", dataIndex: "leaveMode" },
     { title: "จำนวนวันที่ลา", dataIndex: "leaveDays" },
     {
       title: "จำนวนวันลาคงเหลือ",
@@ -114,6 +111,7 @@ const InternationalLeaveForm: React.FC = () => {
             <Radio value="sick">ลาป่วย</Radio>
             <Radio value="business">ลากิจ</Radio>
             <Radio value="vacation">ลาพักร้อน</Radio>
+            <Radio value="vacation">ลาคลอดบุตร</Radio>
           </Radio.Group>
         </Form.Item>
 
@@ -164,14 +162,14 @@ const InternationalLeaveForm: React.FC = () => {
             <Radio value={false}>เต็มวัน</Radio>
             <Radio value={true}>ครึ่งวัน</Radio>
           </Radio.Group>
-          {/* {halfDay && (
-            <TimePicker
-              className="mt-2"
-              format="HH:mm"
-              value={halfDayTime}
-              onChange={setHalfDayTime}
-            />
-          )} */}
+          {halfDay && (
+            <Radio.Group
+              value='halfDayTime'
+          >
+              <Radio value={false}>ครึ่งเช้า</Radio>
+              <Radio value={true}>ครึ่งบ่าย</Radio>
+            </Radio.Group>
+          )}
         </Form.Item>
 
         {/* ตารางสรุปการลา */}

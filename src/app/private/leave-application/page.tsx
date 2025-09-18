@@ -2,11 +2,10 @@
 
 import React, { useState } from "react";
 import { Card, Col, Row, Select } from "antd";
-import GeneralLeaveForm from "./general-application/page";
-import FormalApplicationForm from "./formal-application/page";
-import OverseasLeaveForm from "./overseas-general-application/page";
-import InternationalLeaveForm from "./overseas-general-application/page";
-import InternationalFormalLeaveForm from "./international-formal-application/page";
+import GeneralLeaveForm from "./general-application/general/page";
+import FormalApplicationForm from "./formal-application/general/page";
+import InternationalLeaveForm from "./general-application/international/page";
+import InternationalFormalLeaveForm from "./formal-application/international/page";
 // import Link from "next/link";
 
 interface User {
@@ -52,9 +51,6 @@ const LeaveSelectionPage: React.FC = () => {
 
       {selectedType !== "" ? (
         <>
-        <p className="text-xl font-bold text-black mb-4">
-            ใบ{selectedType}
-        </p>
             <Card title="ข้อมูลส่วนบุคคล" style={{ marginBottom: 24 }}>
             <Row gutter={[16, 16]}>
                 <Col span={8}><b>คำนำหน้า:</b> {user.pronoun}</Col>

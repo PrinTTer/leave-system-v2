@@ -8,13 +8,12 @@ import {
   Button,
   Upload,
   Radio,
-  TimePicker,
   Table,
   Typography,
 } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import { UploadOutlined } from "@ant-design/icons";
-import dayjs, { Dayjs } from "dayjs";
+import { Dayjs } from "dayjs";
 import Link from "next/link";
 
 const { RangePicker } = DatePicker;
@@ -25,7 +24,6 @@ const GeneralLeaveForm: React.FC = () => {
   const [leaveType, setLeaveType] = useState<string>("");
   const [halfDay, setHalfDay] = useState<boolean>(false);
   const [dates, setDates] = useState<[Dayjs, Dayjs] | null>(null);
-  const [halfDayTime, setHalfDayTime] = useState<Dayjs | null>(null);
 
   // mock: จำนวนวันลาทั้งหมดที่มีสิทธิ์
   const totalLeaveDays = 10;
@@ -69,7 +67,11 @@ const GeneralLeaveForm: React.FC = () => {
           ? "ลาป่วย"
           : leaveType === "business"
           ? "ลากิจ"
+          : leaveType === "4"
+          ? "ลาคลอดบุตร"
           : "ลาพักร้อน",
+      countries: "ต่างประเทศ",
+      // leaveMode: halfDay ? "ครึ่งวัน" : "เต็มวัน",
       leaveDays: leaveDays,
       remaining: remainingLeaveDays,
     },
@@ -106,6 +108,7 @@ const GeneralLeaveForm: React.FC = () => {
             <Radio value="sick">ลาป่วย</Radio>
             <Radio value="business">ลากิจ</Radio>
             <Radio value="vacation">ลาพักร้อน</Radio>
+            <Radio value="4">ลาคลอดบุตร</Radio>
           </Radio.Group>
         </Form.Item>
 
@@ -131,7 +134,7 @@ const GeneralLeaveForm: React.FC = () => {
         </Form.Item>
 
         {/* ครึ่งวัน */}
-        <Form.Item label="ลาครึ่งวัน" name="halfDay">
+        <Form.Item label="ลาเต็มวัน/ครึ่งวัน" name="halfDay">
           <Radio.Group
             value={halfDay}
             onChange={(e) => setHalfDay(e.target.value)}
@@ -140,12 +143,12 @@ const GeneralLeaveForm: React.FC = () => {
             <Radio value={true}>ครึ่งวัน</Radio>
           </Radio.Group>
           {halfDay && (
-            <TimePicker
-              className="mt-2"
-              format="HH:mm"
-              value={halfDayTime}
-              onChange={setHalfDayTime}
-            />
+             <Radio.Group
+              value='halfDayTime'
+            >
+              <Radio value={false}>ครึ่งเช้า</Radio>
+              <Radio value={true}>ครึ่งบ่าย</Radio>
+            </Radio.Group>
           )}
         </Form.Item>
 
