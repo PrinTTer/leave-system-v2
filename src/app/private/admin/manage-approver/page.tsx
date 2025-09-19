@@ -13,7 +13,7 @@ import {
     TableProps,
     Typography,
     Tooltip,
-    InputNumber,
+    // InputNumber,
     Select,
 } from "antd";
 import { useRouter } from "next/navigation";
@@ -54,7 +54,7 @@ export default function UserIndexPage() {
             align: "left",
         },
         {
-            title: "แผนก",
+            title: "สังกัด",
             dataIndex: "department",
             key: "department",
             align: "left",
@@ -82,7 +82,7 @@ export default function UserIndexPage() {
                         <Icons.UserPlus
                             size={18}
                             style={{ cursor: "pointer" }}
-                            onClick={() => router.push(`/private/manage-approver/${record.id}`)}
+                            onClick={() => router.push(`/private/admin/manage-approver/${record.id}`)}
                         />
                     </Tooltip>
                 </Space>
@@ -160,6 +160,11 @@ export default function UserIndexPage() {
                 totalCount: 10,
             };
             setUsers(data);
+
+            if (data.data.length > 0) {
+                form.setFieldsValue({ userSelect: data.data[0].id });
+            }
+
             setLoading(false);
             setTableLoading(false);
         } catch (error) {
@@ -168,6 +173,7 @@ export default function UserIndexPage() {
             setTableLoading(false);
         }
     };
+
 
     const onPageChange: PaginationProps["onChange"] = (pageNumber) => {
         setCurrentPage(pageNumber);
@@ -205,35 +211,35 @@ export default function UserIndexPage() {
                     </Row>
                     <div className="chemds-container">
                         <Row style={{ marginBottom: "1%" }}>
-    <Col span={16}>
-        <Form layout="inline" form={form}>
-            <Col>
-                <Form.Item name="userSelect">
-                    <Select
-                        placeholder="เลือกผู้ใช้"
-                        style={{ minWidth: 250 }}
-                        allowClear
-                        options={users.data.map((u) => ({
-                            value: u.id,
-                            label: u.thaiName,
-                        }))}
-                    />
-                </Form.Item>
-            </Col>
-            <Col>
-                <Button
-                    className="chemds-button"
-                    type="primary"
-                    onClick={() => {
-                        setLoading(true);
-                        router.push(`/private/admin/manage-approver/add`);
-                    }}>
-                    เพิ่ม
-                </Button>
-            </Col>
-        </Form>
-    </Col>
-</Row>
+                            <Col span={16}>
+                                <Form layout="inline" form={form}>
+                                    <Col>
+                                        <Form.Item name="userSelect">
+                                            <Select
+                                                placeholder="เลือกผู้ใช้"
+                                                style={{ minWidth: 250 }}
+                                                allowClear
+                                                options={users.data.map((u) => ({
+                                                    value: u.id,
+                                                    label: u.thaiName,
+                                                }))}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    {/* <Col>
+                                        <Button
+                                            className="chemds-button"
+                                            type="primary"
+                                            onClick={() => {
+                                                setLoading(true);
+                                                router.push(`/private/admin/manage-approver/add`);
+                                            }}>
+                                            เพิ่ม
+                                        </Button>
+                                    </Col> */}
+                                </Form>
+                            </Col>
+                        </Row>
 
                         <Row style={{ marginBottom: "1%" }}>
                             <Col span={16}>
@@ -265,7 +271,7 @@ export default function UserIndexPage() {
                                     </Col>
                                 </Form>
                             </Col>
-                            {/* <Col
+                            <Col
                                 span={8}
                                 style={{ display: "flex", justifyContent: "right" }}>
                                 <Button
@@ -273,11 +279,11 @@ export default function UserIndexPage() {
                                     type="primary"
                                     onClick={() => {
                                         setLoading(true);
-                                        router.push(`/private/user/new`);
+                                        router.push(`/private/admin/manage-approver/add`);
                                     }}>
                                     เพิ่ม
                                 </Button>
-                            </Col> */}
+                            </Col>
                         </Row>
                         <Row style={{ marginBottom: "1%" }}>
                             <Col span={24}>
