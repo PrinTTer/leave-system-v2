@@ -49,11 +49,7 @@ export default function PersonnelAdminLayout({
             label: "บัญชีของฉัน",
             icon: <Icons.UserRound />,
         },
-        {
-            key: "3",
-            label: "ออกจากระบบ",
-            icon: <Icons.LogOut />,
-        },
+
         {
             key: "4",
             label: "บทบาท",
@@ -80,6 +76,14 @@ export default function PersonnelAdminLayout({
         //     icon: <Icons.UsersRound />,
         //     onClick: () => setUserRole("user"),
         // },
+        {
+            type: "divider",
+        },
+        {
+            key: "3",
+            label: "ออกจากระบบ",
+            icon: <Icons.LogOut />,
+        },
     ];
 
     useEffect(() => { }, []);
