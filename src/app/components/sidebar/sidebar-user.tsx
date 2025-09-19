@@ -48,11 +48,7 @@ export default function PersonnelUserLayout({
             label: "บัญชีของฉัน",
             icon: <Icons.UserRound />,
         },
-        {
-            key: "3",
-            label: "ออกจากระบบ",
-            icon: <Icons.LogOut />,
-        },
+
         {
             key: "4",
             label: "บทบาท",
@@ -62,23 +58,31 @@ export default function PersonnelUserLayout({
             type: "divider",
         },
         {
-                    key: "5",
-                    label: "ผู้ดูแลระบบ",
-                    icon: <Icons.UserCog2 />,
-                    onClick: () => setUserRole("admin"),
-                },
-                {
-                    key: "6",
-                    label: "อาจารย์/บุคลากร",
-                    icon: <Icons.UsersRound />,
-                    onClick: () => setUserRole("approver"),
-                },
-                // {
-                //     key: "7",
-                //     label: "อาจารย์/บุคลากร",
-                //     icon: <Icons.UsersRound />,
-                //     onClick: () => setUserRole("user"),
-                // },
+            key: "5",
+            label: "ผู้ดูแลระบบ",
+            icon: <Icons.UserCog2 />,
+            onClick: () => setUserRole("admin"),
+        },
+        {
+            key: "6",
+            label: "อาจารย์/บุคลากร",
+            icon: <Icons.UsersRound />,
+            onClick: () => setUserRole("approver"),
+        },
+        // {
+        //     key: "7",
+        //     label: "อาจารย์/บุคลากร",
+        //     icon: <Icons.UsersRound />,
+        //     onClick: () => setUserRole("user"),
+        // },
+        {
+            type: "divider",
+        },
+        {
+            key: "3",
+            label: "ออกจากระบบ",
+            icon: <Icons.LogOut />,
+        },
     ];
 
     useEffect(() => { }, []);

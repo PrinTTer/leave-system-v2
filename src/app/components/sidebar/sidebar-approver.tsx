@@ -48,11 +48,7 @@ export default function PersonnelApproverLayout({
             label: "บัญชีของฉัน",
             icon: <Icons.UserRound />,
         },
-        {
-            key: "3",
-            label: "ออกจากระบบ",
-            icon: <Icons.LogOut />,
-        },
+
         {
             key: "4",
             label: "บทบาท",
@@ -62,23 +58,31 @@ export default function PersonnelApproverLayout({
             type: "divider",
         },
         {
-                    key: "5",
-                    label: "ผู้ดูแลระบบ",
-                    icon: <Icons.UserCog2 />,
-                    onClick: () => setUserRole("admin"),
-                },
-                {
-                    key: "6",
-                    label: "อาจารย์/บุคลากร",
-                    icon: <Icons.UsersRound />,
-                    onClick: () => setUserRole("approver"),
-                },
-                // {
-                //     key: "7",
-                //     label: "อาจารย์/บุคลากร",
-                //     icon: <Icons.UsersRound />,
-                //     onClick: () => setUserRole("user"),
-                // },
+            key: "5",
+            label: "ผู้ดูแลระบบ",
+            icon: <Icons.UserCog2 />,
+            onClick: () => setUserRole("admin"),
+        },
+        {
+            key: "6",
+            label: "อาจารย์/บุคลากร",
+            icon: <Icons.UsersRound />,
+            onClick: () => setUserRole("approver"),
+        },
+        // {
+        //     key: "7",
+        //     label: "อาจารย์/บุคลากร",
+        //     icon: <Icons.UsersRound />,
+        //     onClick: () => setUserRole("user"),
+        // },
+        {
+            type: "divider",
+        },
+        {
+            key: "3",
+            label: "ออกจากระบบ",
+            icon: <Icons.LogOut />,
+        },
     ];
 
     useEffect(() => { }, []);
@@ -184,7 +188,7 @@ export default function PersonnelApproverLayout({
                                         style: { fontSize: 16, color: "#FDFEFE" },
                                         label: "คำขออนุมัติลา",
                                         onClick: () => {
-                                            router.push(`/private/approve-hitory`);
+                                            router.push(`/private/approver/approve-history`);
                                         },
                                     },
                                     {
@@ -193,7 +197,7 @@ export default function PersonnelApproverLayout({
                                         style: { fontSize: 16, color: "#FDFEFE" },
                                         label: "ลาราชการ",
                                         onClick: () => {
-                                            router.push(`/private/approve-hitory/Overseas`);
+                                            router.push(`/private/approver/approve-history/overseas`);
                                         },
                                     },
                                 ],

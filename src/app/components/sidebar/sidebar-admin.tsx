@@ -49,11 +49,7 @@ export default function PersonnelAdminLayout({
             label: "บัญชีของฉัน",
             icon: <Icons.UserRound />,
         },
-        {
-            key: "3",
-            label: "ออกจากระบบ",
-            icon: <Icons.LogOut />,
-        },
+
         {
             key: "4",
             label: "บทบาท",
@@ -80,6 +76,14 @@ export default function PersonnelAdminLayout({
         //     icon: <Icons.UsersRound />,
         //     onClick: () => setUserRole("user"),
         // },
+        {
+            type: "divider",
+        },
+        {
+            key: "3",
+            label: "ออกจากระบบ",
+            icon: <Icons.LogOut />,
+        },
     ];
 
     useEffect(() => { }, []);
@@ -185,7 +189,7 @@ export default function PersonnelAdminLayout({
                                         style: { fontSize: 16, color: "#FDFEFE" },
                                         label: "ผู้อนุม้ติ",
                                         onClick: () => {
-                                            router.push(`/private/manage-approver`);
+                                            router.push(`/private/admin/manage-approver`);
                                         },
                                     },
                                     {
@@ -194,7 +198,7 @@ export default function PersonnelAdminLayout({
                                         style: { fontSize: 16, color: "#FDFEFE" },
                                         label: "ประเภทการลา",
                                         onClick: () => {
-                                            router.push(`/private/manage-leave`);
+                                            router.push(`/private/admin/manage-leave`);
                                         },
                                     },
                                     // {

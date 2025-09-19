@@ -142,7 +142,7 @@ export default function ManageApproverPage() {
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
-                                    <Form.Item label="แผนก">
+                                    <Form.Item label="สังกัด">
                                         <Input value={userDetail?.department} disabled />
                                     </Form.Item>
                                 </Col>
