@@ -43,9 +43,9 @@ const LeaveSelectionPage: React.FC = () => {
         onChange={(value) => setSelectedType(value)}
         options={[
           { value: "1", label: "ลาทั่วไป" },
-          { value: "2", label: "ลาทั่วไป (ต่างประเทศ)" },
-          { value: "3", label: "ลาไปราชการ" },
-          { value: "4", label: "ลาไปราชการ (ต่างประเทศ)" },
+          { value: "2", label: "ลาไปต่างประเทศ" },
+          { value: "3", label: "ขออนุมัติเดินทางไปราชการ (ในประเทศ)" },
+          { value: "4", label: "ขออนุมัติเดินทางไปราชการ (ต่างประเทศ)" },
         ]}
       />
 

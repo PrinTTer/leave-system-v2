@@ -1,151 +1,138 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Form, Select, DatePicker, Radio, Row, Col, Table, Button, Input, Typography, UploadFile, Upload } from "antd";
-import { Dayjs } from "dayjs";
+import React, { useState } from "react";
+import {
+  Form,
+  Select,
+  Calendar,
+  Modal,
+  Table,
+  Button,
+  Input,
+  Typography,
+  Row,
+  Col,
+  Tag,
+  UploadFile,
+  DatePicker,
+  Radio,
+  Upload,
+} from "antd"
+
+import { Dayjs } from "dayjs"
 import { UploadOutlined } from "@ant-design/icons";
 
-const { RangePicker } = DatePicker;
-const { Text } = Typography;
+const { Text } = Typography
 
-interface LeaveSummary {
-  key: string;
-  type: string;
-  startDate?: string;
-  endDate?: string;
-  days: number;
-  remaining: number;
+interface LeaveDay {
+  date: string
+  type: "business" | "personal" | "vacation"
 }
+
+const leaveTypes = {
+  business: { label: "ลาราชการ", color: "blue" },
+  personal: { label: "ลากิจ", color: "orange" },
+  vacation: { label: "ลาพักร้อน", color: "green" },
+}
+
 
 const InternationalFormalLeaveForm: React.FC = () => {
   const totalBusinessLeave = 10; // วันลากิจ/ราชการรวมสูงสุดสมมติ
   const totalPersonalLeave = 5; // วันลากิจสูงสุดสมมติ
   const totalVacationLeave = 5
 
-  const [leaveRange, setLeaveRange] = useState<[Dayjs | null, Dayjs | null] | null>(null)
-  const [totalBusinessDays, setTotalBusinessDays] = useState<number>(0)
-
-  const [hasPersonalLeave, setHasPersonalLeave] = useState<string>("2")
-  const [personalLeaveRange, setPersonalLeaveRange] = useState<[Dayjs | null, Dayjs | null] | null>(null)
-  const [personalLeaveDays, setPersonalLeaveDays] = useState<number>(0)
-
-  const [hasVacationLeave, setHasVacationLeave] = useState<string>("2")
-  const [vacationLeaveRange, setVacationLeaveRange] = useState<[Dayjs | null, Dayjs | null] | null>(null)
-  const [vacationLeaveDays, setVacationLeaveDays] = useState<number>(0)
-
-  const [assistants, setAssistants] = useState<string[]>([])
+  const [assistants, setAssistants] = useState<string[]>([]);
   const [countries, setCountries] = useState<string[]>([]);
   const [paid, setPaid] = useState<string>("1"); 
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [leaveDays, setLeaveDays] = useState<LeaveDay[]>([])
+  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null)
+  const [selectedType, setSelectedType] = useState<LeaveDay["type"] | null>(null)
+  
 
   const handleChange = (info: { fileList: UploadFile[] }) => {
     setFileList(info.fileList);
   }
 
-  // รีเซ็ตลากิจเมื่อเลือก "ไม่มี"
-useEffect(() => {
-  if (hasPersonalLeave === "2") {
-    setPersonalLeaveRange(null)
-    setPersonalLeaveDays(0)
-  }
-}, [hasPersonalLeave])
-
-// รีเซ็ตลาพักร้อนเมื่อเลือก "ไม่มี"
-useEffect(() => {
-  if (hasVacationLeave === "2") {
-    setVacationLeaveRange(null)
-    setVacationLeaveDays(0)
-  }
-}, [hasVacationLeave])
-
-  // ฟังก์ชันนับวันทำงาน
-  const countBusinessDays = (start: Dayjs, end: Dayjs): number => {
-    let count = 0
-    let current = start.startOf("day")
-    while (current.isBefore(end) || current.isSame(end, "day")) {
-      const day = current.day()
-      if (day !== 0 && day !== 6) count++
-      current = current.add(1, "day")
+  // เปิด modal เมื่อกดวัน
+    const handleSelect = (date: Dayjs) => {
+      setSelectedDate(date)
+      const exist = leaveDays.find((d) => d.date === date.format("YYYY-MM-DD"))
+      setSelectedType(exist?.type || null)
+      setIsModalOpen(true)
     }
-    return count
-  }
-
- // เปลี่ยนช่วงวันที่ลาราชการ
-const handleBusinessRangeChange = (
-  dates: [Dayjs | null, Dayjs | null] | null
-) => {
-  if (dates && dates[0] && dates[1]) {
-    setLeaveRange(dates)
-    setTotalBusinessDays(countBusinessDays(dates[0], dates[1]))
-  } else {
-    setLeaveRange(null)
-    setTotalBusinessDays(0)
-  }
-}
-
-  // เปลี่ยนช่วงวันที่ลากิจ
-  const handlePersonalRangeChange = ( dates: [Dayjs | null, Dayjs | null] | null) => {
-    if (dates && dates[0] && dates[1]) {
-      setPersonalLeaveRange(dates)
-      setPersonalLeaveDays(countBusinessDays(dates[0], dates[1]))
-    } else {
-      setLeaveRange(null)
-      setPersonalLeaveDays(0)
+  
+    // กดบันทึก
+    const handleOk = () => {
+      if (selectedDate && selectedType) {
+        const dateStr = selectedDate.format("YYYY-MM-DD")
+        setLeaveDays((prev) => {
+          const exist = prev.find((d) => d.date === dateStr)
+          if (exist) {
+            return prev.map((d) =>
+              d.date === dateStr ? { ...d, type: selectedType } : d
+            )
+          } else {
+            return [...prev, { date: dateStr, type: selectedType }]
+          }
+        })
+      }
+      setIsModalOpen(false)
     }
-  }
-
-  // เปลี่ยนช่วงวันที่ลาพักร้อน
-  const handleVacationRangeChange = ( dates: [Dayjs | null, Dayjs | null] | null) => {
-    if (dates && dates[0] && dates[1]) {
-      setVacationLeaveRange(dates)
-      setVacationLeaveDays(countBusinessDays(dates[0], dates[1]))
-    } else {
-      setVacationLeaveRange(null)
-      setVacationLeaveDays(0)
+  
+    const handleCancel = () => {
+      setIsModalOpen(false)
     }
+
+   const dateCellRender = (date: Dayjs) => {
+    const leave = leaveDays.find((d) => d.date === date.format("YYYY-MM-DD"))
+    if (leave) {
+      const { label, color } = leaveTypes[leave.type]
+      return <Tag color={color}>{label}</Tag>
+    }
+    return null
   }
+// คำนวณสรุปจำนวนวันต่อประเภท
+  const businessDays = leaveDays.filter((d) => d.type === "business").length
+  const personalDays = leaveDays.filter((d) => d.type === "personal").length
+  const vacationDays = leaveDays.filter((d) => d.type === "vacation").length
 
-
-const summaryData: LeaveSummary[] = [
+  const summaryData = [
     {
       key: "1",
       type: "ลาราชการ",
-      startDate: leaveRange?.[0]?.format("YYYY-MM-DD"),
-      endDate: leaveRange?.[1]?.format("YYYY-MM-DD"),
-      days: totalBusinessDays,
-      remaining: totalBusinessLeave - totalBusinessDays,
+      days: businessDays,
+      remaining: totalBusinessLeave - businessDays,
     },
     {
       key: "2",
       type: "ลากิจ",
-      startDate: personalLeaveRange?.[0]?.format("YYYY-MM-DD"),
-      endDate: personalLeaveRange?.[1]?.format("YYYY-MM-DD"),
-      days: personalLeaveDays,
-      remaining: totalPersonalLeave - personalLeaveDays,
+      days: personalDays,
+      remaining: totalPersonalLeave - personalDays,
     },
     {
       key: "3",
       type: "ลาพักร้อน",
-      startDate: vacationLeaveRange?.[0]?.format("YYYY-MM-DD"),
-      endDate: vacationLeaveRange?.[1]?.format("YYYY-MM-DD"),
-      days: vacationLeaveDays,
-      remaining: totalVacationLeave - vacationLeaveDays,
+      days: vacationDays,
+      remaining: totalVacationLeave - vacationDays,
     },
   ]
 
-  const columns = [
+  const summaryColumns = [
     { title: "ประเภทการลา", dataIndex: "type", key: "type" },
-    { title: "เริ่มวันที่", dataIndex: "startDate", key: "startDate" },
-    { title: "สิ้นสุดวันที่", dataIndex: "endDate", key: "endDate" },
     { title: "จำนวนวันลา", dataIndex: "days", key: "days" },
     {
       title: "วันคงเหลือ",
       dataIndex: "remaining",
       key: "remaining",
-      render: (val: number) => <Text type={val < 0 ? "danger" : undefined}>{val}</Text>,
+      render: (val: number) => (
+        <Text type={val < 0 ? "danger" : undefined}>{val}</Text>
+      ),
     },
-  ];
-
+  ]
+  
   const isOverLimit = summaryData.some(item => item.remaining < 0);
 
   return (
@@ -171,12 +158,64 @@ const summaryData: LeaveSummary[] = [
               />
             </Form.Item>
           </Col>
-          <Col span={12}>
-            <Form.Item label="มีกำหนดตั้งแต่วันที่ - ถึงวันที่" name="businessDuration">
-              <RangePicker style={{ width: "100%" }} onChange={handleBusinessRangeChange} />
-            </Form.Item>
-          </Col>
         </Row>
+
+        <Row gutter={16}>
+  <Col span={12}>
+    <Form.Item label="เดินทางไปวันที่" name="departure">
+      <DatePicker
+        style={{ width: "100%" }}
+        showTime
+        format="YYYY-MM-DD HH:mm"
+        placeholder="เลือกวันที่และเวลา"
+      />
+    </Form.Item>
+  </Col>
+  <Col span={12}>
+    <Form.Item label="เดินทางกลับวันที่" name="return">
+      <DatePicker
+        style={{ width: "100%" }}
+        showTime
+        format="YYYY-MM-DD HH:mm"
+        placeholder="เลือกวันที่และเวลา"
+      />
+    </Form.Item>
+  </Col>
+</Row>
+
+  {/* ปฏิทินเลือกวันลา */}
+       <Form.Item label="เลือกวันลา (คลิกวันที่ในปฏิทิน)">
+        <Calendar
+          fullscreen={false}
+          cellRender={(date) => dateCellRender(date)} // เปลี่ยนจาก dateCellRender => cellRender
+          onSelect={handleSelect}
+        />
+      </Form.Item>
+              {/* Modal เลือกประเภทการลา */}
+        <Modal
+          title={
+            selectedDate
+              ? `เลือกประเภทการลา (${selectedDate.format("YYYY-MM-DD")})`
+              : ""
+          }
+          open={isModalOpen}
+          onOk={handleOk}
+          onCancel={handleCancel}
+          okText="บันทึก"
+          cancelText="ยกเลิก"
+        >
+          <Select
+            style={{ width: "100%" }}
+            placeholder="-- เลือกประเภทการลา --"
+            value={selectedType ?? undefined}
+            onChange={(val) => setSelectedType(val as LeaveDay["type"])}
+            options={[
+              { value: "business", label: "ลาราชการ" },
+              { value: "personal", label: "ลากิจ" },
+              { value: "vacation", label: "ลาพักร้อน" },
+            ]}
+          />
+        </Modal>
 
        <Form.Item label="ผู้ติดตาม" name="assistants">
                  <Select
@@ -223,9 +262,10 @@ const summaryData: LeaveSummary[] = [
             onChange={(e) => setPaid(e.target.value)}
           >
             <Radio value="1">ทุนส่วนตัว</Radio>
-            <Radio value="2">ค่าใช้จ่ายจากหน่วยงาาน</Radio>
+            <Radio value="2">ทุนภาควิชา</Radio>
+            <Radio value="3">ทุนคณะ</Radio>
           </Radio.Group>
-          {paid === "2" && (
+          {(paid === "2" || paid === '3')&& (
             <div style={{ marginTop: "10px" }}>
               <Form.Item label="แนบเอกสารเพิ่มเติม" name="attachments">
                 <Upload fileList={fileList} onChange={handleChange}>
@@ -236,42 +276,18 @@ const summaryData: LeaveSummary[] = [
           )}
         </Form.Item>
 
-        {/* ลากิจ */}
-                <Form.Item label="มีลากิจ">
-                  <Radio.Group value={hasPersonalLeave} onChange={(e) => setHasPersonalLeave(e.target.value)}>
-                    <Radio value="1">มี</Radio>
-                    <Radio value="2">ไม่มี</Radio>
-                  </Radio.Group>
-                  {hasPersonalLeave === "1" && (
-                    <div style={{ marginTop: "10px" }}>
-                      <Form.Item label="มีกำหนดตั้งแต่วันที่ - ถึงวันที่" name="personalLeaveDuration">
-                        <RangePicker style={{ width: "50%" }} onChange={handlePersonalRangeChange} />
-                      </Form.Item>
-                    </div>
-                  )}
-                </Form.Item>
-        
-                {/* ลาพักร้อน */}
-                <Form.Item label="มีลาพักร้อน">
-                  <Radio.Group value={hasVacationLeave} onChange={(e) => setHasVacationLeave(e.target.value)}>
-                    <Radio value="1">มี</Radio>
-                    <Radio value="2">ไม่มี</Radio>
-                  </Radio.Group>
-                  {hasVacationLeave === "1" && (
-                    <div style={{ marginTop: "10px" }}>
-                      <Form.Item label="มีกำหนดตั้งแต่วันที่ - ถึงวันที่" name="vacationLeaveDuration">
-                        <RangePicker style={{ width: "50%" }} onChange={handleVacationRangeChange} />
-                      </Form.Item>
-                    </div>
-                  )}
-                </Form.Item>
-
+  
         {/* ตารางสรุป */}
-        <div className="mt-6 mb-4">
-          <Table dataSource={summaryData} pagination={false} bordered columns={columns} />
-        </div>
+         <div className="mt-6 mb-4">
+                  <Table
+                    dataSource={summaryData}
+                    pagination={false}
+                    bordered
+                    columns={summaryColumns}
+                  />
+                </div>
 
-        <Form.Item style={{marginTop: 10}}>
+        <Form.Item style={{marginTop: 16, display: 'flex' ,justifyContent: 'end'}}>
           <Button type="primary" disabled={isOverLimit}>
             ส่งใบลา
           </Button>
