@@ -193,6 +193,15 @@ export default function PersonnelAdminLayout({
                                         },
                                     },
                                     {
+                                        key: "approval",
+                                        icon: <Icons.UserCheck />,
+                                        style: { fontSize: 16, color: "#FDFEFE" },
+                                        label: "ผู้ขออนุมัติ",
+                                        onClick: () => {
+                                            router.push(`/private/admin/manage-approval`);
+                                        },
+                                    },
+                                    {
                                         key: "leave",
                                         icon: <Icons.UserCheck />,
                                         style: { fontSize: 16, color: "#FDFEFE" },
