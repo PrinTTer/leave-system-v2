@@ -10,11 +10,15 @@ import {
   Radio,
   Table,
   Typography,
+  Col,
+  Row,
+  Upload,
 } from "antd";
 import { Dayjs } from "dayjs";
 import Link from "next/link";
+import type { UploadFile } from "antd/es/upload/interface";
+import { UploadOutlined } from "@ant-design/icons";
 
-const { RangePicker } = DatePicker;
 const { Text } = Typography;
 
 const countries = [
@@ -26,38 +30,49 @@ const countries = [
   { label: "สิงคโปร์", value: "Singapore" },
 ];
 
+const mapToValue = (val: string): number => {
+  if (val === "full") return 1;
+  if (val === "am" || val === "pm") return 0.5;
+  return 0;
+};
+
 const InternationalLeaveForm: React.FC = () => {
-  const [leaveType, setLeaveType] = useState<string>("");
-  const [dates, setDates] = useState<[Dayjs, Dayjs] | null>(null);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [halfDay, setHalfDay] = useState<boolean>(false);
+
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [leaveType, setLeaveType] = useState<string>("");
+  
+  const [startDate, setStartDate] = useState<Dayjs | null>(null);
+  const [endDate, setEndDate] = useState<Dayjs | null>(null);
+  
+  const [startType, setStartType] = useState<string>("full");
+  const [endType, setEndType] = useState<string>("full");
 
   // mock: จำนวนวันลาทั้งหมดที่มีสิทธิ์
   const totalLeaveDays = 10;
 
-  // คำนวณจำนวนวันลา
-  const leaveDays = useMemo(() => {
-    if (!dates) return 0;
-    const [start, end] = dates;
-    let days = 0;
-    let current = start.startOf("day");
+   const handleChange = (info: { fileList: UploadFile[] }) => {
+      setFileList(info.fileList);
+    };
 
-    while (current.isBefore(end.endOf("day")) || current.isSame(end, "day")) {
-      const day = current.day();
-      // ข้ามวันเสาร์-อาทิตย์
-      if (day !== 0 && day !== 6) {
-        days += 1;
-      }
-      current = current.add(1, "day");
+  const calculateLeaveDays = (): number => {
+    if (!startDate || !endDate) return 0;
+    const diff = endDate.diff(startDate, "day");
+    if (diff < 0) return 0;
+
+    if (diff === 0) {
+      return mapToValue(startType);
     }
 
-    // ถ้าเลือกครึ่งวัน หักออกครึ่ง
-    if (halfDay) {
-      days -= 0.5;
-    }
+    const days = diff - 1;
+    return days + mapToValue(startType) + mapToValue(endType);
+  };
 
-    return days;
-  }, [dates, halfDay]);
+  const leaveDays = useMemo(
+    () => calculateLeaveDays(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [startDate, endDate, startType, endType]
+  );
 
   const remainingLeaveDays = totalLeaveDays - leaveDays;
 
@@ -69,12 +84,11 @@ const InternationalLeaveForm: React.FC = () => {
           ? "ลาป่วย"
           : leaveType === "business"
           ? "ลากิจ"
-          : leaveType === "vacation"
-          ? "ลาพักร้อน"
-          : "-",
-      countries: selectedCountries.join(", ") || "-",
-      leaveMode: halfDay ? "ครึ่งวัน" : "เต็มวัน",
-      leaveDays,
+          : leaveType === "4"
+          ? "ลาคลอดบุตร"
+          : "ลาพักร้อน",
+      countries: selectedCountries,
+      leaveDays: leaveDays,
       remaining: remainingLeaveDays,
     },
   ];
@@ -141,36 +155,80 @@ const InternationalLeaveForm: React.FC = () => {
           <Input.TextArea rows={3} placeholder="กรอกเหตุผลการลา..." />
         </Form.Item>
 
-        {/* ช่วงเวลาที่ลา */}
-        <Form.Item
-          label="มีกำหนดตั้งแต่วันที่ - ถึงวันที่"
-          name="duration"
-          rules={[{ required: true, message: "กรุณาเลือกช่วงเวลา" }]}
-        >
-          <RangePicker
-            style={{ width: "100%" }}
-            onChange={(values) => setDates(values as [Dayjs, Dayjs])}
-          />
-        </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="มีกำหนดตั้งแต่วันที่"
+                name="startDate"
+                rules={[{ required: true, message: "กรุณาเลือกวันที่เริ่ม" }]}
+              >
+                <DatePicker
+                  value={startDate}
+                  onChange={(d) => setStartDate(d)}
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
+              {startDate && (
+                <Form.Item
+                  name="startType"
+                  rules={[{ required: true, message: "กรุณาเลือกช่วงเวลา" }]}
+                >
+                  <Radio.Group
+                    value={startType}
+                    onChange={(e) => setStartType(e.target.value)}
+                  >
+                    <Radio value="full">เต็มวัน</Radio>
+                    <Radio value="am">ครึ่งเช้า</Radio>
+                    <Radio value="pm">ครึ่งบ่าย</Radio>
+                  </Radio.Group>
+                </Form.Item>
+              )}
+            </Col>
 
-        {/* ลาครึ่งวัน/เต็มวัน */}
-        <Form.Item label="ลาครึ่งวัน" name="halfDay">
-          <Radio.Group
-            value={halfDay}
-            onChange={(e) => setHalfDay(e.target.value)}
+            <Col span={12}>
+              <Form.Item
+                label="ถึงวันที่"
+                name="endDate"
+                rules={[{ required: true, message: "กรุณาเลือกวันที่สิ้นสุด" }]}
+              >
+                <DatePicker
+                  value={endDate}
+                  onChange={(d) => setEndDate(d)}
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
+              {endDate && startDate && !startDate.isSame(endDate, "day") && (
+                <Form.Item
+                  name="endType"
+                  rules={[{ required: true, message: "กรุณาเลือกช่วงเวลา" }]}
+                >
+                  <Radio.Group
+                    value={endType}
+                    onChange={(e) => setEndType(e.target.value)}
+                  >
+                    <Radio value="full">เต็มวัน</Radio>
+                    <Radio value="am">ครึ่งเช้า</Radio>
+                    <Radio value="pm">ครึ่งบ่าย</Radio>
+                  </Radio.Group>
+                </Form.Item>
+              )}
+            </Col>
+          </Row>
+
+          {/* แนบเอกสาร - เฉพาะลาป่วย */}
+        {leaveType === "sick" && (
+          <Form.Item
+            label="แนบเอกสารเพิ่มเติม"
+            name="attachments"
+            rules={[{ required: true, message: "กรุณาแนบไฟล์เอกสาร" }]}
           >
-            <Radio value={false}>เต็มวัน</Radio>
-            <Radio value={true}>ครึ่งวัน</Radio>
-          </Radio.Group>
-          {halfDay && (
-            <Radio.Group
-              value='halfDayTime'
-          >
-              <Radio value={false}>ครึ่งเช้า</Radio>
-              <Radio value={true}>ครึ่งบ่าย</Radio>
-            </Radio.Group>
-          )}
-        </Form.Item>
+            <Upload fileList={fileList} onChange={handleChange}>
+              <Button icon={<UploadOutlined />}>เลือกไฟล์</Button>
+            </Upload>
+          </Form.Item>
+        )}
+
+
 
         {/* ตารางสรุปการลา */}
         <div className="mt-6 mb-4">
@@ -183,7 +241,7 @@ const InternationalLeaveForm: React.FC = () => {
         </div>
 
         {/* ปุ่มส่งใบลา */}
-        <div className="flex justify-end mt-4" style={{ marginTop: 16 }}>
+        <div style={{marginTop: 16, display: 'flex' ,justifyContent: 'end'}}>
           <Form.Item>
             <Link href="/private">
               <Button

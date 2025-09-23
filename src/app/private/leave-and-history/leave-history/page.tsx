@@ -2,14 +2,12 @@
 
 import React, { useState } from "react";
 import type { TableProps } from "antd";
-import { Table, Button, Tooltip, Select, Input, Form, Col, DatePicker, Row, Card } from "antd";
+import { Table, Button, Tooltip, Select, Input, Form, Col,TableColumnsType, Tag, Space, Row, Card } from "antd";
 import {
-  CloseOutlined,
-  EditOutlined,
   PlusOutlined,
-  PrinterOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
+import { CheckCircle, XCircle, FileText, Printer } from "lucide-react";
 
 interface LeaveHistory {
   key: React.Key;
@@ -37,7 +35,7 @@ const LeaveHistoryPage: React.FC = () => {
       startDate: "2023-10-05",
       endDate: "2023-10-07",
       totalDays: 3,
-      status: "รอการอนุมัติ",
+      status: "รอดำเนินการ",
       approver1: "ผศ.ดร. วรัญญา",
       approver2: "ผศ.ดร. วรัญญา",
       remark: "-",
@@ -78,124 +76,177 @@ const LeaveHistoryPage: React.FC = () => {
     return matchYear && matchLeaveType && matchSearch;
   });
 
-  const defaultColumns: (ColumnTypes[number] & {
-    editable?: boolean;
-    dataIndex?: string;
-  })[] = [
-    {
-      title: "ประเภทการลา",
-      dataIndex: "leaveType",
-      width: "20%",
-      sorter: (a, b) => a.leaveType.localeCompare(b.leaveType),
-      onHeaderCell: () => ({ style: { textAlign: "center" } }),
-      onFilter: (value, record) => record.leaveType === value,
+
+
+const defaultColumns: TableColumnsType<LeaveHistory> = [
+  {
+    title: <span className="text-dark dark:text-white">ประเภทการลา</span>,
+    dataIndex: "leaveType",
+    filterSearch: true,
+    sorter: (a, b) => a.leaveType.localeCompare(b.leaveType),
+    render: (text) => <span className="text-dark dark:text-white">{text}</span>,
+  },
+  {
+    title: <span className="text-dark dark:text-white">วันที่ยื่นคำร้อง</span>,
+    dataIndex: "submittedDate",
+    align: "center",
+    sorter: (a, b) =>
+      new Date(a.submittedDate).getTime() - new Date(b.submittedDate).getTime(),
+    render: (date) => (
+      <span className="text-dark dark:text-white">
+        {new Date(date).toLocaleDateString("th-TH")}
+      </span>
+    ),
+  },
+  {
+    title: <span className="text-dark dark:text-white">วันเริ่มลา</span>,
+    dataIndex: "startDate",
+    align: "center",
+    sorter: (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+    render: (date) => (
+      <span className="text-dark dark:text-white">
+        {new Date(date).toLocaleDateString("th-TH")}
+      </span>
+    ),
+  },
+  {
+    title: <span className="text-dark dark:text-white">วันสิ้นสุดการลา</span>,
+    dataIndex: "endDate",
+    align: "center",
+    sorter: (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime(),
+    render: (date) => (
+      <span className="text-dark dark:text-white">
+        {new Date(date).toLocaleDateString("th-TH")}
+      </span>
+    ),
+  },
+  {
+    title: <span className="text-dark dark:text-white">จำนวนวันลา (วัน)</span>,
+    dataIndex: "totalDays",
+    align: "center",
+    sorter: (a, b) => a.totalDays - b.totalDays,
+    render: (text) => <span className="text-dark dark:text-white">{text}</span>,
+  },
+  {
+    title: <span className="text-dark dark:text-white">สถานะ</span>,
+    dataIndex: "status",
+    align: "center",
+    // filters: statusFilters, // กำหนด filter ของ status
+    onFilter: (value, record) => record.status.includes(value as string),
+    render: (status) => {
+      let color: "success" | "processing" | "error" | "warning" | "default" = "default";
+      switch (status) {
+        case "อนุมัติ":
+          color = "success";
+          break;
+        case "ไม่อนุมัติ":
+          color = "error";
+          break;
+        case "ยกเลิกอนุมัติ":
+          color = "warning";
+          break;
+        case "รอดำเนินการ":
+          color = "processing";
+          break;
+        default:
+          color = "default";
+      }
+      return <Tag color={color}>{status}</Tag>;
     },
-    {
-      title: "วันที่ยื่นคำร้อง",
-      dataIndex: "submittedDate",
-      align: "center",
-      sorter: (a, b) =>
-        new Date(a.submittedDate).getTime() -
-        new Date(b.submittedDate).getTime(),
-      onHeaderCell: () => ({ style: { textAlign: "center" } }),
+  },
+  {
+    title: <span className="text-dark dark:text-white">ผู้อนุมัติลำดับที่ 1</span>,
+    dataIndex: "approver1",
+    align: "center",
+    sorter: (a, b) => a.approver1.localeCompare(b.approver1),
+    render: (text) => <span className="text-dark dark:text-white">{text}</span>,
+  },
+  {
+    title: <span className="text-dark dark:text-white">ผู้อนุมัติลำดับที่ 2</span>,
+    dataIndex: "approver2",
+    align: "center",
+    sorter: (a, b) => a.approver2?.localeCompare(b.approver2 || "-") || 0,
+    render: (text) => <span className="text-dark dark:text-white">{text || "-"}</span>,
+  },
+  {
+    title: <span className="text-dark dark:text-white">หมายเหตุ</span>,
+    dataIndex: "remark",
+    align: "center",
+    render: (text) => <span className="text-dark dark:text-white">{text}</span>,
+  },
+  {
+    title: <span className="text-dark dark:text-white">จัดการ</span>,
+    key: "actions",
+    align: "center",
+    render: (_, record) => {
+      const { status } = record;
+      return (
+        <Space>
+          {status === "รอดำเนินการ" && (
+            <>
+              <Tooltip title="อนุมัติ">
+                <CheckCircle
+                  onClick={() => console.log("อนุมัติ", record.key)}
+                  style={{ cursor: "pointer", color: "green" }}
+                  size={18}
+                />
+              </Tooltip>
+              <Tooltip title="ไม่อนุมัติ">
+                <XCircle
+                  onClick={() => console.log("ไม่อนุมัติ", record.key)}
+                  style={{ cursor: "pointer", color: "red" }}
+                  size={18}
+                />
+              </Tooltip>
+              <Tooltip title="ดูรายละเอียดลา">
+                <FileText
+                  onClick={() => console.log("ดูรายละเอียดลา", record.key)}
+                  style={{ cursor: "pointer", color: "blue" }}
+                  size={18}
+                />
+              </Tooltip>
+            </>
+          )}
+          {status === "อนุมัติ" && (
+            <>
+              <Tooltip title="ยกเลิกอนุมัติ">
+                <XCircle
+                  onClick={() => console.log("ยกเลิกอนุมัติ", record.key)}
+                  style={{ cursor: "pointer", color: "orange" }}
+                  size={18}
+                />
+              </Tooltip>
+              <Tooltip title="ดูรายละเอียดลา">
+                <FileText
+                  onClick={() => console.log("ดูรายละเอียดลา", record.key)}
+                  style={{ cursor: "pointer", color: "blue" }}
+                  size={18}
+                />
+              </Tooltip>
+              <Tooltip title="พิมพ์ใบลา">
+                <Printer
+                  onClick={() => console.log("พิมพ์ใบลา", record.key)}
+                  style={{ cursor: "pointer", color: "blue" }}
+                  size={18}
+                />
+              </Tooltip>
+            </>
+          )}
+          {(status === "ไม่อนุมัติ" || status === "ยกเลิกอนุมัติ") && (
+            <Tooltip title="ดูรายละเอียดลา">
+              <FileText
+                onClick={() => console.log("ดูรายละเอียดลา", record.key)}
+                style={{ cursor: "pointer", color: "blue" }}
+                size={18}
+              />
+            </Tooltip>
+          )}
+        </Space>
+      );
     },
-    {
-      title: "วันที่เริ่มลา",
-      dataIndex: "startDate",
-      align: "center",
-      sorter: (a, b) =>
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-      onHeaderCell: () => ({ style: { textAlign: "center" } }),
-    },
-    {
-      title: "วันที่สิ้นสุดการลา",
-      dataIndex: "endDate",
-      align: "center",
-      sorter: (a, b) =>
-        new Date(a.endDate).getTime() - new Date(b.endDate).getTime(),
-      onHeaderCell: () => ({ style: { textAlign: "center" } }),
-    },
-    {
-      title: "จำนวนวันลา (วัน)",
-      dataIndex: "totalDays",
-      align: "right",
-      sorter: (a, b) => a.totalDays - b.totalDays,
-      onHeaderCell: () => ({ style: { textAlign: "center" } }),
-    },
-    {
-      title: "สถานะ",
-      dataIndex: "status",
-      align: "center",
-      sorter: (a, b) => a.status.localeCompare(b.status),
-      onHeaderCell: () => ({ style: { textAlign: "center" } }),
-      onFilter: (value, record) => record.status === value,
-      render: (text: string) => {
-        let bg = "#fae9b0ff";
-        let color = "#e79702ff";
-        if (text === "อนุมัติ") {
-          bg = "#e3ffc7ff";
-          color = "#389e0d";
-        } else if (text === "ไม่อนุมัติ") {
-          bg = "#ffcac6ff";
-          color = "#cf1322";
-        }
-        return (
-          <span
-            style={{
-              display: "inline-block",
-              padding: "2px 8px",
-              fontSize: 12,
-              borderRadius: 10,
-              backgroundColor: bg,
-              color: color,
-            }}
-          >
-            {text}
-          </span>
-        );
-      },
-    },
-    {
-      title: "ผู้อนุมัติลำดับที่ 1",
-      dataIndex: "approver1",
-      sorter: (a, b) => a.approver1.localeCompare(b.approver1),
-      onHeaderCell: () => ({ style: { textAlign: "center" } }),
-    },
-    {
-      title: "ผู้อนุมัติลำดับที่ 2",
-      dataIndex: "approver2",
-      sorter: (a, b) => a.approver2?.localeCompare(b.approver2 || "-"),
-      onHeaderCell: () => ({ style: { textAlign: "center" } }),
-    },
-    {
-      title: "หมายเหตุ",
-      dataIndex: "remark",
-      align: "center",
-      onHeaderCell: () => ({ style: { textAlign: "center" } }),
-    },
-    {
-      title: "จัดการ",
-      key: "management",
-      align: "center",
-      render: () => (
-        <div className="flex justify-center gap-2">
-          <Tooltip title="แก้ไข">
-            <Button shape="circle" style={{ background: "#ffa940", color: "white" }}>
-              <EditOutlined />
-            </Button>
-          </Tooltip>
-          <Tooltip title="ยกเลิก">
-            <Button shape="circle" style={{ background: "#ff4d4f", color: "white" }}>
-              <CloseOutlined />
-            </Button>
-          </Tooltip>
-          <Tooltip title="พิมพ์">
-            <Button type="primary" shape="circle" icon={<PrinterOutlined />} />
-          </Tooltip>
-        </div>
-      ),
-    },
-  ];
+  },
+];
+
 
   return (
     <div>

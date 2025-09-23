@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import type { TableProps } from 'antd';
-import { Table, Button, Tooltip, Select, Input, Form, DatePicker, Row, Col, Card } from 'antd';
-import { CloseOutlined, InfoOutlined } from '@ant-design/icons';
+import { Table, Tooltip, Select, Input, Form, DatePicker, Row, Col, Card, TableColumnsType, Space, Tag } from 'antd';
+import { CheckCircle, XCircle, FileText } from "lucide-react";
 
 interface ApprovalHistory {
   key: React.Key;
@@ -50,124 +50,142 @@ const ApprovalHistoryPage: React.FC = () => {
     },
   ]);
 
-  const defaultColumns: (ColumnTypes[number] & { editable?: boolean; dataIndex?: string })[] = [
-    { 
-      title: 'วันที่ยื่นคำร้อง', 
-      dataIndex: 'submittedDate', 
-      align: 'center',
-      sorter: (a, b) => new Date(a.submittedDate).getTime() - new Date(b.submittedDate).getTime(),
-      onHeaderCell: () => ({ style: { textAlign: 'center' } })
-    },
-    { 
-      title: 'ผู้ยื่น', 
-      dataIndex: 'applicant',
-      filters: [
-        { text: 'วรัญญา อรรถเสนา', value: 'วรัญญา อรรถเสนา' },
-      ],
-      onFilter: (value, record) => record.applicant.includes(value as string),
-      onHeaderCell: () => ({ style: { textAlign: 'center' } })
-    },
-    { 
-      title: 'ประเภทการลา', 
-      dataIndex: 'leaveType', 
-      width: "15%",
-      filters: [
-        { text: 'ลาป่วย', value: 'ลาป่วย' },
-        { text: 'ลากิจส่วนตัว', value: 'ลากิจส่วนตัว' },
-      ],
-      onFilter: (value, record) => record.leaveType.includes(value as string),
-      onHeaderCell: () => ({ style: { textAlign: 'center' } })
-    },
-    { 
-      title: 'วันที่เริ่มลา', 
-      dataIndex: 'startDate', 
-      align: 'center',
-      sorter: (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-      onHeaderCell: () => ({ style: { textAlign: 'center' } })
-    },
-    { 
-      title: 'วันที่สิ้นสุดการลา', 
-      dataIndex: 'endDate', 
-      align: 'center',
-      sorter: (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime(),
-      onHeaderCell: () => ({ style: { textAlign: 'center' } })
-    },
-    { 
-      title: 'จำนวนวันลา', 
-      dataIndex: 'totalDays', 
-      align: 'right',
-      sorter: (a, b) => a.totalDays - b.totalDays,
-      onHeaderCell: () => ({ style: { textAlign: 'center'} })
-    },
-    {
-      title: 'สถานะการอนุมัติ',
-      dataIndex: 'approvalStatus',
-      align: 'center',
-      filters: [
-        { text: 'อนุมัติ', value: 'อนุมัติ' },
-        { text: 'ไม่อนุมัติ', value: 'ไม่อนุมัติ' },
-      ],
-      onFilter: (value, record) => record.approvalStatus === value,
-      onHeaderCell: () => ({ style: { textAlign: 'center' } }),
-      render: (text: string) => {
-        let bg = '';
-        let color = '';
+const defaultColumns: TableColumnsType<ApprovalHistory> = [
+  {
+    title: 'วันที่ยื่นคำร้อง',
+    dataIndex: 'submittedDate',
+    align: 'center',
+    sorter: (a, b) => new Date(a.submittedDate).getTime() - new Date(b.submittedDate).getTime(),
+    onHeaderCell: () => ({ style: { textAlign: 'center' } })
+  },
+  {
+    title: 'ผู้ยื่น',
+    dataIndex: 'applicant',
+    filters: [
+      { text: 'วรัญญา อรรถเสนา', value: 'วรัญญา อรรถเสนา' },
+    ],
+    onFilter: (value, record) => record.applicant.includes(value as string),
+    onHeaderCell: () => ({ style: { textAlign: 'center' } })
+  },
+  {
+    title: 'ประเภทการลา',
+    dataIndex: 'leaveType',
+    width: "15%",
+    filters: [
+      { text: 'ลาป่วย', value: 'ลาป่วย' },
+      { text: 'ลากิจส่วนตัว', value: 'ลากิจส่วนตัว' },
+    ],
+    onFilter: (value, record) => record.leaveType.includes(value as string),
+    onHeaderCell: () => ({ style: { textAlign: 'center' } })
+  },
+  {
+    title: 'วันที่เริ่มลา',
+    dataIndex: 'startDate',
+    align: 'center',
+    sorter: (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+    onHeaderCell: () => ({ style: { textAlign: 'center' } })
+  },
+  {
+    title: 'วันที่สิ้นสุดการลา',
+    dataIndex: 'endDate',
+    align: 'center',
+    sorter: (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime(),
+    onHeaderCell: () => ({ style: { textAlign: 'center' } })
+  },
+  {
+    title: 'จำนวนวันลา',
+    dataIndex: 'totalDays',
+    align: 'right',
+    sorter: (a, b) => a.totalDays - b.totalDays,
+    onHeaderCell: () => ({ style: { textAlign: 'center'} })
+  },
+  {
+    title: 'สถานะการอนุมัติ',
+    dataIndex: 'approvalStatus',
+    align: 'center',
+    filters: [
+      { text: 'อนุมัติ', value: 'อนุมัติ' },
+      { text: 'ไม่อนุมัติ', value: 'ไม่อนุมัติ' },
+      { text: 'รอดำเนินการ', value: 'รอดำเนินการ' },
+      { text: 'ยกเลิกอนุมัติ', value: 'ยกเลิกอนุมัติ' },
+    ],
+    onFilter: (value, record) => record.approvalStatus === value,
+    onHeaderCell: () => ({ style: { textAlign: 'center' } }),
+    render: (status: string) => {
+      let color: "success" | "processing" | "error" | "warning" | "default" = "default";
 
-        if (text === 'อนุมัติ') {
-          bg = '#e3ffc7ff';   // เขียวอ่อน
-          color = '#389e0d'; // เขียวเข้ม
-        } else if (text === 'ไม่อนุมัติ') {
-          bg = '#ffcac6ff';   // แดงอ่อน
-          color = '#cf1322'; // แดงเข้ม
-        } else {
-          bg = '#fae9b0ff'; // ค่า default (เหลือง)
-          color = '#e79702ff';
-        }
+      switch (status) {
+        case "อนุมัติ": color = "success"; break;
+        case "ไม่อนุมัติ": color = "error"; break;
+        case "ยกเลิกอนุมัติ": color = "warning"; break;
+        case "รอดำเนินการ": color = "processing"; break;
+        default: color = "default";
+      }
 
-        return (
-          <span
-            style={{
-              display: 'inline-block',
-              padding: '2px 8px',
-              fontSize: 12,
-              borderRadius: 10,
-              backgroundColor: bg,
-              color: color,
-            }}
-          >
-            {text}
-          </span>
-        );
-      },
+      return <Tag color={color}>{status}</Tag>;
     },
-    { 
-      title: 'วันที่อนุมัติ', 
-      dataIndex: 'approvalDate',
-      sorter: (a, b) => new Date(a.approvalDate).getTime() - new Date(b.approvalDate).getTime(),
-      onHeaderCell: () => ({ style: { textAlign: 'center' } })
-    },
-    { 
-      title: 'หมายเหตุ', 
-      dataIndex: 'remark', 
-      onHeaderCell: () => ({ style: { textAlign: 'center' } }), 
-      align: 'center' 
-    },
-    {
-      title: 'จัดการ',
-      key: 'management',
-      align: 'center',
-      render: () => (
-        <div className='flex justify-center gap-2'>
+  },
+  {
+    title: 'วันที่อนุมัติ',
+    dataIndex: 'approvalDate',
+    sorter: (a, b) => new Date(a.approvalDate).getTime() - new Date(b.approvalDate).getTime(),
+    onHeaderCell: () => ({ style: { textAlign: 'center' } })
+  },
+  {
+    title: 'หมายเหตุ',
+    dataIndex: 'remark',
+    align: 'center',
+    onHeaderCell: () => ({ style: { textAlign: 'center' } })
+  },
+  {
+    title: 'จัดการ',
+    key: 'management',
+    align: 'center',
+    render: (_, record) => {
+      const { approvalStatus } = record;
+      return (
+        <Space>
           <Tooltip title="รายละเอียด">
-            <Button type="primary" shape="circle" icon={<InfoOutlined />} />
+            <FileText
+              onClick={() => console.log("รายละเอียด", record.key)}
+              style={{ cursor: "pointer", color: "blue" }}
+              size={18}
+            />
           </Tooltip>
-          <Tooltip title="ยกเลิก">
-            <Button shape="circle" color='red' variant='solid' icon={<CloseOutlined />} />
-          </Tooltip>
-        </div>
-      ),
-    },
-  ];
+
+          {approvalStatus === "รอดำเนินการ" && (
+            <>
+              <Tooltip title="อนุมัติ">
+                <CheckCircle
+                  onClick={() => console.log("อนุมัติ", record.key)}
+                  style={{ cursor: "pointer", color: "green" }}
+                  size={18}
+                />
+              </Tooltip>
+              <Tooltip title="ไม่อนุมัติ">
+                <XCircle
+                  onClick={() => console.log("ไม่อนุมัติ", record.key)}
+                  style={{ cursor: "pointer", color: "red" }}
+                  size={18}
+                />
+              </Tooltip>
+            </>
+          )}
+
+          {approvalStatus === "อนุมัติ" && (
+            <Tooltip title="ยกเลิกอนุมัติ">
+              <XCircle
+                onClick={() => console.log("ยกเลิกอนุมัติ", record.key)}
+                style={{ cursor: "pointer", color: "orange" }}
+                size={18}
+              />
+            </Tooltip>
+          )}
+        </Space>
+      );
+    }
+  }
+];
 
   return (
     <div>
