@@ -102,7 +102,24 @@ export default function UserIndexPage() {
                         englishName: "Waranya Srisuk",
                         department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
                         position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        positionApprover: "หัวหน้าภาควิชาคอมพิวเตอร์",
+                        approver: [
+                            {
+                                id: 3,
+                                pronuon: "นางสาว",
+                                thaiName: "บัวบาน ศรีสุข",
+                                englishName: "buaban Srisuk",
+                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+                                position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
+                            },
+                            {
+                                id: 4,
+                                pronuon: "นางสาว",
+                                thaiName: "กนกพร ปราบนที",
+                                englishName: "Kanokporn Prabnatee",
+                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+                                position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
+                            }
+                        ],
                         updatedAt: "2025-07-03T10:15:23Z",
                         createdAt: "2025-07-03T10:15:23Z",
                     },
@@ -113,7 +130,6 @@ export default function UserIndexPage() {
                         englishName: "Kanthapong Klangmuang",
                         department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
                         position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        positionApprover: "รักษาการแทนหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
                         updatedAt: "2025-07-03T10:17:45Z",
                         createdAt: "2025-07-03T10:15:23Z",
                     },
@@ -124,7 +140,6 @@ export default function UserIndexPage() {
                         englishName: "buaban Srisuk",
                         department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
                         position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        positionApprover: "รักษาการแทนหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
                         updatedAt: "2025-07-03T10:18:12Z",
                         createdAt: "2025-07-03T10:15:23Z",
                     },
@@ -133,32 +148,9 @@ export default function UserIndexPage() {
                         pronuon: "นางสาว",
                         thaiName: "กนกพร ปราบนที",
                         englishName: "Kanokporn Prabnatee",
-                        department: "คณะวิศวกรรมคอมพิวเตอร์",
-                        position: "อธิการบอดี",
-                        positionApprover: "อธิการบดี",
-                        updatedAt: "2025-07-03T10:20:08Z",
-                        createdAt: "2025-07-03T10:15:23Z",
-                    },
-                    {
-                        id: 5,
-                        pronuon: "นาย",
-                        thaiName: "สมชาย ดอนเมือง",
-                        englishName: "Somchai Donmuang",
-                        department: "คณะวิศวกรรมคอมพิวเตอร์",
-                        position: "คณบดี",
-                        positionApprover: "คณบดี",
-                        updatedAt: "2025-07-03T10:20:08Z",
-                        createdAt: "2025-07-03T10:15:23Z",
-                    },
-                    {
-                        id: 6,
-                        pronuon: "นาย",
-                        thaiName: "อนุมัติ กลางเมือง",
-                        englishName: "Anumat Klangmuang",
                         department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
                         position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        positionApprover: "รองหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        updatedAt: "2025-07-03T10:17:45Z",
+                        updatedAt: "2025-07-03T10:20:08Z",
                         createdAt: "2025-07-03T10:15:23Z",
                     },
                 ],
@@ -169,9 +161,9 @@ export default function UserIndexPage() {
             };
             setUsers(data);
 
-            // if (data.data.length > 0) {
-            //     form.setFieldsValue({ userSelect: data.data[0].id });
-            // }
+            if (data.data.length > 0) {
+                form.setFieldsValue({ departmentSelect: data.data[0].department });
+            }
 
             setLoading(false);
             setTableLoading(false);
@@ -221,19 +213,21 @@ export default function UserIndexPage() {
                         <Row style={{ marginBottom: "1%" }}>
                             <Col span={16}>
                                 <Form layout="inline" form={form}>
-                                    {/* <Col>
-                                        <Form.Item name="userSelect">
+                                    <Col>
+                                        <Form.Item name="departmentSelect">
                                             <Select
-                                                placeholder="เลือกผู้ใช้"
+                                                placeholder="เลือกสังกัด"
                                                 style={{ minWidth: 250 }}
                                                 allowClear
-                                                options={users.data.map((u) => ({
-                                                    value: u.id,
-                                                    label: u.thaiName,
-                                                }))}
+                                                options={[
+                                                    ...new Map(
+                                                        users.data.map((u) => [u.department, { value: u.department, label: u.department }])
+                                                    ).values(),
+                                                ]}
                                             />
                                         </Form.Item>
-                                    </Col> */}
+
+                                    </Col>
                                     {/* <Col>
                                         <Button
                                             className="chemds-button"
