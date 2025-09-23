@@ -1,342 +1,303 @@
-"use client";
-import { useEffect, useState } from "react";
-import {
-    Button,
-    Col,
-    Form,
-    Row,
-    Space,
-    Typography,
-    Skeleton,
-    Select,
-    Flex,
-    Card,
-    Input,
-} from "antd";
-import { useRouter, useParams } from "next/navigation";
-import * as Icons from "lucide-react";
+'use client';
 
-type Approver = {
-    id: number;
-    pronuon: string;
-    thaiName: string;
-    englishName: string;
-    department: string;
-    position: string;
-    updatedAt: string;
-    createdAt: string;
+import React, { useEffect, useState } from 'react';
+import {
+  Button,
+  Card,
+  Checkbox,
+  Col,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Row,
+  Select,
+  Space,
+  Typography,
+  message,
+  Popconfirm,
+} from 'antd';
+import { useRouter, useParams } from 'next/navigation';
+import { useLeaveTypesStore } from '@/store/leaveTypeStore';
+import ApproverEditor from '@/app/components/FormElements/ApproverEditor';
+import type { LeaveTypeConfig, GenderCode } from '@/types/leave';
+import { usersMock } from '@/mock/users';
+
+type ApprovalRuleForm = {
+  maxDaysThreshold: number;
+  selectedApproverIndexes?: number[]; // เก็บ index ลำดับผู้อนุมัติจาก approvers หลัก
 };
 
+type LeaveTypeFormValues = Omit<
+  LeaveTypeConfig,
+  'id' | 'createdAt' | 'updatedAt' | 'approvalRules'
+> & {
+  approvalRules?: ApprovalRuleForm[];
+};
 
-export default function ManageApproverPage() {
-    const { Title } = Typography;
-    const [form] = Form.useForm();
-    const router = useRouter();
-    const params = useParams();
-    const [loading, setLoading] = useState(true);
-    const [users, setUsers] = useState<any[]>([]);
-
-    // mock approvers (จาก LeaveTypePage)
-    const mockUsers = [
-        {
-                id: 3,
-        pronuon: "นางสาว",
-        thaiName: "บัวบาน ศรีสุข",
-        englishName: "Buaban Srisuk",
-        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-        position: "หัวหน้าภาควิชา",
-        updatedAt: "2025-07-03T10:18:12Z",
-        createdAt: "2025-07-03T10:15:23Z",
-            },
-            {
-                id: 4,
-        pronuon: "นางสาว",
-        thaiName: "กนกพร ปราบนที",
-        englishName: "Kanokporn Prabnatee",
-        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-        position: "หัวหน้าภาควิชา",
-        updatedAt: "2025-07-03T10:20:08Z",
-        createdAt: "2025-07-03T10:15:23Z",
-            },
-            {
-                id: 5,
-        pronuon: "นาย",
-        thaiName: "สมชาย ใจดี",
-        englishName: "Somchai Jaidee",
-        department: "ภาควิชาวิศวกรรมไฟฟ้า",
-        position: "คณบดี",
-        updatedAt: "2025-07-05T10:20:08Z",
-        createdAt: "2025-07-05T10:15:23Z",
-            }
-        ]
-
-    const mockApprovers2: Approver[] = [
-    {
-        id: 3,
-        pronuon: "นางสาว",
-        thaiName: "บัวบาน ศรีสุข",
-        englishName: "Buaban Srisuk",
-        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-        position: "อาจารย์",
-        updatedAt: "2025-07-03T10:18:12Z",
-        createdAt: "2025-07-03T10:15:23Z",
-    },
-    {
-        id: 4,
-        pronuon: "นางสาว",
-        thaiName: "กนกพร ปราบนที",
-        englishName: "Kanokporn Prabnatee",
-        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-        position: "อาจารย์",
-        updatedAt: "2025-07-03T10:20:08Z",
-        createdAt: "2025-07-03T10:15:23Z",
-    },
+const genderOptions: { label: string; value: GenderCode }[] = [
+  { label: 'ชาย', value: 'male' },
+  { label: 'หญิง', value: 'female' },
+  { label: 'อื่นๆ', value: 'other' },
 ];
 
-const mockApprovers3: Approver[] = [
-    ...mockApprovers2,
-    {
-        id: 5,
-        pronuon: "นาย",
-        thaiName: "สมชาย ใจดี",
-        englishName: "Somchai Jaidee",
-        department: "ภาควิชาวิศวกรรมไฟฟ้า",
-        position: "หัวหน้าภาควิชา",
-        updatedAt: "2025-07-05T10:20:08Z",
-        createdAt: "2025-07-05T10:15:23Z",
-    },
+const fileTypeOptions = [
+  { label: 'PDF', value: 'pdf' },
+  { label: 'รูปภาพ', value: 'image' },
+  { label: 'เอกสาร Word', value: 'doc' },
+  { label: 'อื่นๆ', value: 'other' },
 ];
 
-    // mock leaveTypes
-    const mockLeaveTypes = [
-        {
-                id: 1,
-                leaveType: "ลาราชการ",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: "-", moreThan10: "-" },
-                createdAt: "2025-09-01",
-                updatedAt: "2025-09-10",
-            },
-            {
-                id: 2,
-                leaveType: "ลาพักผ่อนประจำปี",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: 10, moreThan10: 20 },
-                createdAt: "2025-08-15",
-                updatedAt: "2025-08-20",
-            },
-            {
-                id: 3,
-                leaveType: "ลาไปช่วยเหลือภริยาที่คลอดบุตร",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: 15, moreThan10: 15 },
-                createdAt: "2025-07-01",
-                updatedAt: "2025-07-10",
-            },
-            {
-                id: 4,
-                leaveType: "ลากิจส่วนตัว",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: 45, moreThan10: 45 },
-                createdAt: "2025-06-01",
-                updatedAt: "2025-06-05",
-            },
-            {
-                id: 5,
-                leaveType: "ลาป่วย",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: 90, moreThan10: 90 },
-                createdAt: "2025-05-01",
-                updatedAt: "2025-05-03",
-            },
-            {
-                id: 6,
-                leaveType: "ลาบวช/อุปสมบท",
-                approvers: mockApprovers3,
-                rights: { lessOrEqual10: 120, moreThan10: 120 },
-                createdAt: "2025-05-05",
-                updatedAt: "2025-05-06",
-            },
-            {
-                id: 7,
-                leaveType: "ลาไปพิธีฮัจน์",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: 120, moreThan10: 120 },
-                createdAt: "2025-05-07",
-                updatedAt: "2025-05-08",
-            },
-    ];
+export default function EditLeaveTypePage() {
+  const { Title } = Typography;
+  const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const { hydrate, getById, update, remove } = useLeaveTypesStore();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [loading, setLoading] = useState(true);
+  const [form] = Form.useForm<LeaveTypeFormValues>();
 
-    const fetchLeaveType = async () => {
-        const found = mockLeaveTypes.find((l) => l.id === Number(params.id));
-        setUsers(mockUsers);
+  useEffect(() => { hydrate(); }, [hydrate]);
 
-        if (found) {
-            form.setFieldsValue({
-                leaveType: found.leaveType,
-                rights: found.rights,
-                approvers: found.approvers.length
-                    ? found.approvers.map((a) => ({
-                        position: a.position,
-                        userId: a.id,
-                    }))
-                    : [{}], // ถ้าไม่มีเลย บังคับใส่ object เปล่าๆ
-            });
+  useEffect(() => {
+    const id = Array.isArray(params.id) ? params.id[0] : params.id;
+    const found = getById(id);
 
-        }
-        setLoading(false);
+    const apply = (v?: LeaveTypeConfig) => {
+      if (v) {
+        // map approverChain -> selectedApproverIndexes
+        const baseApprovers = v.approvers ?? [];
+        const approvalRulesWithIndexes: ApprovalRuleForm[] = (v.approvalRules ?? []).map(rule => {
+          const selected = (rule.approverChain ?? [])
+            .map(ac => baseApprovers.findIndex(b => b.userId === ac.userId && b.position === ac.position))
+            .filter(i => i >= 0);
+          return { maxDaysThreshold: rule.maxDaysThreshold, selectedApproverIndexes: selected };
+        });
+
+        const values: LeaveTypeFormValues = {
+          name: v.name,
+          maxDays: v.maxDays,
+          allowedGenders: v.allowedGenders,
+          minServiceYears: v.minServiceYears,
+          workingDaysOnly: v.workingDaysOnly,
+          documents: v.documents,
+          approvers: v.approvers,
+          approvalRules: approvalRulesWithIndexes,
+        };
+        form.setFieldsValue(values);
+      }
+      setLoading(false);
     };
 
-    useEffect(() => {
-        fetchLeaveType();
-    }, []);
-
-    if (loading) {
-        return <Skeleton active />;
+    if (found) apply(found);
+    else {
+      const t = setTimeout(() => apply(getById(id)), 200);
+      return () => clearTimeout(t);
     }
+  }, [getById, form, params.id]);
 
-    return (
-        <div style={{ padding: 10 }}>
-            <Space direction="vertical" style={{ width: "100%" }} size={10}>
-                <Row>
-                    <Col span={24}>
-                        <Title style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}>
-                            {"แก้ไขข้อมูลประเภทลา"}
-                        </Title>
-                    </Col>
-                </Row>
+  // สร้าง options “ลำดับที่ X : ตำแหน่ง - ชื่อ” จาก approvers หลัก
+  type ApproverRow = { position?: string; userId?: string };
+const approversWatch = Form.useWatch('approvers', { form, preserve: true }) as ApproverRow[] | undefined;
 
-                <Card>
-                    <Form
-                        layout="vertical"
-                        form={form}
-                        onFinish={(values) => console.log("submit:", values)}
-                    >
-                        {/* ประเภทการลา */}
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item
-                                    name="leaveType"
-                                    label="ประเภทการลา"
-                                    rules={[{ required: true }]}
-                                >
-                                    <Input placeholder="ระบุชื่อประเภทการลา" />
-                                </Form.Item>
-                            </Col>
-                        </Row>
+const approverOrderOptions = (approversWatch ?? [])
+  .map((ap, idx) => ({ ap, idx }))
+  .filter(({ ap }) => ap && ap.userId)
+  .map(({ ap, idx }) => {
+    const u = usersMock.find(u => u.id === ap!.userId);
+    const pos = ap!.position ?? 'ผู้อนุมัติ';
+    return {
+      label: `ลำดับที่ ${idx + 1} : ${pos}${u ? ` - ${u.name}` : ''}`,
+      value: idx,
+    };
+  });
 
-                        {/* สิทธิ์ลา */}
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item
-                                    name={["rights", "lessOrEqual10"]}
-                                    label="สิทธิ์ (≤ 10 ปี)"
-                                >
-                                    <Input type="number" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item
-                                    name={["rights", "moreThan10"]}
-                                    label="สิทธิ์ (> 10 ปี)"
-                                >
-                                    <Input type="number" />
-                                </Form.Item>
-                            </Col>
-                        </Row>
 
-                        {/* ผู้อนุมัติ */}
-                        <Form.List name="approvers">
-                            {(fields, { add, remove }) => (
-                                <>
-                                    {fields.map(({ key, name, ...restField }, index) => (
-                                        <Card
-                                            key={key}
-                                            size="small"
-                                            title={`ผู้อนุมัติ อันดับ ${index + 1}`}
-                                            extra={
-                                                <Button danger type="text" onClick={() => remove(name)}>
-                                                    ลบ
-                                                </Button>
-                                            }
-                                            style={{ marginBottom: 10 }}
-                                        >
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        {...restField}
-                                                        name={[name, "position"]}
-                                                        label="ตำแหน่ง"
-                                                    >
-                                                        <Select
-                                                            options={[
-                                                                { value: "อาจารย์", label: "อาจารย์" },
-                                                                {
-                                                                    value: "หัวหน้าภาควิชา",
-                                                                    label: "หัวหน้าภาควิชา",
-                                                                },
-                                                            ]}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <Form.Item
-                                                        {...restField}
-                                                        name={[name, "userId"]}
-                                                        label="ชื่อผู้อนุมัติ"
-                                                    >
-                                                        <Select
-                                                            options={users.map((u) => ({
-                                                                value: u.id,
-                                                                label: u.thaiName,
-                                                            }))}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
-                                        </Card>
-                                    ))}
+  const onFinish = (values: LeaveTypeFormValues) => {
+    const baseApprovers = values.approvers ?? [];
+    // map selectedApproverIndexes -> approverChain
+    const normalizedRules = (values.approvalRules ?? []).map((r) => {
+      const idxs: number[] = Array.isArray(r.selectedApproverIndexes) ? r.selectedApproverIndexes : [];
+      const chain = idxs.map(i => baseApprovers[i]).filter(Boolean);
+      return { maxDaysThreshold: r.maxDaysThreshold, approverChain: chain };
+    });
 
-                                    <Button
-                                        type="dashed"
-                                        onClick={() => add()}
-                                        block
-                                        icon={<Icons.Plus size={16} />}
-                                    >
-                                        เพิ่มผู้อนุมัติ
-                                    </Button>
-                                </>
-                            )}
-                        </Form.List>
+    const id = Array.isArray(params.id) ? params.id[0] : params.id;
+    update(id, {
+      name: values.name,
+      maxDays: Number(values.maxDays ?? 0),
+      allowedGenders: values.allowedGenders ?? [],
+      minServiceYears: Number(values.minServiceYears ?? 0),
+      workingDaysOnly: !!values.workingDaysOnly,
+      documents: values.documents ?? [],
+      approvers: baseApprovers,
+      approvalRules: normalizedRules,
+    });
+    message.success('บันทึกการเปลี่ยนแปลงแล้ว');
+    router.push('/private/admin/manage-leave');
+  };
 
-                        {/* ปุ่ม */}
-                        <Row style={{ justifyContent: "space-between", marginTop: 15 }}>
-                            <Col>
-                                <Form.Item>
-                                    <Flex justify="space-between" gap="small">
-                                        <Button
-                                            onClick={() => router.push("/private/admin/manage-leave")}
-                                        >
-                                            ยกเลิก
-                                        </Button>
-                                        
-                                    </Flex>
-                                </Form.Item>
-                            </Col>
-                            <Col>
-                                <Form.Item>
-                                    <Flex justify="space-between" gap="small">
-                                        
-                                        <Button type="primary" htmlType="submit">
-                                            บันทึก
-                                        </Button>
-                                    </Flex>
-                                </Form.Item>
-                            </Col>
-                        </Row>
-                    </Form>
-                </Card>
-            </Space>
-        </div>
-    );
+  const onDelete = () => {
+    const id = Array.isArray(params.id) ? params.id[0] : params.id;
+    remove(id);
+    message.success('ลบประเภทการลาแล้ว');
+    router.push('/private/admin/manage-leave');
+  };
+
+  return (
+    <div style={{ padding: 10 }}>
+      <Space direction="vertical" style={{ width: '100%' }} size={10}>
+        <Title level={4} style={{ margin: 0 }}>แก้ไขประเภทลา</Title>
+        <Card>
+          <Form<LeaveTypeFormValues> form={form} layout="vertical" onFinish={onFinish}>
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item name="name" label="ชื่อประเภทการลา" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="maxDays" label="จำนวนวันลาสูงสุด" rules={[{ required: true }]}>
+                  <InputNumber min={0} style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item name="allowedGenders" label="เพศที่สามารถลาในประเภทนี้ได้">
+                  <Checkbox.Group options={genderOptions} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="minServiceYears" label="อายุราชการขั้นต่ำ (ปี)">
+                  <InputNumber min={0} style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Form.Item name="workingDaysOnly" valuePropName="checked">
+              <Checkbox>นับวันลาเฉพาะวันทำการ</Checkbox>
+            </Form.Item>
+
+            <Divider orientation="left">ผู้อนุมัติ (ลำดับค่าเริ่มต้น)</Divider>
+            <ApproverEditor namePath="approvers" />
+
+            <Divider orientation="left">เอกสารแนบที่ต้องส่ง</Divider>
+            <Form.List name="documents">
+              {(fields, { add, remove, move }) => (
+                <>
+                  {fields.map(({ key, name, ...restField }) => (
+                    <Card key={key} size="small" style={{ marginBottom: 10 }} title={`เอกสาร #${name + 1}`}>
+                      <Row gutter={12}>
+                        <Col xs={24} md={10}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'name']}
+                            label="ชื่อเอกสาร"
+                            rules={[{ required: true, message: 'กรุณาระบุชื่อเอกสาร' }]}
+                          >
+                            <Input placeholder="เช่น ใบรับรองแพทย์" />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={8}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'fileType']}
+                            label="ชนิดไฟล์"
+                            rules={[{ required: true, message: 'กรุณาเลือกชนิดไฟล์' }]}
+                          >
+                            <Select options={fileTypeOptions} placeholder="เลือกชนิดไฟล์" />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={6}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'required']}
+                            label="ความจำเป็น"
+                            valuePropName="checked"
+                          >
+                            <Checkbox>จำเป็นต้องมี</Checkbox>
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                      <Row justify="end">
+                        <Space>
+                          <Button onClick={() => move(name, Math.max(0, name - 1))} disabled={name === 0}>ขึ้น</Button>
+                          <Button onClick={() => move(name, Math.min(fields.length - 1, name + 1))} disabled={name === fields.length - 1}>ลง</Button>
+                          <Button danger onClick={() => remove(name)}>ลบ</Button>
+                        </Space>
+                      </Row>
+                    </Card>
+                  ))}
+                  <Button type="dashed" block onClick={() => add()}>เพิ่มเอกสาร</Button>
+                </>
+              )}
+            </Form.List>
+
+            <Divider orientation="left">เงื่อนไขของการอนุมัติ (เลือกจากผู้อนุมัติลำดับค่าเริ่มต้น)</Divider>
+            <Form.List name="approvalRules">
+              {(fields, { add, remove, move }) => (
+                <>
+                  {fields.map(({ key, name, ...restField }, idx) => (
+                    <Card key={key} size="small" style={{ marginBottom: 10 }} title={`เงื่อนไข #${idx + 1}`}>
+                      <Row gutter={12}>
+                        <Col xs={24} md={8}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'maxDaysThreshold']}
+                            label="จำนวนวันลาต่ำกว่า (วัน)"
+                            rules={[{ required: true, message: 'กรุณาระบุจำนวนวัน' }]}
+                          >
+                            <InputNumber min={1} style={{ width: '100%' }} placeholder="30" />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={16}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'selectedApproverIndexes']}
+                            label="ต้องใช้ผู้อนุมัติลำดับที่"
+                            rules={[{ required: true, message: 'กรุณาเลือกอย่างน้อย 1 ลำดับ' }]}
+                          >
+                            <Select
+                              mode="multiple"
+                              options={approverOrderOptions}
+                              placeholder="เช่น ลำดับที่ 1, ลำดับที่ 2"
+                            />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+
+                      <Row justify="end">
+                        <Space>
+                          <Button onClick={() => move(name, Math.max(0, name - 1))} disabled={name === 0}>ขึ้น</Button>
+                          <Button onClick={() => move(name, Math.min(fields.length - 1, name + 1))} disabled={name === fields.length - 1}>ลง</Button>
+                          <Button danger onClick={() => remove(name)}>ลบเงื่อนไข</Button>
+                        </Space>
+                      </Row>
+                    </Card>
+                  ))}
+                  <Button type="dashed" block onClick={() => add()}>เพิ่มเงื่อนไข</Button>
+                </>
+              )}
+            </Form.List>
+
+            <Row justify="space-between" style={{ marginTop: 12 }}>
+              <Col>
+                <Popconfirm title="ยืนยันการลบ?" onConfirm={onDelete} okText="ลบ" cancelText="ยกเลิก">
+                  <Button danger>ลบประเภทนี้</Button>
+                </Popconfirm>
+              </Col>
+              <Col>
+                <Space>
+                  <Button onClick={() => history.back()}>ยกเลิก</Button>
+                  <Button type="primary" htmlType="submit">บันทึก</Button>
+                </Space>
+              </Col>
+            </Row>
+          </Form>
+        </Card>
+      </Space>
+    </div>
+  );
 }

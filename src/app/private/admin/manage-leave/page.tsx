@@ -1,236 +1,182 @@
-"use client";
-import { useEffect, useState } from "react";
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-    Button,
-    Col,
-    Row,
-    Space,
-    Table,
-    TableColumnsType,
-    Tooltip,
-    Typography,
-} from "antd";
-import * as Icons from "lucide-react";
-import { useRouter } from "next/navigation";
-
-type Approver = {
-    id: number;
-    pronuon: string;
-    thaiName: string;
-    englishName: string;
-    department: string;
-    position: string;
-    updatedAt: string;
-    createdAt: string;
-};
-
-type LeaveTypeItem = {
-    id: number;
-    leaveType: string;
-    approvers: Approver[];
-    rights: {
-        lessOrEqual10: number | string; // จำนวนวัน (หรือ "-" ถ้าไม่มี)
-        moreThan10: number | string;
-    };
-    createdAt: string;
-    updatedAt: string;
-};
+  Button,
+  Card,
+  Col,
+  Empty,
+  Input,
+  Row,
+  Space,
+  Statistic,
+  Switch,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import * as Icons from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useLeaveTypesStore } from '@/store/leaveTypeStore';
+import type { LeaveTypeConfig, GenderCode } from '@/types/leave';
+import { genderLabel } from '@/types/leave';
 
 export default function LeaveTypePage() {
-    const { Title } = Typography;
-    const [data, setData] = useState<LeaveTypeItem[]>([]);
-    const router = useRouter();
+  const { Title } = Typography;
+  const router = useRouter();
+  const { items, hydrate, remove } = useLeaveTypesStore();
+  const [viewTable, setViewTable] = useState(false);
+  const [q, setQ] = useState('');
 
-    // mock approver
+  useEffect(() => { hydrate(); }, [hydrate]);
 
-    const mockApprovers2: Approver[] = [
+  const data = useMemo(
+    () => items.filter((it) => it.name.toLowerCase().includes(q.trim().toLowerCase())),
+    [items, q]
+  );
+
+  const columns: ColumnsType<LeaveTypeConfig> = [
+    { title: 'ประเภทการลา', dataIndex: 'name' },
+    { title: 'จำนวนผู้อนุมัติ (default)', align: 'center', render: (_, r) => r.approvers.length },
+    { title: 'สูงสุด (วัน)', dataIndex: 'maxDays', align: 'center' },
     {
-        id: 3,
-        pronuon: "นางสาว",
-        thaiName: "บัวบาน ศรีสุข",
-        englishName: "Buaban Srisuk",
-        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-        position: "อาจารย์",
-        updatedAt: "2025-07-03T10:18:12Z",
-        createdAt: "2025-07-03T10:15:23Z",
+      title: 'เงื่อนไข',
+      render: (_, r) => (
+        <Space size={[8, 8]} wrap>
+          <Tag>อายุราชการ ≥ {r.minServiceYears} ปี</Tag>
+          {(r.allowedGenders.length === 0 || r.allowedGenders.length === 3)
+            ? <Tag color="blue">ทุกเพศ</Tag>
+            : r.allowedGenders.map((g: GenderCode) => <Tag key={g}>{genderLabel(g)}</Tag>)}
+          {r.workingDaysOnly && <Tag color="purple">นับเฉพาะวันทำการ</Tag>}
+        </Space>
+      ),
     },
     {
-        id: 4,
-        pronuon: "นางสาว",
-        thaiName: "กนกพร ปราบนที",
-        englishName: "Kanokporn Prabnatee",
-        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-        position: "อาจารย์",
-        updatedAt: "2025-07-03T10:20:08Z",
-        createdAt: "2025-07-03T10:15:23Z",
+      title: 'เอกสารแนบ',
+      render: (_, r) => (
+        <Space size={[8, 8]} wrap>
+          <Tag color="geekblue">{(r.documents?.length ?? 0)} รายการ</Tag>
+          {(r.documents ?? []).slice(0, 3).map((d) => (
+            <Tag key={d.name} color={d.required ? 'red' : 'default'}>
+              {d.name} ({d.fileType})
+            </Tag>
+          ))}
+        </Space>
+      ),
     },
-];
-
-const mockApprovers3: Approver[] = [
-    ...mockApprovers2,
     {
-        id: 5,
-        pronuon: "นาย",
-        thaiName: "สมชาย ใจดี",
-        englishName: "Somchai Jaidee",
-        department: "ภาควิชาวิศวกรรมไฟฟ้า",
-        position: "หัวหน้าภาควิชา",
-        updatedAt: "2025-07-05T10:20:08Z",
-        createdAt: "2025-07-05T10:15:23Z",
+      title: 'เงื่อนไขอนุมัติ',
+      render: (_, r) => (
+        <Space size={[8, 8]} wrap>
+          <Tag color="green">{(r.approvalRules?.length ?? 0)} เงื่อนไข</Tag>
+        </Space>
+      ),
     },
-];
+    {
+      title: 'การจัดการ',
+      align: 'center',
+      render: (_, r) => (
+        <Space>
+          <Tooltip title="แก้ไข">
+            <Icons.Edit
+              style={{ cursor: 'pointer', color: 'orange' }}
+              onClick={() => router.push(`/private/admin/manage-leave/${r.id}`)}
+            />
+          </Tooltip>
+          <Tooltip title="ลบ">
+            <Icons.Trash
+              style={{ cursor: 'pointer', color: 'red' }}
+              onClick={() => remove(r.id)}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
 
-
-    useEffect(() => {
-        setData([
-            {
-                id: 1,
-                leaveType: "ลาราชการ",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: "-", moreThan10: "-" },
-                createdAt: "2025-09-01",
-                updatedAt: "2025-09-10",
-            },
-            {
-                id: 2,
-                leaveType: "ลาพักผ่อนประจำปี",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: 10, moreThan10: 20 },
-                createdAt: "2025-08-15",
-                updatedAt: "2025-08-20",
-            },
-            {
-                id: 3,
-                leaveType: "ลาไปช่วยเหลือภริยาที่คลอดบุตร",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: 15, moreThan10: 15 },
-                createdAt: "2025-07-01",
-                updatedAt: "2025-07-10",
-            },
-            {
-                id: 4,
-                leaveType: "ลากิจส่วนตัว",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: 45, moreThan10: 45 },
-                createdAt: "2025-06-01",
-                updatedAt: "2025-06-05",
-            },
-            {
-                id: 5,
-                leaveType: "ลาป่วย",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: 90, moreThan10: 90 },
-                createdAt: "2025-05-01",
-                updatedAt: "2025-05-03",
-            },
-            {
-                id: 6,
-                leaveType: "ลาบวช/อุปสมบท",
-                approvers: mockApprovers3,
-                rights: { lessOrEqual10: 120, moreThan10: 120 },
-                createdAt: "2025-05-05",
-                updatedAt: "2025-05-06",
-            },
-            {
-                id: 7,
-                leaveType: "ลาไปพิธีฮัจน์",
-                approvers: mockApprovers2,
-                rights: { lessOrEqual10: 120, moreThan10: 120 },
-                createdAt: "2025-05-07",
-                updatedAt: "2025-05-08",
-            },
-        ]);
-    }, []);
-
-    const columns: TableColumnsType<LeaveTypeItem> = [
-        {
-            title: "ประเภทการลา",
-            dataIndex: "leaveType",
-            key: "leaveType",
-            sorter: (a, b) => a.leaveType.localeCompare(b.leaveType),
-        },
-        {
-            title: "ผู้อนุมัติ (คน)",
-            key: "approvers",
-            align: "center",
-            sorter: (a, b) => a.approvers.length - b.approvers.length,
-            render: (_, record) => record.approvers.length,
-        },
-        {
-            title: "สิทธิ์ทั้งหมด (วัน)",
-            children: [
-                {
-                    title: "อายุงาน ≤ 10 ปี",
-                    dataIndex: ["rights", "lessOrEqual10"],
-                    key: "rights10",
-                    align: "center",
-                },
-                {
-                    title: "อายุงาน > 10 ปี",
-                    dataIndex: ["rights", "moreThan10"],
-                    key: "rightsMore10",
-                    align: "center",
-                },
-            ],
-        },
-        {
-            title: "การจัดการ",
-            key: "actions",
-            align: "center",
-            render: (_, record) => (
-                <Space>
-                    <Tooltip title="แก้ไขข้อมูล">
-                        <Icons.Edit
-                            style={{ cursor: "pointer", color: "orange" }}
-                            onClick={() => router.push(`/private/admin/manage-leave/${record.id}`)}
-                        />
-                    </Tooltip>
-                    <Tooltip title="ลบ">
-                        <Icons.Trash
-                            style={{ cursor: "pointer", color: "red" }}
-                            onClick={() => console.log("ลบ", record.id)}
-                        />
-                    </Tooltip>
-                </Space>
-            ),
-        },
-    ];
-
-    return (
-        <div style={{ padding: 10 }}>
-            <Space direction="vertical" style={{ width: "100%" }} size={10}>
-                <Row justify="space-between" align="middle">
-                    <Col>
-                        <Title level={4} style={{ margin: 0 }}>
-                            ประเภทการลา
-                        </Title>
-                    </Col>
-                </Row>
-
-                <div className="chemds-container">
-                    <Row style={{ marginBottom: "1%", textAlign: "right" }}>
-                        <Col span={24}>
-                            <Button
-                                type="primary"
-                                onClick={() => router.push(`/private/admin/manage-leave/add`)}
-                            >
-                                เพิ่มประเภทการลา
-                            </Button>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col span={24}>
-                            <Table
-                                columns={columns}
-                                dataSource={data}
-                                rowKey="id"
-                                pagination={{ pageSize: 10 }}
-                                bordered
-                            />
-                        </Col>
-                    </Row>
-                </div>
+  return (
+    <div style={{ padding: 10 }}>
+      <Space direction="vertical" style={{ width: '100%' }} size={10}>
+        <Row justify="space-between" align="middle">
+          <Col><Title level={4} style={{ margin: 0 }}>ตั้งค่าประเภทการลา</Title></Col>
+          <Col>
+            <Space>
+              <Input.Search
+                allowClear
+                placeholder="ค้นหาชื่อประเภทลา"
+                onSearch={setQ}
+                onChange={(e) => setQ(e.target.value)}
+              />
+              <Space align="center"><span>ตาราง</span><Switch checked={viewTable} onChange={setViewTable} /></Space>
+              <Button type="primary" onClick={() => router.push('/private/admin/manage-leave/add')}>
+                เพิ่มประเภทการลา
+              </Button>
             </Space>
-        </div>
-    );
+          </Col>
+        </Row>
+
+        {viewTable ? (
+          <Card>
+            <Table rowKey="id" columns={columns} dataSource={data} pagination={{ pageSize: 10 }} bordered />
+          </Card>
+        ) : (
+          <Row gutter={[16, 16]}>
+            {data.length === 0 && <Col span={24}><Empty description="ยังไม่มีข้อมูล" /></Col>}
+            {data.map((it) => (
+              <Col key={it.id} xs={24} sm={12} md={8} lg={6}>
+                <Card
+                  title={it.name}
+                  extra={<Button size="small" onClick={() => router.push(`/private/admin/manage-leave/${it.id}`)}>แก้ไข</Button>}
+                >
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <Statistic title="จำนวนผู้อนุมัติ (default)" value={it.approvers.length} />
+                    <Statistic title="จำนวนวันสูงสุด" value={it.maxDays} suffix="วัน" />
+                    <div>
+                      <div style={{ marginBottom: 4, fontWeight: 500 }}>เงื่อนไข</div>
+                      <Space size={[8, 8]} wrap>
+                        <Tag>อายุราชการ ≥ {it.minServiceYears} ปี</Tag>
+                        {(it.allowedGenders.length === 0 || it.allowedGenders.length === 3)
+                          ? <Tag color="blue">ทุกเพศ</Tag>
+                          : it.allowedGenders.map((g: GenderCode) => <Tag key={g}>{genderLabel(g)}</Tag>)}
+                        {it.workingDaysOnly && <Tag color="purple">นับเฉพาะวันทำการ</Tag>}
+                      </Space>
+                    </div>
+
+                    {(it.documents?.length ?? 0) > 0 && (
+                      <div>
+                        <div style={{ marginBottom: 4, fontWeight: 500 }}>เอกสารแนบ</div>
+                        <Space size={[8, 8]} wrap>
+                          {(it.documents ?? []).map((d) => (
+                            <Tag key={d.name} color={d.required ? 'red' : 'default'}>
+                              {d.name} ({d.fileType})
+                            </Tag>
+                          ))}
+                        </Space>
+                      </div>
+                    )}
+
+                    {(it.approvalRules?.length ?? 0) > 0 && (
+                      <div>
+                        <div style={{ marginBottom: 4, fontWeight: 500 }}>เงื่อนไขอนุมัติ</div>
+                        <Space direction="vertical" size={2}>
+                          {it.approvalRules!.map((rul, idx) => (
+                            <div key={`${it.id}-rule-${idx}`} style={{ fontSize: 12 }}>
+                              {idx + 1}. ต่ำกว่า {rul.maxDaysThreshold} วัน :
+                              {' '}ผู้อนุมัติ {rul.approverChain.map((a, i) => `${i + 1}:${a.position}`).join(', ')}
+                            </div>
+                          ))}
+                        </Space>
+                      </div>
+                    )}
+                  </Space>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
+      </Space>
+    </div>
+  );
 }

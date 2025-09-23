@@ -156,15 +156,6 @@ export default function PersonnelApproverLayout({
                                             router.push(`/private/calendar`);
                                         },
                                     },
-                                    {
-                                        key: "manageCalendar",
-                                        icon: <Icons.CalendarCog />,
-                                        style: { fontSize: 16, color: "#FDFEFE" },
-                                        label: "จัดการปฏิทิน",
-                                        onClick: () => {
-                                            router.push(`/private/calendar/manage`);
-                                        },
-                                    },
                                 ],
                             },
                             // {
