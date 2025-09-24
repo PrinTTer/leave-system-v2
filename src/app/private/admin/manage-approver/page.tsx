@@ -254,7 +254,7 @@ export default function UserIndexPage() {
                                     marginBottom: 0,
                                     fontSize: 18,
                                 }}>
-                                {"ผู้ใช้งานระบบ"}
+                                {"ผู้อนุมัติ"}
                             </Title>
                         </Col>
                     </Row>

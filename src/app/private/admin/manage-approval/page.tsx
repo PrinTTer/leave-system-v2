@@ -512,7 +512,7 @@ const columns: TableProps["columns"] = [
                 <Row>
                     <Col span={12}>
                         <Title style={{ margin: 0, fontSize: 18 }}>
-                            ผู้ใช้งานระบบ
+                            ผู้ขออนุมัติ
                         </Title>
                     </Col>
                 </Row>

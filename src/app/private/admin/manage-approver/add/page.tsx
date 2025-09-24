@@ -145,6 +145,7 @@ export default function NewUserPage() {
     {
       title: "การจัดการ",
       key: "actions",
+      align: "center",
       render: (_: any, record: any, index: number) => (
         <Tooltip title="ลบ">
           <Icons.Trash2
