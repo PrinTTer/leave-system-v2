@@ -2,30 +2,21 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  Button,
-  Card,
-  Checkbox,
-  Col,
-  Divider,
-  Form,
-  Input,
-  InputNumber,
-  Row,
-  Select,
-  Space,
-  Typography,
-  message,
-  Popconfirm,
+  Button, Card, Checkbox, Col, Divider, Form, Input, InputNumber, Row, Select,
+  Space, Typography, message, Popconfirm
 } from 'antd';
 import { useRouter, useParams } from 'next/navigation';
-import { useLeaveTypesStore } from '@/store/leaveTypeStore';
+// ❌ ไม่ใช้ store อีกต่อไป
+// import { useLeaveTypesStore } from '@/store/leaveTypeStore';
 import ApproverEditor from '@/app/components/FormElements/ApproverEditor';
 import type { LeaveTypeConfig, GenderCode } from '@/types/leave';
 import { usersMock } from '@/mock/users';
+// ✅ ใช้ mock โดยตรงจากไฟล์นี้
+import { leaveTypesSeed } from '@/mock/leave-type';
 
 type ApprovalRuleForm = {
   maxDaysThreshold: number;
-  selectedApproverIndexes?: number[]; // เก็บ index ลำดับผู้อนุมัติจาก approvers หลัก
+  selectedApproverIndexes?: number[];
 };
 
 type LeaveTypeFormValues = Omit<
@@ -52,20 +43,18 @@ export default function EditLeaveTypePage() {
   const { Title } = Typography;
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const { hydrate, getById, update, remove } = useLeaveTypesStore();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const [loading, setLoading] = useState(true);
   const [form] = Form.useForm<LeaveTypeFormValues>();
 
-  useEffect(() => { hydrate(); }, [hydrate]);
-
   useEffect(() => {
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    const found = getById(id);
+
+    // ✅ หา item จาก mock โดยตรง
+    const found = leaveTypesSeed.find((it) => it.id === id);
 
     const apply = (v?: LeaveTypeConfig) => {
       if (v) {
-        // map approverChain -> selectedApproverIndexes
         const baseApprovers = v.approvers ?? [];
         const approvalRulesWithIndexes: ApprovalRuleForm[] = (v.approvalRules ?? []).map(rule => {
           const selected = (rule.approverChain ?? [])
@@ -85,62 +74,55 @@ export default function EditLeaveTypePage() {
           approvalRules: approvalRulesWithIndexes,
         };
         form.setFieldsValue(values);
+      } else {
+        message.error('ไม่พบประเภทการลา');
+        router.push('/private/admin/manage-leave');
       }
       setLoading(false);
     };
 
-    if (found) apply(found);
-    else {
-      const t = setTimeout(() => apply(getById(id)), 200);
-      return () => clearTimeout(t);
-    }
-  }, [getById, form, params.id]);
+    apply(found);
+  }, [form, params.id, router]);
 
-  // สร้าง options “ลำดับที่ X : ตำแหน่ง - ชื่อ” จาก approvers หลัก
+  // ---- สร้าง options ผู้อนุมัติจากค่าในฟอร์ม
   type ApproverRow = { position?: string; userId?: string };
-const approversWatch = Form.useWatch('approvers', { form, preserve: true }) as ApproverRow[] | undefined;
+  const approversWatch = Form.useWatch('approvers', { form, preserve: true }) as ApproverRow[] | undefined;
 
-const approverOrderOptions = (approversWatch ?? [])
-  .map((ap, idx) => ({ ap, idx }))
-  .filter(({ ap }) => ap && ap.userId)
-  .map(({ ap, idx }) => {
-    const u = usersMock.find(u => u.id === ap!.userId);
-    const pos = ap!.position ?? 'ผู้อนุมัติ';
-    return {
-      label: `ลำดับที่ ${idx + 1} : ${pos}${u ? ` - ${u.name}` : ''}`,
-      value: idx,
-    };
-  });
+  const approverOrderOptions = (approversWatch ?? [])
+    .map((ap, idx) => ({ ap, idx }))
+    .filter(({ ap }) => ap && ap.userId)
+    .map(({ ap, idx }) => {
+      const u = usersMock.find(u => u.id === ap!.userId);
+      const pos = ap!.position ?? 'ผู้อนุมัติ';
+      return {
+        label: `ลำดับที่ ${idx + 1} : ${pos}${u ? ` - ${u.name}` : ''}`,
+        value: idx,
+      };
+    });
 
-
+  // ---- บันทึก (เดโมเท่านั้น: ไม่ persist)
   const onFinish = (values: LeaveTypeFormValues) => {
     const baseApprovers = values.approvers ?? [];
-    // map selectedApproverIndexes -> approverChain
     const normalizedRules = (values.approvalRules ?? []).map((r) => {
       const idxs: number[] = Array.isArray(r.selectedApproverIndexes) ? r.selectedApproverIndexes : [];
       const chain = idxs.map(i => baseApprovers[i]).filter(Boolean);
       return { maxDaysThreshold: r.maxDaysThreshold, approverChain: chain };
     });
 
-    const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    update(id, {
-      name: values.name,
-      maxDays: Number(values.maxDays ?? 0),
-      allowedGenders: values.allowedGenders ?? [],
-      minServiceYears: Number(values.minServiceYears ?? 0),
-      workingDaysOnly: !!values.workingDaysOnly,
-      documents: values.documents ?? [],
-      approvers: baseApprovers,
+    // ปกติจะเรียก update ที่ backend/store — ตอนนี้แค่แจ้งเตือน + กลับหน้า list
+    console.log('[MOCK SAVE] values:', {
+      ...values,
       approvalRules: normalizedRules,
     });
-    message.success('บันทึกการเปลี่ยนแปลงแล้ว');
+    message.success('บันทึก (โหมด Mock) — ไม่มีการเปลี่ยนแปลงข้อมูลจริง');
     router.push('/private/admin/manage-leave');
   };
 
+  // ---- ลบ (เดโมเท่านั้น: ไม่ persist)
   const onDelete = () => {
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    remove(id);
-    message.success('ลบประเภทการลาแล้ว');
+    console.log('[MOCK DELETE] id:', id);
+    message.info('ลบ (โหมด Mock) — ไม่มีการเปลี่ยนแปลงข้อมูลจริง');
     router.push('/private/admin/manage-leave');
   };
 
@@ -148,7 +130,7 @@ const approverOrderOptions = (approversWatch ?? [])
     <div style={{ padding: 10 }}>
       <Space direction="vertical" style={{ width: '100%' }} size={10}>
         <Title level={4} style={{ margin: 0 }}>แก้ไขประเภทลา</Title>
-        <Card>
+        <Card loading={loading}>
           <Form<LeaveTypeFormValues> form={form} layout="vertical" onFinish={onFinish}>
             <Row gutter={16}>
               <Col xs={24} md={12}>
