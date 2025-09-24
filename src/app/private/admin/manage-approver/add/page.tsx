@@ -4,100 +4,73 @@ import {
   Button,
   Col,
   Form,
-  Input,
   Row,
   Space,
   Typography,
-  Skeleton,
-  notification,
-  Card,
-  Tag,
+  Select,
   Table,
+  Tooltip,
+  Input,
+  Checkbox,
 } from "antd";
 import { useRouter } from "next/navigation";
+import * as Icons from "lucide-react";
 
 export default function NewUserPage() {
   const { Title } = Typography;
   const [form] = Form.useForm();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [api, contextHolder] = notification.useNotification();
 
-  // ✅ เก็บ mock data ใน state
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [selectedDept, setSelectedDept] = useState<string>("");
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
 
   const fetchNewUser = async () => {
-    try {
-      const mockData = [
-        {
-          id: 1,
-          pronuon: "นางสาว",
-          thaiName: "วรัญญา ศรีสุข",
-          englishName: "Waranya Srisuk",
-          department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-          position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
-          approver: [
-            {
-              id: 3,
-              pronuon: "นางสาว",
-              thaiName: "บัวบาน ศรีสุข",
-              englishName: "buaban Srisuk",
-              department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-              position: "อาจารย์ภาควิศวกรรมคอมพิวเตอร์",
-            },
-            {
-              id: 4,
-              pronuon: "นางสาว",
-              thaiName: "กนกพร ปราบนที",
-              englishName: "Kanokporn Prabnatee",
-              department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-              position: "อาจารย์ภาควิศวกรรมคอมพิวเตอร์",
-            },
-          ],
-          updatedAt: "2025-07-03T10:15:23Z",
-          createdAt: "2025-07-03T10:15:23Z",
-        },
-        {
-          id: 2,
-          pronuon: "นาย",
-          thaiName: "กันตพงษ์ กลางเมือง",
-          englishName: "Kanthapong Klangmuang",
-          department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-          position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
-          updatedAt: "2025-07-03T10:17:45Z",
-          createdAt: "2025-07-03T10:15:23Z",
-        },
-        {
-          id: 3,
-          pronuon: "นางสาว",
-          thaiName: "บัวบาน ศรีสุข",
-          englishName: "buaban Srisuk",
-          department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-          position: "อาจารย์ภาควิศวกรรมคอมพิวเตอร์",
-          updatedAt: "2025-07-03T10:18:12Z",
-          createdAt: "2025-07-03T10:15:23Z",
-        },
-        {
-          id: 4,
-          pronuon: "นางสาว",
-          thaiName: "กนกพร ปราบนที",
-          englishName: "Kanokporn Prabnatee",
-          department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-          position: "อาจารย์ภาควิศวกรรมคอมพิวเตอร์",
-          updatedAt: "2025-07-03T10:20:08Z",
-          createdAt: "2025-07-03T10:15:23Z",
-        },
-      ];
+    const mockData = [
+      {
+        id: 1,
+        academicPosition: "รศ.ดร.",
+        pronuon: "นางสาว",
+        thaiName: "วรัญญา ศรีสุข",
+        englishName: "Waranya Srisuk",
+        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+        position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
+      },
+      {
+        id: 2,
+        academicPosition: "ร้อยตรี",
+        pronuon: "นาย",
+        thaiName: "กันตพงษ์ กลางเมือง",
+        englishName: "Kanthapong Klangmuang",
+        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+        position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
+      },
+      {
+        id: 3,
+        academicPosition: null,
+        pronuon: "นางสาว",
+        thaiName: "บัวบาน ศรีสุข",
+        englishName: "Buaban Srisuk",
+        department: "คณะวิศวกรรมศาสตร์",
+        position: "เลขานุการคณะ",
+      },
+      {
+        id: 4,
+        academicPosition: "ดร.",
+        pronuon: "นางสาว",
+        thaiName: "กนกพร ปราบนที",
+        englishName: "Kanokporn Prabnatee",
+        department: "คณะวิศวกรรมศาสตร์",
+        position: "อธิการบดี",
+      },
+    ];
 
-      setUser(mockData[0]); // ✅ default user
-      setAllUsers(mockData); // ✅ เก็บไว้ใน state
-      setFilteredUsers(mockData); // ✅ ใช้ค่าเริ่มต้นเป็นทั้งหมด
-    } catch (error) {
-      console.log("error: ", error);
-    }
+    setAllUsers(mockData);
+    // default เลือกสังกัดแรก
+    setSelectedDept(mockData[0].department);
+    setFilteredUsers(mockData.filter((u) => u.department === mockData[0].department));
     setLoading(false);
   };
 
@@ -105,14 +78,88 @@ export default function NewUserPage() {
     fetchNewUser();
   }, []);
 
-  if (loading || !user) {
-    return (
-      <>
-        {contextHolder}
-        <Skeleton active />
-      </>
-    );
-  }
+  // ดึงชื่อ unique department
+  const departments = Array.from(new Set(allUsers.map((u) => u.department)));
+
+  // handle add user เข้า selectedUsers
+  const addUser = (user: any) => {
+    setSelectedUsers((prev) => [
+      ...prev,
+      {
+        ...user,
+        positionApprover: user.position, // default
+        level: [], // ลำดับยังไม่เลือก
+      },
+    ]);
+  };
+
+  // table columns
+  const columns = [
+    {
+      title: "ชื่อ",
+      key: "thaiName",
+      render: (_: any, record: any) =>
+        `${record.academicPosition ? record.academicPosition + " " : ""}${record.thaiName}`,
+    },
+    {
+      title: "ตำแหน่ง",
+      dataIndex: "position",
+      key: "position",
+    },
+    {
+      title: "ตำแหน่งอนุมัติ",
+      dataIndex: "positionApprover",
+      key: "positionApprover",
+      render: (_: any, record: any, index: number) => (
+        <Input
+          value={record.positionApprover}
+          onChange={(e) => {
+            const value = e.target.value;
+            setSelectedUsers((prev) => {
+              const updated = [...prev];
+              updated[index].positionApprover = value;
+              return updated;
+            });
+          }}
+        />
+      ),
+    },
+    {
+      title: "ลำดับ",
+      dataIndex: "level",
+      key: "level",
+      render: (_: any, record: any, index: number) => (
+        <Checkbox.Group
+          options={[1, 2, 3, 4, 5].map((n) => ({ label: n, value: n }))}
+          value={record.level}
+          onChange={(checkedValues) => {
+            setSelectedUsers((prev) => {
+              const updated = [...prev];
+              updated[index].level = checkedValues;
+              return updated;
+            });
+          }}
+        />
+      ),
+    },
+    {
+      title: "การจัดการ",
+      key: "actions",
+      render: (_: any, record: any, index: number) => (
+        <Tooltip title="ลบ">
+          <Icons.Trash2
+            size={18}
+            style={{ cursor: "pointer", color: "red" }}
+            onClick={() =>
+              setSelectedUsers((prev) => prev.filter((_, i) => i !== index))
+            }
+          />
+        </Tooltip>
+      ),
+    },
+  ];
+
+  if (loading) return <p>Loading...</p>;
 
   return (
     <div style={{ padding: 10 }}>
@@ -120,123 +167,76 @@ export default function NewUserPage() {
         <Row>
           <Col span={24}>
             <Title style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}>
-              {"เพิ่มผู้ใต้บังคับบัญชา"}
+              {"เพิ่มผู้อนุมัติ"}
             </Title>
           </Col>
         </Row>
 
-        <Card title="ข้อมูลส่วนบุคคล" style={{ marginBottom: 24 }}>
-          <Row gutter={[16, 16]}>
+        <div className="chemds-container">
+          {/* Select controls */}
+          <Row gutter={16} style={{ marginBottom: 16 }}>
             <Col span={8}>
-              <b>คำนำหน้า:</b> {user.pronuon}
+              <b>สังกัด: </b>
+              <Select
+                style={{ width: "100%" }}
+                value={selectedDept}
+                options={departments.map((d) => ({ value: d, label: d }))}
+                onChange={(value) => {
+                  setSelectedDept(value);
+                  setFilteredUsers(allUsers.filter((u) => u.department === value));
+                }}
+              />
             </Col>
             <Col span={8}>
-              <b>ชื่อ:</b> {user.thaiName}
-            </Col>
-            <Col span={8}>
-              <b>นามสกุล:</b>{" "}
-              {user.englishName?.split(" ").slice(1).join(" ")}
-            </Col>
-            <Col span={8}>
-              <b>ตำแหน่ง:</b> {user.position}
-            </Col>
-            <Col span={8}>
-              <b>หน่วยงาน:</b> {user.department}
-            </Col>
-            <Col span={8}>
-              <b>วันเกิด:</b> -
-            </Col>
-            <Col span={8}>
-              <b>วันที่บรรจุ:</b> -
-            </Col>
-            <Col span={8}>
-              <b>ระดับ:</b> -
+              <b>ชื่อ: </b>
+              <Select
+                style={{ width: "100%" }}
+                placeholder="เลือกชื่อ"
+                options={filteredUsers.map((u) => ({
+                  value: u.id,
+                  label: (
+                    <Space>
+                      {`${u.academicPosition ? u.academicPosition + " " : ""}${u.thaiName}`}
+                      <Icons.PlusCircle
+                        size={16}
+                        style={{ cursor: "pointer", color: "green" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addUser(u);
+                        }}
+                      />
+                    </Space>
+                  ),
+                }))}
+              />
             </Col>
           </Row>
-        </Card>
 
-        <div className="chemds-container">
-          <Form layout="vertical" form={form} style={{ maxWidth: "none" }}>
-            <Row gutter={16}>
-              {/* Col ซ้าย : ตารางผู้ใช้ */}
-              <Col span={16}>
-                <Input.Search
-                  placeholder="ค้นหาชื่อ"
-                  allowClear
-                  onSearch={(value) => {
-                    const filtered = allUsers.filter(
-                      (u) =>
-                        u.thaiName.includes(value) ||
-                        u.englishName.includes(value)
-                    );
-                    setFilteredUsers(filtered);
-                  }}
-                  style={{ marginBottom: 12 }}
-                />
-                <Table
-                  rowKey="id"
-                  rowSelection={{
-                    selectedRowKeys: selectedUsers.map((u) => u.id),
-                    onChange: (selectedRowKeys, selectedRows) => {
-                      setSelectedUsers(selectedRows);
-                    },
-                  }}
-                  columns={[
-                    { title: "ชื่อ", dataIndex: "thaiName" },
-                    { title: "ตำแหน่ง", dataIndex: "position" },
-                    { title: "สังกัด", dataIndex: "department" },
-                  ]}
-                  dataSource={filteredUsers}
-                  pagination={false}
-                  size="small"
-                />
-              </Col>
+          {/* Table of selected users */}
+          <Table
+            rowKey="id"
+            columns={columns}
+            dataSource={selectedUsers}
+            pagination={false}
+            bordered
+          />
 
-              {/* Col ขวา : รายชื่อที่เลือก */}
-              <Col span={8}>
-                <Card title="ผู้ที่เลือกแล้ว">
-                  <Space wrap>
-                    {selectedUsers.map((u) => (
-                      <Tag
-                        key={u.id}
-                        closable
-                        onClose={() => {
-                          setSelectedUsers((prev) =>
-                            prev.filter((p) => p.id !== u.id)
-                          );
-                        }}
-                      >
-                        {u.thaiName}
-                      </Tag>
-                    ))}
-                  </Space>
-                </Card>
-              </Col>
-            </Row>
-
-            <Row style={{ justifyContent: "space-between", marginTop: 15 }}>
-              <Col>
-                <Button
-                  className="chemds-button"
-                  type="default"
-                  onClick={() =>
-                    router.push(`/private/admin/manage-approver`)
-                  }
-                >
-                  ยกเลิก
-                </Button>
-              </Col>
-              <Col>
-                <Button
-                  className="chemds-button"
-                  type="primary"
-                  htmlType="submit"
-                >
-                  เพิ่ม
-                </Button>
-              </Col>
-            </Row>
-          </Form>
+          <Row style={{ justifyContent: "space-between", marginTop: 15 }}>
+            <Col>
+              <Button
+                className="chemds-button"
+                type="default"
+                onClick={() => router.push(`/private/admin/manage-approver`)}
+              >
+                ยกเลิก
+              </Button>
+            </Col>
+            <Col>
+              <Button className="chemds-button" type="primary">
+                เพิ่ม
+              </Button>
+            </Col>
+          </Row>
         </div>
       </Space>
     </div>

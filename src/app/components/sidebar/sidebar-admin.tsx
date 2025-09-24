@@ -187,7 +187,7 @@ export default function PersonnelAdminLayout({
                                         key: "approver",
                                         icon: <Icons.UserCheck />,
                                         style: { fontSize: 16, color: "#FDFEFE" },
-                                        label: "ผู้อนุม้ติ",
+                                        label: "ผู้อนุมัติ",
                                         onClick: () => {
                                             router.push(`/private/admin/manage-approver`);
                                         },
