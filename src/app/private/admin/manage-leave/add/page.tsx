@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Button,
   Card,
@@ -17,12 +17,23 @@ import {
   message,
 } from 'antd';
 import { useRouter } from 'next/navigation';
-import { useLeaveTypesStore } from '@/store/leaveTypeStore';
+// ❌ ลบ seed ที่ไม่ใช้ เพื่อแก้ ESLint no-unused-vars
+// import { leaveTypesSeed } from '@/mock/leave-type';
 import ApproverEditor from '@/app/components/FormElements/ApproverEditor';
 import type { LeaveTypeConfig, GenderCode } from '@/types/leave';
 import { usersMock } from '@/mock/users';
 
-type LeaveTypeFormValues = Omit<LeaveTypeConfig, 'id' | 'createdAt' | 'updatedAt'>;
+type ApprovalRuleForm = {
+  maxDaysThreshold: number;
+  selectedApproverIndexes?: number[];
+};
+
+type LeaveTypeFormValues = Omit<
+  LeaveTypeConfig,
+  'id' | 'createdAt' | 'updatedAt' | 'approvalRules'
+> & {
+  approvalRules?: ApprovalRuleForm[];
+};
 
 const genderOptions: { label: string; value: GenderCode }[] = [
   { label: 'ชาย', value: 'male' },
@@ -40,55 +51,46 @@ const fileTypeOptions = [
 export default function AddLeaveTypePage() {
   const { Title, Text } = Typography;
   const router = useRouter();
-  const { add, hydrate } = useLeaveTypesStore();
   const [form] = Form.useForm<LeaveTypeFormValues>();
 
-  useEffect(() => { hydrate(); }, [hydrate]);
+  // ✅ ไม่ใช้ hydrate / store อีกต่อไป
 
   // watcher: ใช้จำนวน/รายละเอียดผู้อนุมัติหลักเพื่อทำ options ให้ rule
-  // ป้องกันค่าไม่ครบจาก Form.List (เช่น ยังไม่เลือก userId/position)
-    type ApproverRow = { position?: string; userId?: string };
-    const approversWatch = Form.useWatch('approvers', { form, preserve: true }) as ApproverRow[] | undefined;
+  type ApproverRow = { position?: string; userId?: string };
+  const approversWatch = Form.useWatch('approvers', { form, preserve: true }) as ApproverRow[] | undefined;
 
-    const approverOrderOptions = (approversWatch ?? [])
+  const approverOrderOptions = (approversWatch ?? [])
     .map((ap, idx) => ({ ap, idx }))
     .filter(({ ap }) => ap && ap.userId) // เอาเฉพาะแถวที่เลือก user แล้ว
     .map(({ ap, idx }) => {
-        const u = usersMock.find(u => u.id === ap!.userId);
-        const pos = ap!.position ?? 'ผู้อนุมัติ';
-        return {
+      const u = usersMock.find(u => u.id === ap!.userId);
+      const pos = ap!.position ?? 'ผู้อนุมัติ';
+      return {
         label: `ลำดับที่ ${idx + 1} : ${pos}${u ? ` - ${u.name}` : ''}`,
         value: idx,
-        };
+      };
     });
 
-
   const onFinish = (values: LeaveTypeFormValues) => {
-    // แปลง selectedApproverIndexes (ในแต่ละ rule) ให้กลายเป็น approverChain จาก approvers หลัก
     const baseApprovers = values.approvers ?? [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const normalizedRules = (values.approvalRules ?? []).map((r: any) => {
+    const normalizedRules = (values.approvalRules ?? []).map((r) => {
       const idxs: number[] = Array.isArray(r.selectedApproverIndexes) ? r.selectedApproverIndexes : [];
-      const chain = idxs
-        .map(i => baseApprovers[i])
-        .filter(Boolean); // ApproverConfig[]
+      const chain = idxs.map(i => baseApprovers[i]).filter(Boolean);
       return {
         maxDaysThreshold: r.maxDaysThreshold,
         approverChain: chain,
       };
     });
 
-    add({
-      name: values.name,
-      maxDays: Number(values.maxDays ?? 0),
-      allowedGenders: values.allowedGenders ?? [],
-      minServiceYears: Number(values.minServiceYears ?? 0),
-      workingDaysOnly: !!values.workingDaysOnly,
-      documents: values.documents ?? [],
-      approvers: baseApprovers,
+    // ❗ โหมด Mock: ไม่ได้บันทึกจริง แค่แสดงผล + redirect
+    // ปกติที่นี่จะเรียก API หรือ store.add(...)
+    // eslint-disable-next-line no-console
+    console.log('[MOCK ADD] payload:', {
+      ...values,
       approvalRules: normalizedRules,
     });
-    message.success('เพิ่มประเภทการลาเรียบร้อย');
+
+    message.success('เพิ่มประเภทการลา (โหมด Mock) — ไม่ได้บันทึกจริง');
     router.push('/private/admin/manage-leave');
   };
 
@@ -216,7 +218,6 @@ export default function AddLeaveTypePage() {
                         <Col xs={24} md={16}>
                           <Form.Item
                             {...restField}
-                            // เก็บ index ของผู้อนุมัติที่เลือกไว้ชั่วคราวในฟอร์ม (จะ map เป็น approverChain ตอน submit)
                             name={[name, 'selectedApproverIndexes']}
                             label="ต้องใช้ผู้อนุมัติลำดับที่"
                             rules={[{ required: true, message: 'กรุณาเลือกอย่างน้อย 1 ลำดับ' }]}
