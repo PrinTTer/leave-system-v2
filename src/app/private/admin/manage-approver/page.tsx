@@ -35,54 +35,68 @@ export default function UserIndexPage() {
         totalCount: 0,
     });
     const [currentSearch, setcurrentSearch] = useState({
-        nontriAccount: "",
-        name: "",
-        surname: "",
+        thaiName: "",
+        department: "",
+        position: "",
     });
+
 
     const columns: TableProps["columns"] = [
         {
             title: "ชื่อ",
-            dataIndex: "thaiName",
             key: "thaiName",
             align: "left",
+            sorter: (a, b) =>
+                (a.thaiName || "").localeCompare(b.thaiName || ""),
+            render: (_, record) =>
+                `${record.academicPosition ? record.academicPosition + " " : ""}${record.thaiName}`,
         },
         {
             title: "ตำแหน่ง",
             dataIndex: "position",
             key: "position",
             align: "left",
+            sorter: (a, b) =>
+                (a.position || "").localeCompare(b.position || ""),
         },
         {
-            title: "สังกัด",
-            dataIndex: "department",
-            key: "department",
+            title: "ตำแหน่งอนุมัติ",
+            dataIndex: "positionApprover",
+            key: "positionApprover",
             align: "left",
+            sorter: (a, b) =>
+                (a.positionApprover || "").localeCompare(b.positionApprover || ""),
         },
         {
-            title: "ผู้อนุมัติ 1",
-            key: "approver1",
-            align: "left",
-            render: (_, record) => record.approver?.[0]?.thaiName || "-",
-        },
-        {
-            title: "ผู้อนุมัติ 2",
-            key: "approver2",
-            align: "left",
-            render: (_, record) => record.approver?.[1]?.thaiName || "-",
+            title: "ลำดับ",
+            key: "level",
+            align: "center",
+            sorter: (a, b) =>
+                (a.level?.length || 0) - (b.level?.length || 0),
+            render: (_, record) => record.level?.join(", ") || "-",
         },
         {
             title: "การจัดการ",
             key: "actions",
             align: "center",
-            width: "15%",
+            width: "20%",
             render: (_, record) => (
                 <Space size="middle">
-                    <Tooltip title="ผู้อนุมัติ">
-                        <Icons.UserPlus
+                    <Tooltip title="แก้ไข">
+                        <Icons.Edit
                             size={18}
                             style={{ cursor: "pointer" }}
                             onClick={() => router.push(`/private/admin/manage-approver/${record.id}`)}
+                        />
+                    </Tooltip>
+                    <Tooltip title="ลบ">
+                        <Icons.Trash2
+                            size={18}
+                            style={{ cursor: "pointer", color: "red" }}
+                            onClick={() => {
+                                // TODO: ใส่ฟังก์ชันยืนยันการลบ
+                                console.log("delete", record.id);
+                            }}
                         />
                     </Tooltip>
                 </Space>
@@ -91,67 +105,101 @@ export default function UserIndexPage() {
     ];
 
 
+
     const fetchUsers = async () => {
         try {
             const data = {
                 data: [
                     {
                         id: 1,
+                        academicPosition: "ผศ.ดร.",
                         pronuon: "นางสาว",
                         thaiName: "วรัญญา ศรีสุข",
                         englishName: "Waranya Srisuk",
                         department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        approver: [
-                            {
-                                id: 3,
-                                pronuon: "นางสาว",
-                                thaiName: "บัวบาน ศรีสุข",
-                                englishName: "buaban Srisuk",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                            },
-                            {
-                                id: 4,
-                                pronuon: "นางสาว",
-                                thaiName: "กนกพร ปราบนที",
-                                englishName: "Kanokporn Prabnatee",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                            }
-                        ],
+                        position: "หัวหน้าภาควิชา",
+                        positionApprover: "หัวหน้าภาควิชาคอมพิวเตอร์",
                         updatedAt: "2025-07-03T10:15:23Z",
                         createdAt: "2025-07-03T10:15:23Z",
+                        level: [1],
                     },
                     {
                         id: 2,
+                        academicPosition: "อ.ร้อยตรี",
                         pronuon: "นาย",
-                        thaiName: "กันตพงษ์ กลางเมือง",
-                        englishName: "Kanthapong Klangmuang",
+                        thaiName: "อนุมัติ กลางเมือง",
+                        englishName: "Anumat Klangmuang",
                         department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
+                        position: "รองหัวหน้าภาควิชา",
+                        positionApprover: "รักษาการแทนหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
                         updatedAt: "2025-07-03T10:17:45Z",
                         createdAt: "2025-07-03T10:15:23Z",
+                        level: [1],
                     },
                     {
                         id: 3,
+                        academicPosition: null,
                         pronuon: "นางสาว",
                         thaiName: "บัวบาน ศรีสุข",
                         englishName: "buaban Srisuk",
-                        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
+                        department: "คณะวิศวกรรมศาสตร์",
+                        position: "เลขานุการ",
+                        positionApprover: "รักษาการแทนคณบดี",
                         updatedAt: "2025-07-03T10:18:12Z",
                         createdAt: "2025-07-03T10:15:23Z",
+                        level: [1],
                     },
                     {
                         id: 4,
+                        academicPosition: "ดร.",
                         pronuon: "นางสาว",
                         thaiName: "กนกพร ปราบนที",
                         englishName: "Kanokporn Prabnatee",
-                        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
+                        department: "คณะวิศวกรรมศาสตร์",
+                        position: "อธิการบดี",
+                        positionApprover: "อธิการบดี",
                         updatedAt: "2025-07-03T10:20:08Z",
                         createdAt: "2025-07-03T10:15:23Z",
+                        level: [1, 2],
+                    },
+                    {
+                        id: 5,
+                        academicPosition: "ศ.ดร.",
+                        pronuon: "นาย",
+                        thaiName: "สมชาย ดอนเมือง",
+                        englishName: "Somchai Donmuang",
+                        department: "คณะวิศวกรรมศาสตร์",
+                        position: "คณบดี",
+                        positionApprover: "คณบดี",
+                        updatedAt: "2025-07-03T10:20:08Z",
+                        createdAt: "2025-07-03T10:15:23Z",
+                        level: [1, 2],
+                    },
+                    {
+                        id: 6,
+                        academicPosition: "ผศ.ดร.",
+                        pronuon: "นาย",
+                        thaiName: "กันตพงษ์ กลางเมือง",
+                        englishName: "Kanthapong Klangmuang",
+                        department: "ภาควิชาวิศวกรรมเครื่องกล",
+                        position: "หัวหน้าภาควิชา",
+                        positionApprover: "หัวหน้าภาควิชาวิศวกรรมเครื่องกล",
+                        updatedAt: "2025-07-03T10:17:45Z",
+                        createdAt: "2025-07-03T10:15:23Z",
+                        level: [1],
+                    },
+                    {
+                        id: 7,
+                        academicPosition: "อ.ร้อยตรี",
+                        pronuon: "นาย",
+                        thaiName: "อนุมัติ กลางเมือง",
+                        englishName: "Anumat Klangmuang",
+                        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+                        position: "รองหัวหน้าภาควิชา",
+                        positionApprover: "รองหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
+                        updatedAt: "2025-07-03T10:17:45Z",
+                        createdAt: "2025-07-03T10:15:23Z",
+                        level: [1],
                     },
                 ],
                 page: 1,
@@ -161,9 +209,9 @@ export default function UserIndexPage() {
             };
             setUsers(data);
 
-            if (data.data.length > 0) {
-                form.setFieldsValue({ userSelect: data.data[0].id });
-            }
+            // if (data.data.length > 0) {
+            //     form.setFieldsValue({ userSelect: data.data[0].id });
+            // }
 
             setLoading(false);
             setTableLoading(false);
@@ -181,12 +229,13 @@ export default function UserIndexPage() {
 
     const onSearch = () => {
         setcurrentSearch({
-            nontriAccount: form.getFieldValue("nontriAccount"),
-            name: form.getFieldValue("name"),
-            surname: form.getFieldValue("surname"),
+            thaiName: form.getFieldValue("thaiName") || "",
+            department: form.getFieldValue("department") || "",
+            position: form.getFieldValue("position") || "",
         });
         setCurrentPage(1);
     };
+
 
     useEffect(() => {
         setTableLoading(true);
@@ -214,62 +263,30 @@ export default function UserIndexPage() {
                             <Col span={16}>
                                 <Form layout="inline" form={form}>
                                     <Col>
-                                        <Form.Item name="userSelect">
-                                            <Select
-                                                placeholder="เลือกผู้ใช้"
-                                                style={{ minWidth: 250 }}
-                                                allowClear
-                                                options={users.data.map((u) => ({
-                                                    value: u.id,
-                                                    label: u.thaiName,
-                                                }))}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    {/* <Col>
-                                        <Button
-                                            className="chemds-button"
-                                            type="primary"
-                                            onClick={() => {
-                                                setLoading(true);
-                                                router.push(`/private/admin/manage-approver/add`);
-                                            }}>
-                                            เพิ่ม
-                                        </Button>
-                                    </Col> */}
-                                </Form>
-                            </Col>
-                        </Row>
-
-                        <Row style={{ marginBottom: "1%" }}>
-                            <Col span={16}>
-                                <Form layout="inline" form={form}>
-                                    <Col>
-                                        <Form.Item name="nontriAccount">
-                                            <Input placeholder="บัญชีนนทรี" allowClear />
+                                        <Form.Item name="thaiName">
+                                            <Input placeholder="ชื่อ-นามสกุล" allowClear />
                                         </Form.Item>
                                     </Col>
                                     <Col>
-                                        <Form.Item name="name">
-                                            <Input placeholder="ชื่อ" allowClear />
+                                        <Form.Item name="department">
+                                            <Input placeholder="สังกัด" allowClear />
                                         </Form.Item>
                                     </Col>
                                     <Col>
-                                        <Form.Item name="surname">
-                                            <Input placeholder="นามสกุล" allowClear />
+                                        <Form.Item name="position">
+                                            <Input placeholder="ตำแหน่ง" allowClear />
                                         </Form.Item>
                                     </Col>
                                     <Col>
                                         <Button
                                             className="chemds-button"
                                             type="primary"
-                                            onClick={() => {
-                                                onSearch();
-                                            }}>
+                                            onClick={onSearch}>
                                             ค้นหา
                                         </Button>
                                     </Col>
                                 </Form>
+
                             </Col>
                             <Col
                                 span={8}
