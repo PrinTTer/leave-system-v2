@@ -33,8 +33,8 @@ export default function LeaveTypePage() {
   const isVacation = (it: AnyLeave) =>
     it?.name === 'ลาพักผ่อน' || Array.isArray((it as any)?.vacationRules);
 
-  // UI state เท่านั้น (ค้นหา/สลับมุมมอง)
-  const [viewTable, setViewTable] = useState(false);
+  // UI state เท่านั้น (ค้นหา/สลับมุมมอง) — ค่าเริ่มต้นเป็น "ตาราง"
+  const [viewTable, setViewTable] = useState(true);
   const [q, setQ] = useState('');
 
   const data = useMemo(
@@ -45,17 +45,15 @@ export default function LeaveTypePage() {
   const vacationList = useMemo(() => data.filter(isVacation), [data]);
   const generalList  = useMemo(() => data.filter((it) => !isVacation(it)), [data]);
 
-  const baseCondTags = (r: AnyLeave) => (
-    <Space size={[8, 8]} wrap>
-      <Tag>อายุราชการ ≥ {r.minServiceYears} ปี</Tag>
-      {(r.allowedGenders.length === 0 || r.allowedGenders.length === 3)
-        ? <Tag color="blue">ทุกเพศ</Tag>
-        : r.allowedGenders.map((g: GenderCode) => <Tag key={g}>{genderLabel(g)}</Tag>)}
-      {r.workingDaysOnly && <Tag color="purple">นับเฉพาะวันทำการ</Tag>}
-    </Space>
-  );
+  // helper: แสดงเพศเป็นข้อความทั่วไป (ไม่ใช้ Tag)
+  const renderGenders = (r: AnyLeave) => {
+    if (!r?.allowedGenders || r.allowedGenders.length === 0 || r.allowedGenders.length === 3) {
+      return 'ทุกเพศ';
+    }
+    return (r.allowedGenders as GenderCode[]).map(genderLabel).join(', ');
+  };
 
-  // ใช้ AnyLeave เพื่อให้เข้มงวดน้อยลง (รองรับฟิลด์เสริมของ seed)
+  // ===== ตาราง “ลาทั่วไป” (General) =====
   const generalColumns: ColumnsType<AnyLeave> = [
     { title: 'ประเภทการลา', dataIndex: 'name' },
     {
@@ -64,25 +62,36 @@ export default function LeaveTypePage() {
       render: (_, r) => (r.approverPositions?.length ?? 0),
     },
     { title: 'สูงสุด (วัน)', dataIndex: 'maxDays', align: 'center' },
-    { title: 'เงื่อนไข', render: (_, r) => baseCondTags(r) },
+
+    // ⬇️ แยกคอลัมน์เงื่อนไขเป็น 3 ช่อง
     {
-      title: 'เอกสารแนบ',
-      render: (_, r) => (
-        <Space size={[8, 8]} wrap>
-          <Tag color="geekblue">{(r.documents?.length ?? 0)} รายการ</Tag>
-          {(r.documents ?? []).slice(0, 3).map((d: any) => (
-            <Tag key={d.name} color={d.required ? 'red' : 'default'}>
-              {d.name} ({d.fileType})
-            </Tag>
-          ))}
-        </Space>
-      ),
+      title: 'อายุราชการขั้นต่ำ (ปี)',
+      align: 'center',
+      render: (_, r) => r.minServiceYears ?? 0,
     },
+    {
+      title: 'นับเฉพาะวันทำการ',
+      align: 'center',
+      render: (_, r) => (r.workingDaysOnly ? 'ใช่' : 'ไม่'),
+    },
+    {
+      title: 'เพศที่อนุญาต',
+      render: (_, r) => renderGenders(r),
+    },
+
+    // ⬇️ เอกสารแนบ: แสดงเป็น “จำนวนเอกสาร” แบบตัวเลข
+    {
+      title: 'เอกสารแนบ (จำนวน)',
+      align: 'center',
+      render: (_, r) => (r.documents?.length ?? 0),
+    },
+
+    // (คงไว้) แสดงรายละเอียดเงื่อนไขอนุมัติเดิมเล็กน้อย (ไม่บังคับ)
     {
       title: 'เงื่อนไขอนุมัติ',
       render: (_, r) => (
         <Space direction="vertical" size={0}>
-          <Tag color="green">{(r.approvalRules?.length ?? 0)} เงื่อนไข</Tag>
+          <span>{(r.approvalRules?.length ?? 0)} เงื่อนไข</span>
           {(r.approvalRules ?? []).slice(0, 3).map((ru: any, i: number) => (
             <div key={`rule-${r.id}-${i}`} style={{ fontSize: 12 }}>
               • {'<'} {ru.maxDaysThreshold} วัน →{' '}
@@ -94,6 +103,7 @@ export default function LeaveTypePage() {
         </Space>
       ),
     },
+
     {
       title: 'การจัดการ',
       align: 'center',
@@ -116,19 +126,22 @@ export default function LeaveTypePage() {
     },
   ];
 
+  // ===== ตาราง “ลาพักผ่อน” (Vacation) =====
   const vacationColumns: ColumnsType<AnyLeave> = [
     { title: 'ประเภทการลา', dataIndex: 'name' },
     { title: 'สูงสุด (วัน)', dataIndex: 'maxDays', align: 'center' },
+
+    // (คงไว้) สรุปกติกาวันลาต่อปี/สะสม (ย่อ)
     {
       title: 'กติกาวันลาต่อปี',
       render: (_, r) => {
         const rules = (r as AnyLeave).vacationRules as { minServiceYears: number; daysPerYear: number }[] | undefined;
         return (
           <Space direction="vertical" size={0}>
-            <Tag color="green">{rules?.length ?? 0} กฎ</Tag>
+            <span>{rules?.length ?? 0} กฎ</span>
             {rules?.slice(0, 3).map((ru, i) => (
               <div key={`vr-${r.id}-${i}`} style={{ fontSize: 12 }}>
-                • อายุงาน &gt;= {ru.minServiceYears} ปี → {ru.daysPerYear} วัน/ปี
+                • อายุงาน ≥ {ru.minServiceYears} ปี → {ru.daysPerYear} วัน/ปี
               </div>
             ))}
           </Space>
@@ -141,17 +154,40 @@ export default function LeaveTypePage() {
         const carry = (r as AnyLeave).carryOverRules as { minServiceYears: number; carryOverDays: number }[] | undefined;
         return (
           <Space direction="vertical" size={0}>
-            <Tag color="blue">{carry?.length ?? 0} กฎ</Tag>
+            <span>{carry?.length ?? 0} กฎ</span>
             {carry?.slice(0, 3).map((ru, i) => (
               <div key={`cr-${r.id}-${i}`} style={{ fontSize: 12 }}>
-                • อายุงาน &gt;= {ru.minServiceYears} ปี → สะสมได้ {ru.carryOverDays} วัน
+                • อายุงาน ≥ {ru.minServiceYears} ปี → สะสมได้ {ru.carryOverDays} วัน
               </div>
             ))}
           </Space>
         );
       },
     },
-    { title: 'เงื่อนไขพื้นฐาน', render: (_, r) => baseCondTags(r) },
+
+    // ⬇️ เงื่อนไขพื้นฐาน แยกคอลัมน์ 3 ช่องเหมือน General
+    {
+      title: 'อายุราชการขั้นต่ำ (ปี)',
+      align: 'center',
+      render: (_, r) => r.minServiceYears ?? 0,
+    },
+    {
+      title: 'นับเฉพาะวันทำการ',
+      align: 'center',
+      render: (_, r) => (r.workingDaysOnly ? 'ใช่' : 'ไม่'),
+    },
+    {
+      title: 'เพศที่อนุญาต',
+      render: (_, r) => renderGenders(r),
+    },
+
+    // ⬇️ เอกสารแนบ: จำนวนตัวเลข
+    {
+      title: 'เอกสารแนบ (จำนวน)',
+      align: 'center',
+      render: (_, r) => (r.documents?.length ?? 0),
+    },
+
     {
       title: 'การจัดการ',
       align: 'center',
@@ -174,6 +210,7 @@ export default function LeaveTypePage() {
     },
   ];
 
+  // (คงไว้) CardBlock เผื่อย้ายกลับไปใช้ Card ในอนาคต
   const CardBlock = ({ it }: { it: AnyLeave }) => {
     const vacation = isVacation(it);
     return (
@@ -204,7 +241,13 @@ export default function LeaveTypePage() {
 
           <div>
             <div style={{ marginBottom: 4, fontWeight: 500 }}>เงื่อนไข</div>
-            {baseCondTags(it)}
+            <Space size={[8, 8]} wrap>
+              <Tag>อายุราชการ ≥ {it.minServiceYears} ปี</Tag>
+              {(!it.allowedGenders || it.allowedGenders.length === 0 || it.allowedGenders.length === 3)
+                ? <Tag color="blue">ทุกเพศ</Tag>
+                : (it.allowedGenders as GenderCode[]).map((g) => <Tag key={g}>{genderLabel(g)}</Tag>)}
+              {it.workingDaysOnly && <Tag color="purple">นับเฉพาะวันทำการ</Tag>}
+            </Space>
           </div>
 
           {(it.documents?.length ?? 0) > 0 && (
@@ -218,48 +261,6 @@ export default function LeaveTypePage() {
                 ))}
               </Space>
             </div>
-          )}
-
-          {!vacation && (it.approvalRules?.length ?? 0) > 0 && (
-            <div>
-              <div style={{ marginBottom: 4, fontWeight: 500 }}>เงื่อนไขอนุมัติ</div>
-              <Space direction="vertical" size={2}>
-                {it.approvalRules!.map((rul: any, idx: number) => (
-                  <div key={`${it.id}-rule-${idx}`} style={{ fontSize: 12 }}>
-                    {idx + 1}. ต่ำกว่า {rul.maxDaysThreshold} วัน :
-                    {' '}ผู้อนุมัติ{' '}
-                    {rul.approverChain
-                      .map((step: any, i: number) => `${i + 1}:${(step.positions ?? []).join(' / ') || '-'}`)
-                      .join(', ')}
-                  </div>
-                ))}
-              </Space>
-            </div>
-          )}
-
-          {vacation && (
-            <>
-              <div>
-                <div style={{ marginBottom: 4, fontWeight: 500 }}>กติกาวันลาต่อปี</div>
-                <Space direction="vertical" size={2}>
-                  {((it as AnyLeave).vacationRules ?? []).map((ru: any, i: number) => (
-                    <div key={`vr-card-${it.id}-${i}`} style={{ fontSize: 12 }}>
-                      • อายุงาน &gt;= {ru.minServiceYears} ปี → {ru.daysPerYear} วัน/ปี
-                    </div>
-                  ))}
-                </Space>
-              </div>
-              <div>
-                <div style={{ marginBottom: 4, fontWeight: 500 }}>กติกาการสะสมวันลา</div>
-                <Space direction="vertical" size={2}>
-                  {((it as AnyLeave).carryOverRules ?? []).map((ru: any, i: number) => (
-                    <div key={`cr-card-${it.id}-${i}`} style={{ fontSize: 12 }}>
-                      • อายุงาน &gt;= {ru.minServiceYears} ปี → สะสมได้ {ru.carryOverDays} วัน
-                    </div>
-                  ))}
-                </Space>
-              </div>
-            </>
           )}
         </Space>
       </Card>
@@ -297,7 +298,7 @@ export default function LeaveTypePage() {
           </Col>
         </Row>
 
-        {/* ======= โหมดตาราง: แยกตารางชัดเจน ======= */}
+        {/* ======= โหมดตาราง (default) ======= */}
         {viewTable ? (
           <Space direction="vertical" style={{ width: '100%' }} size={12}>
             <Card title="ลาทั่วไป">
@@ -320,7 +321,7 @@ export default function LeaveTypePage() {
             </Card>
           </Space>
         ) : (
-          // ======= โหมดการ์ด: แยกหัวข้อ =======
+          // ======= โหมดการ์ด (ยังคงเผื่อสลับดูได้) =======
           <Space direction="vertical" style={{ width: '100%' }} size={12}>
             <Card title="ลาทั่วไป">
               <Row gutter={[16, 16]}>
