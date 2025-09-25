@@ -58,6 +58,7 @@ const columns: TableProps["columns"] = [
         title: "ชื่อ",
         key: "thaiName",
         align: "left",
+        fixed: "left",
         sorter: (a, b) =>
             (a.thaiName || "").localeCompare(b.thaiName || ""),
         render: (_, record) =>

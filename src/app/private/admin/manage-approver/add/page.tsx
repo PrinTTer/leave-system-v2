@@ -36,7 +36,7 @@ export default function NewUserPage() {
         thaiName: "วรัญญา ศรีสุข",
         englishName: "Waranya Srisuk",
         department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-        position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
+        position: "หัวหน้าภาค",
       },
       {
         id: 2,
@@ -45,7 +45,7 @@ export default function NewUserPage() {
         thaiName: "กันตพงษ์ กลางเมือง",
         englishName: "Kanthapong Klangmuang",
         department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-        position: "อาจารย์ภาควิชาวิศวกรรมคอมพิวเตอร์",
+        position: "รองหัวหน้าภาค",
       },
       {
         id: 3,
