@@ -86,7 +86,6 @@ export default function AddVacationLeavePage() {
       minServiceYears: Number(values.minServiceYears ?? 0),
       workingDaysOnly: !!values.workingDaysOnly,
       documents: values.documents ?? [],
-      approvers: values.approvers ?? [],
       approvalRules: [],
 
       // extra vacation policies
