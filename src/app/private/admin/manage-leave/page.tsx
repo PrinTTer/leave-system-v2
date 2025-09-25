@@ -26,7 +26,7 @@ export default function LeaveTypePage() {
     { key: 'vacation', label: 'เพิ่มการลา (ลาพักผ่อน)' },
   ];
 
-  // ใช้ mock data ตรง ๆ
+  // ใช้ mock data ตรง ๆ เป็นค่าเริ่มต้น
   const items: AnyLeave[] = leaveTypesSeed as AnyLeave[];
 
   // ตัวช่วย: ระบุว่าเป็น “ลาพักผ่อน” ไหม
@@ -45,7 +45,7 @@ export default function LeaveTypePage() {
   const vacationList = useMemo(() => data.filter(isVacation), [data]);
   const generalList  = useMemo(() => data.filter((it) => !isVacation(it)), [data]);
 
-  const baseCondTags = (r: LeaveTypeConfig) => (
+  const baseCondTags = (r: AnyLeave) => (
     <Space size={[8, 8]} wrap>
       <Tag>อายุราชการ ≥ {r.minServiceYears} ปี</Tag>
       {(r.allowedGenders.length === 0 || r.allowedGenders.length === 3)
@@ -55,9 +55,14 @@ export default function LeaveTypePage() {
     </Space>
   );
 
-  const generalColumns: ColumnsType<LeaveTypeConfig> = [
+  // ใช้ AnyLeave เพื่อให้เข้มงวดน้อยลง (รองรับฟิลด์เสริมของ seed)
+  const generalColumns: ColumnsType<AnyLeave> = [
     { title: 'ประเภทการลา', dataIndex: 'name' },
-    { title: 'จำนวนผู้อนุมัติ (default)', align: 'center', render: (_, r) => r.approvers.length },
+    {
+      title: 'จำนวนผู้อนุมัติ (default)',
+      align: 'center',
+      render: (_, r) => (r.approverPositions?.length ?? 0),
+    },
     { title: 'สูงสุด (วัน)', dataIndex: 'maxDays', align: 'center' },
     { title: 'เงื่อนไข', render: (_, r) => baseCondTags(r) },
     {
@@ -65,7 +70,7 @@ export default function LeaveTypePage() {
       render: (_, r) => (
         <Space size={[8, 8]} wrap>
           <Tag color="geekblue">{(r.documents?.length ?? 0)} รายการ</Tag>
-          {(r.documents ?? []).slice(0, 3).map((d) => (
+          {(r.documents ?? []).slice(0, 3).map((d: any) => (
             <Tag key={d.name} color={d.required ? 'red' : 'default'}>
               {d.name} ({d.fileType})
             </Tag>
@@ -76,8 +81,16 @@ export default function LeaveTypePage() {
     {
       title: 'เงื่อนไขอนุมัติ',
       render: (_, r) => (
-        <Space size={[8, 8]} wrap>
+        <Space direction="vertical" size={0}>
           <Tag color="green">{(r.approvalRules?.length ?? 0)} เงื่อนไข</Tag>
+          {(r.approvalRules ?? []).slice(0, 3).map((ru: any, i: number) => (
+            <div key={`rule-${r.id}-${i}`} style={{ fontSize: 12 }}>
+              • {'<'} {ru.maxDaysThreshold} วัน →{' '}
+              {(ru.approverChain ?? [])
+                .map((step: any, idx: number) => `ลำดับ ${idx + 1}: ${(step.positions ?? []).join(' / ') || '-'}`)
+                .join(' , ')}
+            </div>
+          ))}
         </Space>
       ),
     },
@@ -89,7 +102,7 @@ export default function LeaveTypePage() {
           <Tooltip title="แก้ไข">
             <Icons.Edit
               style={{ cursor: 'pointer', color: 'orange' }}
-              onClick={() => router.push(`/private/admin/manage-leave/${r.id}`)}
+              onClick={() => router.push(`/private/admin/manage-leave/general/${r.id}`)}
             />
           </Tooltip>
           <Tooltip title="ลบ (mock)">
@@ -103,7 +116,7 @@ export default function LeaveTypePage() {
     },
   ];
 
-  const vacationColumns: ColumnsType<LeaveTypeConfig> = [
+  const vacationColumns: ColumnsType<AnyLeave> = [
     { title: 'ประเภทการลา', dataIndex: 'name' },
     { title: 'สูงสุด (วัน)', dataIndex: 'maxDays', align: 'center' },
     {
@@ -172,7 +185,7 @@ export default function LeaveTypePage() {
             onClick={() =>
               router.push(vacation
                 ? `/private/admin/manage-leave/vacation/${it.id}`
-                : `/private/admin/manage-leave/${it.id}`
+                : `/private/admin/manage-leave/general/${it.id}`
               )
             }
           >
@@ -181,7 +194,12 @@ export default function LeaveTypePage() {
         }
       >
         <Space direction="vertical" style={{ width: '100%' }}>
-          {!vacation && <Statistic title="จำนวนผู้อนุมัติ (default)" value={it.approvers.length} />}
+          {!vacation && (
+            <Statistic
+              title="จำนวนผู้อนุมัติ (default)"
+              value={it.approverPositions?.length ?? 0}
+            />
+          )}
           <Statistic title="จำนวนวันสูงสุด" value={it.maxDays} suffix="วัน" />
 
           <div>
@@ -193,7 +211,7 @@ export default function LeaveTypePage() {
             <div>
               <div style={{ marginBottom: 4, fontWeight: 500 }}>เอกสารแนบ</div>
               <Space size={[8, 8]} wrap>
-                {(it.documents ?? []).map((d) => (
+                {(it.documents ?? []).map((d: any) => (
                   <Tag key={d.name} color={d.required ? 'red' : 'default'}>
                     {d.name} ({d.fileType})
                   </Tag>
@@ -206,10 +224,13 @@ export default function LeaveTypePage() {
             <div>
               <div style={{ marginBottom: 4, fontWeight: 500 }}>เงื่อนไขอนุมัติ</div>
               <Space direction="vertical" size={2}>
-                {it.approvalRules!.map((rul, idx) => (
+                {it.approvalRules!.map((rul: any, idx: number) => (
                   <div key={`${it.id}-rule-${idx}`} style={{ fontSize: 12 }}>
                     {idx + 1}. ต่ำกว่า {rul.maxDaysThreshold} วัน :
-                    {' '}ผู้อนุมัติ {rul.approverChain.map((a, i) => `${i + 1}:${a.position}`).join(', ')}
+                    {' '}ผู้อนุมัติ{' '}
+                    {rul.approverChain
+                      .map((step: any, i: number) => `${i + 1}:${(step.positions ?? []).join(' / ') || '-'}`)
+                      .join(', ')}
                   </div>
                 ))}
               </Space>
@@ -263,7 +284,7 @@ export default function LeaveTypePage() {
                 menu={{
                   items: addMenuItems,
                   onClick: ({ key }) => {
-                    if (key === 'general') router.push('/private/admin/manage-leave/add');
+                    if (key === 'general') router.push('/private/admin/manage-leave/general/add');
                     if (key === 'vacation') router.push('/private/admin/manage-leave/vacation/add');
                   },
                 }}
@@ -321,8 +342,6 @@ export default function LeaveTypePage() {
                 ))}
               </Row>
             </Card>
-
-            
           </Space>
         )}
       </Space>
