@@ -19,16 +19,13 @@ import {
   Skeleton,
   Table,
   Tooltip,
+  Tag,
 } from 'antd';
 import { useRouter, useParams } from 'next/navigation';
-
-// ✅ ใช้คอมโพเนนต์เดียวกับหน้า Add
-import ApproverPositionEditor from '@/app/components/FormElements/ApproverPositionEditor';
 
 import type { LeaveTypeConfig, GenderCode } from '@/types/leave';
 import { leaveTypesSeed } from '@/mock/leave-type';
 
-// ✅ ไอคอนเดียวกับหน้า Add
 import {
   UpOutlined,
   DownOutlined,
@@ -38,9 +35,18 @@ import {
   ArrowDownOutlined,
 } from '@ant-design/icons';
 
-type LeaveTypeFormValues = Omit<LeaveTypeConfig, 'id' | 'createdAt' | 'updatedAt'> & {
-  vacationRules?: { minServiceYears: number; daysPerYear: number }[];
-  carryOverRules?: { minServiceYears: number; carryOverDays: number }[];
+type VacationRule = { minServiceYears: number; daysPerYear: number };
+type CarryOverRule = { minServiceYears: number; carryOverDays: number };
+type ApprovalRuleSimple = { order: number };
+
+type LeaveTypeFormValues = Omit<
+  LeaveTypeConfig,
+  'id' | 'createdAt' | 'updatedAt' | 'approvalRules'
+> & {
+  // ให้ “Edit” เหมือน “Add”: ใช้จำนวนผู้อนุมัติสูงสุดเพื่ออนุมานลำดับ 1..N
+  maxApprovers?: number;
+  vacationRules?: VacationRule[];
+  carryOverRules?: CarryOverRule[];
 };
 
 type VacationLeavePayload = LeaveTypeConfig & {
@@ -106,7 +112,14 @@ export default function EditVacationLeavePage() {
   const [loading, setLoading] = useState(true);
   const [original, setOriginal] = useState<LeaveTypeConfig | null>(null);
 
-  // โหลดข้อมูล mock สำหรับ id
+  // พรีวิว “ลำดับผู้อนุมัติ 1..N” ให้เหมือนหน้า Add
+  const maxApprovers = Form.useWatch('maxApprovers', form) ?? 0;
+  const approverOrders = useMemo(
+    () => Array.from({ length: Math.max(0, Number(maxApprovers || 0)) }, (_, i) => i + 1),
+    [maxApprovers]
+  );
+
+  // โหลดข้อมูล mock สำหรับ id และ set ค่าเริ่มต้นให้ “เหมือนหน้า Add”
   useEffect(() => {
     if (!recordId) return;
     setLoading(true);
@@ -128,11 +141,10 @@ export default function EditVacationLeavePage() {
       minServiceYears: Number(found.minServiceYears ?? 0),
       workingDaysOnly: !!found.workingDaysOnly,
       documents: found.documents ?? [],
-      // หมายเหตุ: หน้า Add ใช้ ApproverPositionEditor (nameList=['approverPositions'])
-      // ถ้าระบบจริงมีค่าเริ่มต้นของ approverPositions ให้ setFieldsValue เพิ่มได้ที่นี่
-      vacationRules,
-      carryOverRules,
-    } as LeaveTypeFormValues);
+      maxApprovers: deriveMaxApprovers(found),
+      vacationRules: (found as any).vacationRules ?? defaultVacationRules,
+      carryOverRules: (found as any).carryOverRules ?? defaultCarryOverRules,
+    };
 
     form.setFieldsValue(initValues);
     setLoading(false);
@@ -160,8 +172,7 @@ export default function EditVacationLeavePage() {
       minServiceYears: Number(values.minServiceYears ?? 0),
       workingDaysOnly: !!values.workingDaysOnly,
       documents: values.documents ?? [],
-      // ให้สอดคล้องกับหน้า Add: ยังไม่ผูก approvers แบบเดิม (ใช้ตำแหน่งใน ApproverPositionEditor)
-      approvalRules: original.approvalRules ?? [],
+      approvalRules,
 
       vacationRules: (values.vacationRules ?? []).map((r) => ({
         minServiceYears: Number(r.minServiceYears ?? 0),
@@ -223,11 +234,36 @@ export default function EditVacationLeavePage() {
                 </Col>
               </Row>
 
-              {/* ✅ ผู้อนุมัติ (ลำดับตำแหน่ง) ใช้คอมโพเนนต์เดียวกับหน้า Add */}
-              <Divider orientation="left">ผู้อนุมัติ (ลำดับค่าเริ่มต้น)</Divider>
-              <ApproverPositionEditor nameList={['approverPositions']} />
+              {/* ========== ผู้อนุมัติ: ใช้ "จำนวนผู้อนุมัติสูงสุด" แล้วอนุมานเป็นลำดับ 1..N ========== */}
+              <Divider orientation="left">ผู้อนุมัติ (กำหนดเพียงจำนวนสูงสุด)</Divider>
+              <Row gutter={16}>
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    name="maxApprovers"
+                    label="จำนวนผู้อนุมัติสูงสุด"
+                    rules={[{ required: true, message: 'กรุณาระบุจำนวนผู้อนุมัติ' }]}
+                  >
+                    <InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="เช่น 4" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={16}>
+                  <Form.Item label="ลำดับผู้อนุมัติที่จะเกิดขึ้น">
+                    <Space wrap>
+                      {approverOrders.length === 0 ? (
+                        <Tag>ยังไม่กำหนด</Tag>
+                      ) : (
+                        approverOrders.map((n) => (
+                          <Tag key={n} color="blue">
+                            ลำดับที่ {n}
+                          </Tag>
+                        ))
+                      )}
+                    </Space>
+                  </Form.Item>
+                </Col>
+              </Row>
 
-              {/* -------- เอกสารแนบ (ตาราง) ให้เหมือนหน้า Add -------- */}
+              {/* -------- เอกสารแนบ (ตาราง) -------- */}
               <Divider orientation="left">เอกสารแนบที่ต้องส่ง</Divider>
               <Form.List name="documents">
                 {(fields, { add, remove, move }) => {
@@ -281,9 +317,7 @@ export default function EditVacationLeavePage() {
                         <Space>
                           <Button
                             size="small"
-                            onClick={() =>
-                              move(fields[idx].name, Math.max(0, fields[idx].name - 1))
-                            }
+                            onClick={() => move(fields[idx].name, Math.max(0, fields[idx].name - 1))}
                             disabled={idx === 0}
                           >
                             <ArrowUpOutlined />
@@ -291,10 +325,7 @@ export default function EditVacationLeavePage() {
                           <Button
                             size="small"
                             onClick={() =>
-                              move(
-                                fields[idx].name,
-                                Math.min(fields.length - 1, fields[idx].name + 1),
-                              )
+                              move(fields[idx].name, Math.min(fields.length - 1, fields[idx].name + 1))
                             }
                             disabled={idx === fields.length - 1}
                           >
@@ -326,7 +357,7 @@ export default function EditVacationLeavePage() {
                 }}
               </Form.List>
 
-              {/* =================== เงื่อนไขวันลาต่อปี: ตาราง (เหมือนหน้า Add) =================== */}
+              {/* =================== เงื่อนไขวันลาต่อปี =================== */}
               <Divider orientation="left">เงื่อนไขวันลาพักผ่อนต่อปี</Divider>
               <Form.List name="vacationRules">
                 {(fields, { add, remove, move }) => {
@@ -417,7 +448,7 @@ export default function EditVacationLeavePage() {
                 }}
               </Form.List>
 
-              {/* =================== เงื่อนไขการสะสม: ตาราง (เหมือนหน้า Add) =================== */}
+              {/* =================== เงื่อนไขการสะสม =================== */}
               <Divider orientation="left">เงื่อนไขการสะสมวันลาพักผ่อน</Divider>
               <Form.List name="carryOverRules">
                 {(fields, { add, remove, move }) => {
