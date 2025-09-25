@@ -1,3 +1,5 @@
+// '@/types/leave'
+
 export type GenderCode = 'male' | 'female' | 'other';
 
 // (คงไว้เพื่อ backward-compat ถ้ายังมีที่อ้างถึง)

@@ -4,24 +4,26 @@
 import React from 'react';
 import {
   Button, Card, Checkbox, Col, Divider, Form, Input, InputNumber,
-  Row, Select, Space, Typography, message, Table,
-  Tag
+  Row, Select, Space, Typography, message, Table
 } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined } from '@ant-design/icons';
+
 import { useRouter } from 'next/navigation';
 import type { LeaveTypeConfig, GenderCode } from '@/types/leave';
+import ApproverPositionEditor from '@/app/components/FormElements/ApproverPositionEditor';
 
 type ApprovalRuleForm = {
   maxDaysThreshold: number;
-  requiredApproverOrders: number[]; // เลือกลำดับผู้อนุมัติแบบหลายค่า (เช่น [1,2,4])
+  selectedApproverIndexes?: number[];   // อ้างอิง index ของ approverPositions
 };
 
 type LeaveTypeFormValues = Omit<
   LeaveTypeConfig,
   'id' | 'createdAt' | 'updatedAt' | 'approvalRules'
 > & {
-  maxApproverCount: number;           // จำนวนผู้อนุมัติสูงสุด (ทำให้มีลำดับ 1..N)
-  approvalRules?: ApprovalRuleForm[]; // เงื่อนไข: เลือกลำดับใดบ้าง
+  // ใช้รูปแบบ approverPositions ใหม่ (หนึ่งลำดับมีหลายตำแหน่ง)
+  approverPositions?: { positions: string[] }[];
+  approvalRules?: ApprovalRuleForm[];
 };
 
 const genderOptions: { label: string; value: GenderCode }[] = [
@@ -42,39 +44,30 @@ export default function AddLeaveTypePage() {
   const router = useRouter();
   const [form] = Form.useForm<LeaveTypeFormValues>();
 
-  // ใช้ดูค่า maxApproverCount เพื่อสร้างตัวเลือก “ลำดับที่ 1..N”
-  const maxApproverCount = Form.useWatch('maxApproverCount', form) ?? 0;
-  const approverOrders = Array.from(
-    { length: Math.max(0, Number(maxApproverCount || 0)) },
-    (_, i) => i + 1
-  );
+  // ---- Watch รายการลำดับผู้อนุมัติ (เพื่อสร้าง options ในกติกา) ----
+  const approverPositions = Form.useWatch('approverPositions', { form }) as { positions?: string[] }[] | undefined;
 
+  const approverOrderOptions = (approverPositions ?? []).map((ap, idx) => ({
+    label: `ลำดับที่ ${idx + 1}${(ap?.positions?.length ?? 0) ? ` : ${ap!.positions!.join(', ')}` : ''}`,
+    value: idx,
+  }));
 
   const onFinish = (values: LeaveTypeFormValues) => {
-    const rules = values.approvalRules ?? [];
-    const maxCount = values.maxApproverCount ?? 0;
-
-    // ทำความสะอาดข้อมูล rule: จำกัดให้อยู่ในช่วง 1..maxCount, เอาค่าซ้ำออก และเรียงจากน้อยไปมาก
-    const normalizedRules = rules.map((r) => {
-      const uniqueSorted = Array.from(
-        new Set((r.requiredApproverOrders ?? [])
-          .map(n => Number(n))
-          .filter(n => Number.isInteger(n) && n >= 1 && n <= maxCount))
-      ).sort((a, b) => a - b);
-
+    const basePos = values.approverPositions ?? [];    // [{ positions: string[] }]
+    const normalizedRules = (values.approvalRules ?? []).map((r) => {
+      const idxs: number[] = Array.isArray(r.selectedApproverIndexes) ? r.selectedApproverIndexes : [];
+      const chain = idxs.map(i => basePos[i]).filter(Boolean); // [{ positions: string[] }]
       return {
         maxDaysThreshold: r.maxDaysThreshold,
-        requiredApproverOrders: uniqueSorted,
+        approverChain: chain,
       };
     });
 
     // ตัวอย่าง payload (โหมด Mock)
     console.log('[MOCK ADD] payload:', {
       ...values,
-      approverPolicy: {
-        maxApproverCount: maxCount,
-        rules: normalizedRules, // แต่ละ rule มี requiredApproverOrders: number[]
-      },
+      approvers: basePos,             // เก็บลงฟิลด์ approvers แต่เป็นรูป {positions: string[]}
+      approvalRules: normalizedRules,  // chain อ้างอิงตามลำดับ
     });
 
     message.success('เพิ่มประเภทการลา (โหมด Mock) — ไม่ได้บันทึกจริง');
@@ -131,36 +124,9 @@ export default function AddLeaveTypePage() {
               <Checkbox>นับวันลาเฉพาะวันทำการ</Checkbox>
             </Form.Item>
 
-            {/* -------- ผู้อนุมัติ (เหลือแค่จำนวนสูงสุด) -------- */}
-            <Divider orientation="left">ผู้อนุมัติ (กำหนดเพียงจำนวนสูงสุด)</Divider>
-<Row gutter={16}>
-  <Col xs={24} md={8}>
-    <Form.Item
-      name="maxApproverCount"
-      label="จำนวนผู้อนุมัติสูงสุด"
-      rules={[{ required: true, message: 'กรุณาระบุจำนวนผู้อนุมัติสูงสุด' }]}
-      extra="เช่น 10 จะได้ลำดับผู้อนุมัติ 1–10"
-    >
-      <InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="เช่น 10" />
-    </Form.Item>
-  </Col>
-
-  <Col xs={24} md={16}>
-    <Form.Item label="ลำดับผู้อนุมัติที่จะเกิดขึ้น">
-      <Space wrap>
-        {approverOrders.length === 0 ? (
-          <Tag>ยังไม่กำหนด</Tag>
-        ) : (
-          approverOrders.map((n) => (
-            <Tag key={n} color="blue">
-              ลำดับที่ {n}
-            </Tag>
-          ))
-        )}
-      </Space>
-    </Form.Item>
-  </Col>
-</Row>
+            {/* -------- ผู้อนุมัติ (ตาราง) -------- */}
+            <Divider orientation="left">ผู้อนุมัติ (กำหนดตาม “ตำแหน่ง” เป็นลำดับ)</Divider>
+            <ApproverPositionEditor nameList={['approverPositions']} />
 
             {/* -------- เอกสารแนบ (ตาราง) -------- */}
             <Divider orientation="left">เอกสารแนบที่ต้องส่ง</Divider>
@@ -214,23 +180,9 @@ export default function AddLeaveTypePage() {
                     width: 180,
                     render: (_: any, __: any, idx: number) => (
                       <Space>
-                        <Button
-                          size="small"
-                          onClick={() => move(fields[idx].name, Math.max(0, fields[idx].name - 1))}
-                          disabled={idx === 0}
-                        >
-                          <ArrowUpOutlined />
-                        </Button>
-                        <Button
-                          size="small"
-                          onClick={() => move(fields[idx].name, Math.min(fields.length - 1, fields[idx].name + 1))}
-                          disabled={idx === fields.length - 1}
-                        >
-                          <ArrowDownOutlined />
-                        </Button>
-                        <Button size="small" danger onClick={() => remove(fields[idx].name)}>
-                          <DeleteOutlined />
-                        </Button>
+                        <Button size="small" onClick={() => move(fields[idx].name, Math.max(0, fields[idx].name - 1))} disabled={idx === 0}><ArrowUpOutlined /></Button>
+                        <Button size="small" onClick={() => move(fields[idx].name, Math.min(fields.length - 1, fields[idx].name + 1))} disabled={idx === fields.length - 1}><ArrowDownOutlined /></Button>
+                        <Button size="small" danger onClick={() => remove(fields[idx].name)}><DeleteOutlined /></Button>
                       </Space>
                     ),
                   },
@@ -255,7 +207,7 @@ export default function AddLeaveTypePage() {
             </Form.List>
 
             {/* -------- เงื่อนไขอนุมัติ (ตาราง) -------- */}
-            <Divider orientation="left">เงื่อนไขของการอนุมัติ (เลือก “ลำดับที่” แบบหลายค่า)</Divider>
+            <Divider orientation="left">เงื่อนไขของการอนุมัติ (เลือกจากลำดับผู้อนุมัติ)</Divider>
             <Form.List name="approvalRules">
               {(fields, { add, remove, move }) => {
                 const columns = [
@@ -274,25 +226,18 @@ export default function AddLeaveTypePage() {
                     ),
                   },
                   {
-                    title: 'ต้องใช้ผู้อนุมัติ “ลำดับที่”',
-                    dataIndex: 'requiredApproverOrders',
+                    title: 'ต้องใช้ผู้อนุมัติลำดับที่',
+                    dataIndex: 'selectedApproverIndexes',
                     render: (_: any, __: any, idx: number) => (
                       <Form.Item
-                        name={[fields[idx].name, 'requiredApproverOrders']}
+                        name={[fields[idx].name, 'selectedApproverIndexes']}
                         style={{ marginBottom: 0 }}
                         rules={[{ required: true, message: 'เลือกอย่างน้อย 1 ลำดับ' }]}
-                        extra={
-                          typeof maxApproverCount === 'number'
-                            ? `เลือกได้ตั้งแต่ลำดับที่ 1 ถึง ${maxApproverCount}`
-                            : 'กรุณาระบุจำนวนผู้อนุมัติสูงสุดก่อน'
-                        }
                       >
                         <Select
                           mode="multiple"
-                          placeholder="เช่น ลำดับที่ 1, 2, 4"
-                          options={approverOrders.map(n => ({ label: `ลำดับที่ ${n}`, value: n }))}
-                          disabled={!approverOrders.length}
-                          allowClear
+                          options={approverOrderOptions}
+                          placeholder="เช่น ลำดับที่ 1, ลำดับที่ 2"
                         />
                       </Form.Item>
                     ),
@@ -303,23 +248,9 @@ export default function AddLeaveTypePage() {
                     width: 180,
                     render: (_: any, __: any, idx: number) => (
                       <Space>
-                        <Button
-                          size="small"
-                          onClick={() => move(fields[idx].name, Math.max(0, fields[idx].name - 1))}
-                          disabled={idx === 0}
-                        >
-                          <ArrowUpOutlined />
-                        </Button>
-                        <Button
-                          size="small"
-                          onClick={() => move(fields[idx].name, Math.min(fields.length - 1, fields[idx].name + 1))}
-                          disabled={idx === fields.length - 1}
-                        >
-                          <ArrowDownOutlined />
-                        </Button>
-                        <Button size="small" danger onClick={() => remove(fields[idx].name)}>
-                          <DeleteOutlined />
-                        </Button>
+                        <Button size="small" onClick={() => move(fields[idx].name, Math.max(0, fields[idx].name - 1))} disabled={idx === 0}><ArrowUpOutlined /></Button>
+                        <Button size="small" onClick={() => move(fields[idx].name, Math.min(fields.length - 1, fields[idx].name + 1))} disabled={idx === fields.length - 1}><ArrowDownOutlined /></Button>
+                        <Button size="small" danger onClick={() => remove(fields[idx].name)}><DeleteOutlined /></Button>
                       </Space>
                     ),
                   },
