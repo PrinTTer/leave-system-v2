@@ -17,11 +17,26 @@ import {
   Typography,
   message,
   Skeleton,
+  Table,
+  Tooltip,
 } from 'antd';
 import { useRouter, useParams } from 'next/navigation';
-import ApproverEditor from '@/app/components/FormElements/ApproverEditor';
+
+// ✅ ใช้คอมโพเนนต์เดียวกับหน้า Add
+import ApproverPositionEditor from '@/app/components/FormElements/ApproverPositionEditor';
+
 import type { LeaveTypeConfig, GenderCode } from '@/types/leave';
 import { leaveTypesSeed } from '@/mock/leave-type';
+
+// ✅ ไอคอนเดียวกับหน้า Add
+import {
+  UpOutlined,
+  DownOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+} from '@ant-design/icons';
 
 type LeaveTypeFormValues = Omit<LeaveTypeConfig, 'id' | 'createdAt' | 'updatedAt'> & {
   vacationRules?: { minServiceYears: number; daysPerYear: number }[];
@@ -70,12 +85,11 @@ export default function EditVacationLeavePage() {
   const [loading, setLoading] = useState(true);
   const [original, setOriginal] = useState<LeaveTypeConfig | null>(null);
 
-  // โหลดข้อมูลสำหรับ id ที่ส่งมา (โหมด mock: ดึงจาก leaveTypesSeed)
+  // โหลดข้อมูล mock สำหรับ id
   useEffect(() => {
     if (!recordId) return;
     setLoading(true);
 
-    // หา record จาก seed (ในระบบจริงให้เรียก API)
     const found = leaveTypesSeed.find((x) => x.id === recordId) ?? null;
 
     if (!found) {
@@ -98,7 +112,8 @@ export default function EditVacationLeavePage() {
       minServiceYears: Number(found.minServiceYears ?? 0),
       workingDaysOnly: !!found.workingDaysOnly,
       documents: found.documents ?? [],
-      approvers: found.approvers ?? [],
+      // หมายเหตุ: หน้า Add ใช้ ApproverPositionEditor (nameList=['approverPositions'])
+      // ถ้าระบบจริงมีค่าเริ่มต้นของ approverPositions ให้ setFieldsValue เพิ่มได้ที่นี่
       vacationRules,
       carryOverRules,
     } as LeaveTypeFormValues);
@@ -112,7 +127,7 @@ export default function EditVacationLeavePage() {
     const payload: VacationLeavePayload = {
       // ฟิลด์หลัก LeaveTypeConfig
       id: original.id,
-      createdAt: original.createdAt, // เก็บของเดิม
+      createdAt: original.createdAt,
       updatedAt: new Date().toISOString(),
       name: values.name,
       maxDays: Number(values.maxDays ?? 0),
@@ -120,7 +135,7 @@ export default function EditVacationLeavePage() {
       minServiceYears: Number(values.minServiceYears ?? 0),
       workingDaysOnly: !!values.workingDaysOnly,
       documents: values.documents ?? [],
-      approvers: values.approvers ?? [],
+      // ให้สอดคล้องกับหน้า Add: ยังไม่ผูก approvers แบบเดิม (ใช้ตำแหน่งใน ApproverPositionEditor)
       approvalRules: original.approvalRules ?? [],
 
       // นโยบายลาพักผ่อนเพิ่มเติม
@@ -183,176 +198,289 @@ export default function EditVacationLeavePage() {
                 </Col>
               </Row>
 
+              {/* ✅ ผู้อนุมัติ (ลำดับตำแหน่ง) ใช้คอมโพเนนต์เดียวกับหน้า Add */}
               <Divider orientation="left">ผู้อนุมัติ (ลำดับค่าเริ่มต้น)</Divider>
-              <ApproverEditor namePath="approvers" />
+              <ApproverPositionEditor nameList={['approverPositions']} />
 
-              <Divider orientation="left">เอกสารแนบที่ต้องส่ง (ถ้ามี)</Divider>
+              {/* -------- เอกสารแนบ (ตาราง) ให้เหมือนหน้า Add -------- */}
+              <Divider orientation="left">เอกสารแนบที่ต้องส่ง</Divider>
               <Form.List name="documents">
-                {(fields, { add, remove, move }) => (
-                  <>
-                    {fields.map(({ key, name, ...restField }) => (
-                      <Card key={key} size="small" style={{ marginBottom: 10 }} title={`เอกสาร #${name + 1}`}>
-                        <Row gutter={12}>
-                          <Col xs={24} md={10}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'name']}
-                              label="ชื่อเอกสาร"
-                              rules={[{ required: true, message: 'กรุณาระบุชื่อเอกสาร' }]}
-                            >
-                              <Input placeholder="เช่น แบบคำขอลาพักผ่อน" />
-                            </Form.Item>
-                          </Col>
-                          <Col xs={24} md={8}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'fileType']}
-                              label="ชนิดไฟล์"
-                              rules={[{ required: true, message: 'กรุณาเลือกชนิดไฟล์' }]}
-                            >
-                              <Select options={fileTypeOptions} placeholder="เลือกชนิดไฟล์" />
-                            </Form.Item>
-                          </Col>
-                          <Col xs={24} md={6}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'required']}
-                              label="ความจำเป็น"
-                              valuePropName="checked"
-                            >
-                              <Checkbox>จำเป็นต้องมี</Checkbox>
-                            </Form.Item>
-                          </Col>
-                        </Row>
-                        <Row justify="end">
-                          <Space>
-                            <Button onClick={() => move(name, Math.max(0, name - 1))} disabled={name === 0}>
-                              ขึ้น
-                            </Button>
-                            <Button
-                              onClick={() => move(name, Math.min(fields.length - 1, name + 1))}
-                              disabled={name === fields.length - 1}
-                            >
-                              ลง
-                            </Button>
-                            <Button danger onClick={() => remove(name)}>
-                              ลบ
-                            </Button>
-                          </Space>
-                        </Row>
-                      </Card>
-                    ))}
-                    <Button type="dashed" block onClick={() => add()}>
-                      เพิ่มเอกสาร
-                    </Button>
-                  </>
-                )}
+                {(fields, { add, remove, move }) => {
+                  const columns = [
+                    {
+                      title: 'ชื่อเอกสาร',
+                      dataIndex: 'name',
+                      render: (_: any, __: any, idx: number) => (
+                        <Form.Item
+                          name={[fields[idx].name, 'name']}
+                          style={{ marginBottom: 0 }}
+                          rules={[{ required: true, message: 'ระบุชื่อเอกสาร' }]}
+                        >
+                          <Input placeholder="เช่น ใบรับรองแพทย์" />
+                        </Form.Item>
+                      ),
+                    },
+                    {
+                      title: 'ชนิดไฟล์',
+                      dataIndex: 'fileType',
+                      width: 220,
+                      render: (_: any, __: any, idx: number) => (
+                        <Form.Item
+                          name={[fields[idx].name, 'fileType']}
+                          style={{ marginBottom: 0 }}
+                          rules={[{ required: true, message: 'เลือกชนิดไฟล์' }]}
+                        >
+                          <Select options={fileTypeOptions} placeholder="เลือกชนิดไฟล์" />
+                        </Form.Item>
+                      ),
+                    },
+                    {
+                      title: 'จำเป็น',
+                      dataIndex: 'required',
+                      width: 120,
+                      render: (_: any, __: any, idx: number) => (
+                        <Form.Item
+                          name={[fields[idx].name, 'required']}
+                          valuePropName="checked"
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Checkbox />
+                        </Form.Item>
+                      ),
+                    },
+                    {
+                      title: 'จัดการ',
+                      dataIndex: 'actions',
+                      width: 180,
+                      render: (_: any, __: any, idx: number) => (
+                        <Space>
+                          <Button
+                            size="small"
+                            onClick={() =>
+                              move(fields[idx].name, Math.max(0, fields[idx].name - 1))
+                            }
+                            disabled={idx === 0}
+                          >
+                            <ArrowUpOutlined />
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() =>
+                              move(
+                                fields[idx].name,
+                                Math.min(fields.length - 1, fields[idx].name + 1),
+                              )
+                            }
+                            disabled={idx === fields.length - 1}
+                          >
+                            <ArrowDownOutlined />
+                          </Button>
+                          <Button size="small" danger onClick={() => remove(fields[idx].name)}>
+                            <DeleteOutlined />
+                          </Button>
+                        </Space>
+                      ),
+                    },
+                  ];
+                  const data = fields.map((f, i) => ({ key: f.key ?? i }));
+
+                  return (
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Table
+                        size="small"
+                        pagination={false}
+                        columns={columns as any}
+                        dataSource={data}
+                        locale={{ emptyText: 'ยังไม่มีเอกสารแนบ' }}
+                      />
+                      <Button type="dashed" block onClick={() => add()}>
+                        เพิ่มเอกสาร
+                      </Button>
+                    </Space>
+                  );
+                }}
               </Form.List>
 
+              {/* =================== เงื่อนไขวันลาต่อปี: ตาราง (เหมือนหน้า Add) =================== */}
               <Divider orientation="left">เงื่อนไขวันลาพักผ่อนต่อปี</Divider>
               <Form.List name="vacationRules">
-                {(fields, { add, remove, move }) => (
-                  <>
-                    {fields.map(({ key, name, ...restField }, idx) => (
-                      <Card key={key} size="small" style={{ marginBottom: 10 }} title={`กฎวันลาต่อปี #${idx + 1}`}>
-                        <Row gutter={12}>
-                          <Col xs={24} md={12}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'minServiceYears']}
-                              label="อายุราชการมากกว่า (ปี)"
-                              rules={[{ required: true, message: 'กรุณาระบุอายุราชการ' }]}
-                            >
-                              <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 1, 10" />
-                            </Form.Item>
-                          </Col>
-                          <Col xs={24} md={12}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'daysPerYear']}
-                              label="ได้รับวันลา (วัน/ปี)"
-                              rules={[{ required: true, message: 'กรุณาระบุจำนวนวันลา/ปี' }]}
-                            >
-                              <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 10, 20" />
-                            </Form.Item>
-                          </Col>
-                        </Row>
-                        <Row justify="end">
-                          <Space>
-                            <Button onClick={() => move(name, Math.max(0, name - 1))} disabled={name === 0}>
-                              ขึ้น
-                            </Button>
+                {(fields, { add, remove, move }) => {
+                  const dataSource = fields.map((f) => ({ key: f.key, nameIndex: f.name, field: f }));
+                  const columns = [
+                    {
+                      title: 'อายุราชการมากกว่า (ปี)',
+                      key: 'minServiceYears',
+                      render: (_: any, record: any) => (
+                        <Form.Item
+                          name={[record.nameIndex, 'minServiceYears']}
+                          rules={[{ required: true, message: 'กรุณาระบุอายุราชการ' }]}
+                          style={{ margin: 0 }}
+                        >
+                          <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 1, 10" />
+                        </Form.Item>
+                      ),
+                      width: 240,
+                    },
+                    {
+                      title: 'ได้รับวันลา (วัน/ปี)',
+                      key: 'daysPerYear',
+                      render: (_: any, record: any) => (
+                        <Form.Item
+                          name={[record.nameIndex, 'daysPerYear']}
+                          rules={[{ required: true, message: 'กรุณาระบุจำนวนวันลา/ปี' }]}
+                          style={{ margin: 0 }}
+                        >
+                          <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 10, 20" />
+                        </Form.Item>
+                      ),
+                      width: 220,
+                    },
+                    {
+                      title: 'จัดการ',
+                      key: 'actions',
+                      align: 'right' as const,
+                      render: (_: any, record: any) => (
+                        <Space>
+                          <Tooltip title="ย้ายขึ้น">
                             <Button
-                              onClick={() => move(name, Math.min(fields.length - 1, name + 1))}
-                              disabled={name === fields.length - 1}
-                            >
-                              ลง
-                            </Button>
-                            <Button danger onClick={() => remove(name)}>
-                              ลบกฎ
-                            </Button>
-                          </Space>
-                        </Row>
-                      </Card>
-                    ))}
-                    <Button type="dashed" block onClick={() => add()}>
-                      เพิ่มกฎวันลาต่อปี
-                    </Button>
-                  </>
-                )}
+                              icon={<UpOutlined />}
+                              onClick={() => move(record.field.name, Math.max(0, record.field.name - 1))}
+                              disabled={record.field.name === 0}
+                            />
+                          </Tooltip>
+                          <Tooltip title="ย้ายลง">
+                            <Button
+                              icon={<DownOutlined />}
+                              onClick={() =>
+                                move(
+                                  record.field.name,
+                                  Math.min(fields.length - 1, record.field.name + 1),
+                                )
+                              }
+                              disabled={record.field.name === fields.length - 1}
+                            />
+                          </Tooltip>
+                          <Tooltip title="ลบกฎ">
+                            <Button danger icon={<DeleteOutlined />} onClick={() => remove(record.field.name)} />
+                          </Tooltip>
+                        </Space>
+                      ),
+                      width: 180,
+                    },
+                  ];
+
+                  return (
+                    <>
+                      <Table
+                        size="small"
+                        pagination={false}
+                        rowKey="key"
+                        dataSource={dataSource}
+                        columns={columns}
+                      />
+                      <Button
+                        type="dashed"
+                        block
+                        icon={<PlusOutlined />}
+                        style={{ marginTop: 8 }}
+                        onClick={() => add()}
+                      >
+                        เพิ่มกฎวันลาต่อปี
+                      </Button>
+                    </>
+                  );
+                }}
               </Form.List>
 
+              {/* =================== เงื่อนไขการสะสม: ตาราง (เหมือนหน้า Add) =================== */}
               <Divider orientation="left">เงื่อนไขการสะสมวันลาพักผ่อน</Divider>
               <Form.List name="carryOverRules">
-                {(fields, { add, remove, move }) => (
-                  <>
-                    {fields.map(({ key, name, ...restField }, idx) => (
-                      <Card key={key} size="small" style={{ marginBottom: 10 }} title={`กฎการสะสม #${idx + 1}`}>
-                        <Row gutter={12}>
-                          <Col xs={24} md={12}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'minServiceYears']}
-                              label="อายุราชการมากกว่า (ปี)"
-                              rules={[{ required: true, message: 'กรุณาระบุอายุราชการ' }]}
-                            >
-                              <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 1, 10" />
-                            </Form.Item>
-                          </Col>
-                          <Col xs={24} md={12}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'carryOverDays']}
-                              label="สะสมวันลาได้สูงสุด (วัน)"
-                              rules={[{ required: true, message: 'กรุณาระบุจำนวนวันสะสม' }]}
-                            >
-                              <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 20" />
-                            </Form.Item>
-                          </Col>
-                        </Row>
-                        <Row justify="end">
-                          <Space>
-                            <Button onClick={() => move(name, Math.max(0, name - 1))} disabled={name === 0}>
-                              ขึ้น
-                            </Button>
+                {(fields, { add, remove, move }) => {
+                  const dataSource = fields.map((f) => ({ key: f.key, nameIndex: f.name, field: f }));
+                  const columns = [
+                    {
+                      title: 'อายุราชการมากกว่า (ปี)',
+                      key: 'minServiceYears',
+                      render: (_: any, record: any) => (
+                        <Form.Item
+                          name={[record.nameIndex, 'minServiceYears']}
+                          rules={[{ required: true, message: 'กรุณาระบุอายุราชการ' }]}
+                          style={{ margin: 0 }}
+                        >
+                          <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 1, 10" />
+                        </Form.Item>
+                      ),
+                      width: 240,
+                    },
+                    {
+                      title: 'สะสมวันลาได้สูงสุด (วัน)',
+                      key: 'carryOverDays',
+                      render: (_: any, record: any) => (
+                        <Form.Item
+                          name={[record.nameIndex, 'carryOverDays']}
+                          rules={[{ required: true, message: 'กรุณาระบุจำนวนวันสะสม' }]}
+                          style={{ margin: 0 }}
+                        >
+                          <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 20" />
+                        </Form.Item>
+                      ),
+                      width: 260,
+                    },
+                    {
+                      title: 'จัดการ',
+                      key: 'actions',
+                      align: 'right' as const,
+                      render: (_: any, record: any) => (
+                        <Space>
+                          <Tooltip title="ย้ายขึ้น">
                             <Button
-                              onClick={() => move(name, Math.min(fields.length - 1, name + 1))}
-                              disabled={name === fields.length - 1}
-                            >
-                              ลง
-                            </Button>
-                            <Button danger onClick={() => remove(name)}>
-                              ลบกฎ
-                            </Button>
-                          </Space>
-                        </Row>
-                      </Card>
-                    ))}
-                    <Button type="dashed" block onClick={() => add()}>
-                      เพิ่มกฎการสะสม
-                    </Button>
-                  </>
-                )}
+                              icon={<UpOutlined />}
+                              onClick={() => move(record.field.name, Math.max(0, record.field.name - 1))}
+                              disabled={record.field.name === 0}
+                            />
+                          </Tooltip>
+                          <Tooltip title="ย้ายลง">
+                            <Button
+                              icon={<DownOutlined />}
+                              onClick={() =>
+                                move(
+                                  record.field.name,
+                                  Math.min(fields.length - 1, record.field.name + 1),
+                                )
+                              }
+                              disabled={record.field.name === fields.length - 1}
+                            />
+                          </Tooltip>
+                          <Tooltip title="ลบกฎ">
+                            <Button danger icon={<DeleteOutlined />} onClick={() => remove(record.field.name)} />
+                          </Tooltip>
+                        </Space>
+                      ),
+                      width: 180,
+                    },
+                  ];
+
+                  return (
+                    <>
+                      <Table
+                        size="small"
+                        pagination={false}
+                        rowKey="key"
+                        dataSource={dataSource}
+                        columns={columns}
+                      />
+                      <Button
+                        type="dashed"
+                        block
+                        icon={<PlusOutlined />}
+                        style={{ marginTop: 8 }}
+                        onClick={() => add()}
+                      >
+                        เพิ่มกฎการสะสม
+                      </Button>
+                    </>
+                  );
+                }}
               </Form.List>
 
               <Divider />
