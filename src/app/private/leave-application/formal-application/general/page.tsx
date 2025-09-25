@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState } from "react";
 import {
   Form,
   Select,
@@ -13,113 +13,168 @@ import {
   Row,
   Col,
   Tag,
-} from "antd"
-import type { CheckboxProps } from "antd"
-import { Dayjs } from "dayjs"
+  DatePicker,
+} from "antd";
+import type { CheckboxProps } from "antd";
+import dayjs, { Dayjs } from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
-type CheckboxValueType = string | number | CheckboxProps["checked"]
-const { Text } = Typography
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
+
+type CheckboxValueType = string | number | CheckboxProps["checked"];
+const { Text } = Typography;
+
+const leaveTypes: Record<string, { label: string; color: string }> = {
+  personal: { label: "ลากิจ", color: "orange" },
+  vacation: { label: "ลาพักร้อน", color: "red" },
+  business: { label: "ไปราชการ", color: "blue" },
+};
 
 interface LeaveDay {
-  date: string
-  type: "business" | "personal" | "vacation"
-}
-
-const leaveTypes = {
-  business: { label: "ลาราชการ", color: "blue" },
-  personal: { label: "ลากิจ", color: "orange" },
-  vacation: { label: "ลาพักร้อน", color: "green" },
+  date: string;
+  type: string;
 }
 
 const FormalApplicationForm: React.FC = () => {
   // จำนวนวันลา (mock สมมติ)
-  const totalBusinessLeave = 10
-  const totalPersonalLeave = 5
-  const totalVacationLeave = 5
+  const totalBusinessLeave = 10;
+  const totalPersonalLeave = 5;
+  const totalVacationLeave = 5;
 
   // state
-  const [leaveDays, setLeaveDays] = useState<LeaveDay[]>([])
-  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null)
-  const [selectedType, setSelectedType] = useState<LeaveDay["type"] | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [assistants, setAssistants] = useState<string[]>([])
+  const [leaveDays, setLeaveDays] = useState<LeaveDay[]>([]);
+  const [range, setRange] = useState<{
+    start: Dayjs | null;
+    end: Dayjs | null;
+  }>({
+    start: null,
+    end: null,
+  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+
+  const [assistants, setAssistants] = useState<string[]>([]);
 
   const [selectedExpenses, setSelectedExpenses] = useState<CheckboxValueType[]>(
     []
-  )
+  );
 
-  // เปิด modal เมื่อกดวัน
+  const [businessDays, setBusinessDays] = useState<number>();
+  const [vacationDays, setVacationDays] = useState<number>();
+  const [personalDays, setPersonalDays] = useState<number>();
+
+  // เมื่อคลิกวันใน Calendar
   const handleSelect = (date: Dayjs) => {
-    setSelectedDate(date)
-    const exist = leaveDays.find((d) => d.date === date.format("YYYY-MM-DD"))
-    setSelectedType(exist?.type || null)
-    setIsModalOpen(true)
-  }
+    setRange({ start: date, end: date }); // default end = start
+    setIsModalOpen(true); // เปิด modal ทันที
+  };
 
-  // กดบันทึก
+  // บันทึกประเภทการลา
   const handleOk = () => {
-    if (selectedDate && selectedType) {
-      const dateStr = selectedDate.format("YYYY-MM-DD")
+    if (range.start && range.end && selectedType) {
+      const allDays: LeaveDay[] = [];
+      let current = range.start;
+      while (current.isSameOrBefore(range.end, "day")) {
+        allDays.push({
+          date: current.format("YYYY-MM-DD"),
+          type: selectedType,
+        });
+        current = current.add(1, "day");
+      }
+
       setLeaveDays((prev) => {
-        const exist = prev.find((d) => d.date === dateStr)
-        if (exist) {
-          return prev.map((d) =>
-            d.date === dateStr ? { ...d, type: selectedType } : d
-          )
-        } else {
-          return [...prev, { date: dateStr, type: selectedType }]
-        }
-      })
+        const filtered = prev.filter(
+          (d) =>
+            !dayjs(d.date).isSameOrAfter(range.start, "day") ||
+            !dayjs(d.date).isSameOrBefore(range.end, "day")
+        );
+        return [...filtered, ...allDays];
+      });
+
+      // คำนวณจำนวนวันลาเฉพาะวันจันทร์–ศุกร์
+      const weekdaysCount = allDays.filter((d) => {
+        const day = dayjs(d.date).day(); // 0 = อาทิตย์, 6 = เสาร์
+        return day >= 1 && day <= 5;
+      }).length;
+
+      // อัปเดตจำนวนวันลาแยกประเภท
+      switch (selectedType) {
+        case "business":
+          setBusinessDays((prev) => (prev || 0) + weekdaysCount);
+          break;
+        case "personal":
+          setPersonalDays((prev) => (prev || 0) + weekdaysCount);
+          break;
+        case "vacation":
+          setVacationDays((prev) => (prev || 0) + weekdaysCount);
+          break;
+      }
     }
-    setIsModalOpen(false)
-  }
+    setIsModalOpen(false);
+    setSelectedType(null);
+  };
 
   const handleCancel = () => {
-    setIsModalOpen(false)
-  }
+    setRange({ start: null, end: null });
+    setIsModalOpen(false);
+  };
 
-  // render ใน cell ของปฏิทิน
+  // render ป้าย Tag บนปฏิทิน
   const dateCellRender = (date: Dayjs) => {
-    const leave = leaveDays.find((d) => d.date === date.format("YYYY-MM-DD"))
+    const leave = leaveDays.find((d) => d.date === date.format("YYYY-MM-DD"));
     if (leave) {
-      const { label, color } = leaveTypes[leave.type]
-      return <Tag color={color}>{label}</Tag>
+      const { label, color } = leaveTypes[leave.type];
+      return <Tag color={color}>{label}</Tag>;
     }
-    return null
-  }
+    return null;
+  };
 
   const handleExpensesChange = (checkedValues: CheckboxValueType[]) => {
-    setSelectedExpenses(checkedValues)
-  }
-
-  // คำนวณสรุปจำนวนวันต่อประเภท
-  const businessDays = leaveDays.filter((d) => d.type === "business").length
-  const personalDays = leaveDays.filter((d) => d.type === "personal").length
-  const vacationDays = leaveDays.filter((d) => d.type === "vacation").length
+    setSelectedExpenses(checkedValues);
+  };
 
   const summaryData = [
     {
       key: "1",
       type: "ลาราชการ",
-      days: businessDays,
-      remaining: totalBusinessLeave - businessDays,
+      dates: leaveDays.filter((d) => d.type === "business").map((d) => d.date), // ต้องเป็น array
+      days: businessDays || 0,
+      remaining: totalBusinessLeave - (businessDays || 0),
     },
     {
       key: "2",
       type: "ลากิจ",
-      days: personalDays,
-      remaining: totalPersonalLeave - personalDays,
+      dates: leaveDays.filter((d) => d.type === "personal").map((d) => d.date),
+      days: personalDays || 0,
+      remaining: totalPersonalLeave - (personalDays || 0),
     },
     {
       key: "3",
       type: "ลาพักร้อน",
-      days: vacationDays,
-      remaining: totalVacationLeave - vacationDays,
+      dates: leaveDays.filter((d) => d.type === "vacation").map((d) => d.date),
+      days: vacationDays || 0,
+      remaining: totalVacationLeave - (vacationDays || 0),
     },
-  ]
+  ];
 
   const summaryColumns = [
     { title: "ประเภทการลา", dataIndex: "type", key: "type" },
+    {
+      title: "วันที่ลา",
+      dataIndex: "dates",
+      key: "dates",
+      render: (dates: string[]) => (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          {dates.map((date) => (
+            <Tag key={date} color="blue" style={{ marginBottom: 4 }}>
+              {date}
+            </Tag>
+          ))}
+        </div>
+      ),
+    },
     { title: "จำนวนวันลา", dataIndex: "days", key: "days" },
     {
       title: "วันคงเหลือ",
@@ -129,9 +184,9 @@ const FormalApplicationForm: React.FC = () => {
         <Text type={val < 0 ? "danger" : undefined}>{val}</Text>
       ),
     },
-  ]
+  ];
 
-  const isOverLimit = summaryData.some((item) => item.remaining < 0)
+  const isOverLimit = summaryData.some((item) => item.remaining < 0);
 
   return (
     <div>
@@ -141,10 +196,7 @@ const FormalApplicationForm: React.FC = () => {
       >
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item
-              label="มีความประสงค์จะเดินทางไปจังหวัด"
-              name="province"
-            >
+            <Form.Item label="มีความประสงค์จะเดินทางไปจังหวัด" name="province">
               <Select
                 showSearch
                 placeholder="-- กรุณาระบุจังหวัด --"
@@ -162,87 +214,99 @@ const FormalApplicationForm: React.FC = () => {
           </Col>
         </Row>
 
-         {/* เหตุผลการลา */}
-          <Form.Item
-            label="เนื่องจาก"
-            name="reason"
-            rules={[{ required: true, message: "กรุณากรอกเหตุผลการลา" }]}
-          >
-            <Input.TextArea rows={3} placeholder="..." />
-          </Form.Item>
+        {/* เหตุผลการลา */}
+        <Form.Item
+          label="เนื่องจาก"
+          name="reason"
+          rules={[{ required: true, message: "กรุณากรอกเหตุผลการลา" }]}
+        >
+          <Input.TextArea rows={3} placeholder="..." />
+        </Form.Item>
 
         {/* ปฏิทินเลือกวันลา */}
-       <Form.Item label="เลือกวันลา (คลิกวันที่ในปฏิทิน)">
-        <Calendar
-          fullscreen={false}
-          cellRender={(date) => dateCellRender(date)} // เปลี่ยนจาก dateCellRender => cellRender
-          onSelect={handleSelect}
-        />
-      </Form.Item>
+        <div>
+          <Calendar
+            fullscreen={false}
+            onSelect={handleSelect}
+            cellRender={dateCellRender}
+          />
 
-        {/* Modal เลือกประเภทการลา */}
-        <Modal
-          title={
-            selectedDate
-              ? `เลือกประเภทการลา (${selectedDate.format("YYYY-MM-DD")})`
-              : ""
-          }
-          open={isModalOpen}
-          onOk={handleOk}
-          onCancel={handleCancel}
-          okText="บันทึก"
-          cancelText="ยกเลิก"
-        >
+          <Modal
+            title={`เพิ่มการลา`}
+            open={isModalOpen}
+            onOk={handleOk}
+            onCancel={handleCancel}
+            okText="บันทึก"
+            cancelText="ยกเลิก"
+          >
+            <Form.Item label="ประเภทการลา">
+              <Select
+                style={{ width: "100%" }}
+                placeholder="เลือกประเภทการลา"
+                value={selectedType || undefined}
+                onChange={(val) => setSelectedType(val)}
+              >
+                {Object.entries(leaveTypes).map(([key, { label }]) => (
+                  <Select.Option key={key} value={key}>
+                    {label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item label="ตั้งแต่วันที่">
+              <DatePicker
+                style={{ width: "100%", marginBottom: 12 }}
+                value={range.start}
+                onChange={(date) => date && setRange({ ...range, start: date })}
+              />
+            </Form.Item>
+            <Form.Item label="ลาถึงวันที่">
+              <DatePicker
+                style={{ width: "100%", marginBottom: 12 }}
+                value={range.end}
+                onChange={(date) => date && setRange({ ...range, end: date })}
+              />
+            </Form.Item>
+          </Modal>
+        </div>
+
+        <Form.Item label="ผู้ติดตาม" name="assistants">
           <Select
-            style={{ width: "100%" }}
-            placeholder="-- เลือกประเภทการลา --"
-            value={selectedType ?? undefined}
-            onChange={(val) => setSelectedType(val as LeaveDay["type"])}
+            mode="multiple"
+            showSearch
+            placeholder="-- ผู้ติดตาม --"
+            optionFilterProp="label"
+            value={assistants}
+            onChange={(value) => setAssistants(value)}
             options={[
-              { value: "business", label: "ลาราชการ" },
-              { value: "personal", label: "ลากิจ" },
-              { value: "vacation", label: "ลาพักร้อน" },
+              { value: "1", label: "สมชาย ใจดี" },
+              { value: "2", label: "วรัญญา ประวันโน" },
+              { value: "3", label: "กิตติพงษ์ รัตนชัย" },
+              { value: "4", label: "สุภาพร ศรีสุข" },
+              { value: "5", label: "ณัฐพล อินทร์ทอง" },
             ]}
           />
-        </Modal>
-         <Form.Item label="ผู้ติดตาม" name="assistants">
-                         <Select
-                           mode="multiple"
-                           showSearch
-                           placeholder="-- ผู้ติดตาม --"
-                           optionFilterProp="label"
-                           value={assistants}
-                           onChange={(value) => setAssistants(value)}
-                           options={[
-                             { value: "1", label: "สมชาย ใจดี" },
-                             { value: "2", label: "วรัญญา ประวันโน" },
-                             { value: "3", label: "กิตติพงษ์ รัตนชัย" },
-                             { value: "4", label: "สุภาพร ศรีสุข" },
-                             { value: "5", label: "ณัฐพล อินทร์ทอง" },
-                           ]}
-                         />
-                       </Form.Item>
+        </Form.Item>
 
+        <Form.Item label="รายละเอียดการเดินทาง">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="ยี่ห้อรถ">
+                <Input placeholder="เช่น TOYOTA" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="ป้ายทะเบียน">
+                <Input placeholder="เช่น กข 1234" />
+              </Form.Item>
+            </Col>
+          </Row>
 
-         <Form.Item label="รายละเอียดการเดินทาง">
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item label="ยี่ห้อรถ">
-                        <Input placeholder="เช่น TOYOTA" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item label="ป้ายทะเบียน">
-                        <Input placeholder="เช่น กข 1234" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-        
-                  <Form.Item label="พนักงานขับรถ">
-                    <Input placeholder="ชื่อพนักงาน (ถ้ามี)" />
-                  </Form.Item>
-                </Form.Item>
-        
+          <Form.Item label="พนักงานขับรถ">
+            <Input placeholder="ชื่อพนักงาน (ถ้ามี)" />
+          </Form.Item>
+        </Form.Item>
 
         {/* ค่าใช้จ่าย */}
         <Form.Item label="ขอเบิกค่าใช้จ่าย">
@@ -283,7 +347,10 @@ const FormalApplicationForm: React.FC = () => {
             <Checkbox value="vehicle">ค่ายานพาหนะ</Checkbox>
             {selectedExpenses.includes("vehicle") && (
               <div className="ml-6 mt-1 flex gap-2">
-                <Input placeholder="เช่น เหมารถตู้ 1 คัน" style={{ width: "50%" }} />
+                <Input
+                  placeholder="เช่น เหมารถตู้ 1 คัน"
+                  style={{ width: "50%" }}
+                />
                 <InputNumber min={0} placeholder="จำนวนเงิน" />
               </div>
             )}
@@ -297,7 +364,7 @@ const FormalApplicationForm: React.FC = () => {
           </Checkbox.Group>
         </Form.Item>
 
-                {/* ตารางสรุป */}
+        {/* ตารางสรุป */}
         <div className="mt-6 mb-4">
           <Table
             dataSource={summaryData}
@@ -308,7 +375,9 @@ const FormalApplicationForm: React.FC = () => {
         </div>
 
         {/* ปุ่มส่ง */}
-        <Form.Item style={{marginTop: 16, display: 'flex' ,justifyContent: 'end'}}>
+        <Form.Item
+          style={{ marginTop: 16, display: "flex", justifyContent: "end" }}
+        >
           <Button type="primary" disabled={isOverLimit}>
             ส่งใบลา
           </Button>
@@ -320,7 +389,7 @@ const FormalApplicationForm: React.FC = () => {
         </Form.Item>
       </Form>
     </div>
-  )
-}
+  );
+};
 
-export default FormalApplicationForm
+export default FormalApplicationForm;
