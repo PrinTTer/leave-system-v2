@@ -71,10 +71,10 @@ const GeneralLeaveForm: React.FC = () => {
         leaveType === "sick"
           ? "ลาป่วย"
           : leaveType === "business"
-          ? "ลากิจ"
-          : leaveType === "4"
-          ? "ลาคลอดบุตร"
-          : "ลาพักร้อน",
+            ? "ลากิจ"
+            : leaveType === "4"
+              ? "ลาคลอดบุตร"
+              : "ลาพักร้อน",
       countries: "ต่างประเทศ",
       leaveDays: leaveDays,
       remaining: remainingLeaveDays,
@@ -210,24 +210,61 @@ const GeneralLeaveForm: React.FC = () => {
         </div>
 
         {/* ปุ่มส่งใบลา */}
-        <div style={{marginTop: 16, display: 'flex' ,justifyContent: 'end'}}>
-          <Form.Item>
+        <Form.Item
+          style={{
+            marginTop: 24,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "12px",
+          }}
+        >
+          <div style={{ display: "flex", gap: "12px" }}>
             <Link href="/private">
               <Button
+                style={{
+                  backgroundColor: "#8c8c8c",
+                  color: "#fff",
+                  border: "none",
+                }}
+              >
+                ย้อนกลับ
+              </Button>
+            </Link>
+
+            <Link href="/private">
+              <Button
+                style={{
+                  backgroundColor: "#52c41a",
+                  color: "#fff",
+                  border: "none",
+                }}
+                disabled={remainingLeaveDays < 0}
+              >
+                บันทึกฉบับร่าง
+              </Button>
+            </Link>
+
+            <Link href="/private">
+              {" "}
+              <Button
                 type="primary"
-                htmlType="submit"
+                style={{ border: "none" }}
                 disabled={remainingLeaveDays < 0}
               >
                 ส่งใบลา
               </Button>
             </Link>
-            {remainingLeaveDays < 0 && (
-              <Text type="danger" className="ml-3">
+          </div>
+
+          {remainingLeaveDays < 0 && (
+            <div style={{ width: "100%", textAlign: "center", marginTop: 8 }}>
+              <Text type="danger" style={{ fontWeight: 500 }}>
                 ระยะเวลาการลาเกินกว่าที่กำหนด
               </Text>
-            )}
-          </Form.Item>
-        </div>
+            </div>
+          )}
+        </Form.Item>
       </Form>
     </div>
   );

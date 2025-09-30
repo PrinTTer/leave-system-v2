@@ -23,10 +23,13 @@ import { UploadOutlined } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import { formatThaiDate } from "@/app/utils/utils";
+import { CloseOutlined } from "@ant-design/icons";
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
+const { RangePicker } = DatePicker;
 const { Text } = Typography;
 
 const leaveTypes: Record<string, { label: string; color: string }> = {
@@ -73,8 +76,8 @@ const InternationalFormalLeaveForm: React.FC = () => {
 
   // เมื่อคลิกวันใน Calendar
   const handleSelect = (date: Dayjs) => {
-    setRange({ start: date, end: date }); // default end = start
-    setIsModalOpen(true); // เปิด modal ทันที
+    setRange({ start: date, end: date });
+    setIsModalOpen(true);
   };
 
   // บันทึกประเภทการลา
@@ -127,12 +130,48 @@ const InternationalFormalLeaveForm: React.FC = () => {
     setIsModalOpen(false);
   };
 
-  // render ป้าย Tag บนปฏิทิน
+  // ลบวันลาออกจาก state
+  const handleRemoveLeave = (date: string) => {
+    setLeaveDays((prev) => prev.filter((d) => d.date !== date));
+
+    // ถ้าวันที่ลบตรงกับ range ปัจจุบัน ให้รีเซ็ต
+    if (
+      range.start?.format("YYYY-MM-DD") === date ||
+      range.end?.format("YYYY-MM-DD") === date
+    ) {
+      setRange({ start: null, end: null });
+    }
+  };
+
+  // render ป้าย Tag + กากบาท
   const dateCellRender = (date: Dayjs) => {
     const leave = leaveDays.find((d) => d.date === date.format("YYYY-MM-DD"));
     if (leave) {
       const { label, color } = leaveTypes[leave.type];
-      return <Tag color={color}>{label}</Tag>;
+      return (
+        <div style={{ position: "relative", display: "inline-block" }}>
+          <Tag color={color} style={{ margin: 0, paddingRight: 20 }}>
+            {label}
+          </Tag>
+          <CloseOutlined
+            onClick={(e) => {
+              e.stopPropagation(); // กันไม่ให้ trigger onSelect
+              handleRemoveLeave(date.format("YYYY-MM-DD"));
+            }}
+            style={{
+              position: "absolute",
+              top: -6,
+              right: -6,
+              fontSize: 12,
+              color: "#fff",
+              cursor: "pointer",
+              background: "#aaa7a7ff",
+              borderRadius: "50%",
+              padding: 2,
+            }}
+          />
+        </div>
+      );
     }
     return null;
   };
@@ -219,28 +258,53 @@ const InternationalFormalLeaveForm: React.FC = () => {
         </Row>
 
         <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="เดินทางไปวันที่" name="departure">
-              <DatePicker
+          <Col span={6}>
+            <Form.Item label="เลือกประเภทการลา" name="leavetype">
+              <Select
                 style={{ width: "100%" }}
-                showTime
-                format="YYYY-MM-DD HH:mm"
-                placeholder="เลือกวันที่และเวลา"
+                placeholder="เลือกประเภทการลา"
+                value={selectedType || undefined}
+                onChange={(val) => setSelectedType(val)}
+              >
+                {Object.entries(leaveTypes).map(([key, { label }]) => (
+                  <Select.Option key={key} value={key}>
+                    {label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+
+          <Col span={6}>
+            <Form.Item
+              label="มีกำหนดตั้งแต่วันที่ ถึง วันที่"
+              name="leaveRange"
+            >
+              <RangePicker
+                onChange={(dates) =>
+                  setRange({
+                    start: dates?.[0] || null,
+                    end: dates?.[1] || null,
+                  })
+                }
               />
             </Form.Item>
           </Col>
-          <Col span={12}>
-            <Form.Item label="เดินทางกลับวันที่" name="return">
-              <DatePicker
-                style={{ width: "100%" }}
-                showTime
-                format="YYYY-MM-DD HH:mm"
-                placeholder="เลือกวันที่และเวลา"
-              />
+
+          <Col span={6}>
+            <Form.Item label={null}>
+              <Button
+                type="primary"
+                onClick={handleOk}
+                style={{ width: "30%", marginTop: 30 }}
+              >
+                เพิ่มการลา
+              </Button>
             </Form.Item>
           </Col>
         </Row>
 
+        {/* ปฏิทินเลือกวันลา */}
         <div>
           <Calendar
             fullscreen={false}
@@ -249,7 +313,7 @@ const InternationalFormalLeaveForm: React.FC = () => {
           />
 
           <Modal
-            title={`เพิ่มการลา`}
+            title={`เพิ่มการลา วันที่ ${formatThaiDate(range.start)}`}
             open={isModalOpen}
             onOk={handleOk}
             onCancel={handleCancel}
@@ -270,21 +334,21 @@ const InternationalFormalLeaveForm: React.FC = () => {
                 ))}
               </Select>
             </Form.Item>
-
-            <Form.Item label="ตั้งแต่วันที่">
-              <DatePicker
-                style={{ width: "100%", marginBottom: 12 }}
-                value={range.start}
-                onChange={(date) => date && setRange({ ...range, start: date })}
-              />
-            </Form.Item>
-            <Form.Item label="ลาถึงวันที่">
-              <DatePicker
-                style={{ width: "100%", marginBottom: 12 }}
-                value={range.end}
-                onChange={(date) => date && setRange({ ...range, end: date })}
-              />
-            </Form.Item>
+            {/* 
+                   <Form.Item label="ตั้งแต่วันที่">
+                     <DatePicker
+                       style={{ width: "100%", marginBottom: 12 }}
+                       value={range.start}
+                       onChange={(date) => date && setRange({ ...range, start: date })}
+                     />
+                   </Form.Item>
+                   <Form.Item label="ลาถึงวันที่">
+                     <DatePicker
+                       style={{ width: "100%", marginBottom: 12 }}
+                       value={range.end}
+                       onChange={(date) => date && setRange({ ...range, end: date })}
+                     />
+                   </Form.Item> */}
           </Modal>
         </div>
 
@@ -354,15 +418,52 @@ const InternationalFormalLeaveForm: React.FC = () => {
         </div>
 
         <Form.Item
-          style={{ marginTop: 16, display: "flex", justifyContent: "end" }}
+          style={{
+            marginTop: 24,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "12px",
+          }}
         >
-          <Button type="primary" disabled={isOverLimit}>
-            ส่งใบลา
-          </Button>
+          <div style={{ display: "flex", gap: "12px" }}>
+            <Button
+              style={{
+                backgroundColor: "#8c8c8c",
+                color: "#fff",
+                border: "none",
+              }}
+              disabled={isOverLimit}
+            >
+              ย้อนกลับ
+            </Button>
+
+            <Button
+              style={{
+                backgroundColor: "#52c41a",
+                color: "#fff",
+                border: "none",
+              }}
+              disabled={isOverLimit}
+            >
+              บันทึกฉบับร่าง
+            </Button>
+
+            <Button
+              type="primary"
+              style={{ border: "none" }}
+              disabled={isOverLimit}
+            >
+              ส่งใบลา
+            </Button>
+          </div>
+
           {isOverLimit && (
-            <Text type="danger" className="ml-3">
-              ระยะเวลาการลาเกินกว่าที่กำหนด
-            </Text>
+            <div style={{ width: "100%", textAlign: "center", marginTop: 8 }}>
+              <Text type="danger" style={{ fontWeight: 500 }}>
+                ระยะเวลาการลาเกินกว่าที่กำหนด
+              </Text>
+            </div>
           )}
         </Form.Item>
       </Form>

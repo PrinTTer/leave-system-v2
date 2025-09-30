@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 
 export function convertDateTimeToNumber(dateStr: string) {
   return new Date(dateStr).getTime();
@@ -17,3 +17,20 @@ export function validateEmailInput(rule: any, value: any) {
 
   return Promise.reject("โปรดระบุอีเมลที่ถูกต้อง");
 }
+
+export const formatThaiDate = (date: Dayjs | string | null): string => {
+  if (!date) return "";
+
+  // ถ้าเป็น Dayjs
+  if (dayjs.isDayjs(date)) {
+    return date.locale("th").format("D MMMM BBBB"); // BBBB = พ.ศ.
+  }
+
+  // ถ้าเป็น string
+  const jsDate = new Date(date);
+  return jsDate.toLocaleDateString("th-TH", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};

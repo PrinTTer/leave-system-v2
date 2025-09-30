@@ -41,19 +41,19 @@ const InternationalLeaveForm: React.FC = () => {
 
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [leaveType, setLeaveType] = useState<string>("");
-  
+
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
-  
+
   const [startType, setStartType] = useState<string>("full");
   const [endType, setEndType] = useState<string>("full");
 
   // mock: จำนวนวันลาทั้งหมดที่มีสิทธิ์
   const totalLeaveDays = 10;
 
-   const handleChange = (info: { fileList: UploadFile[] }) => {
-      setFileList(info.fileList);
-    };
+  const handleChange = (info: { fileList: UploadFile[] }) => {
+    setFileList(info.fileList);
+  };
 
   const calculateLeaveDays = (): number => {
     if (!startDate || !endDate) return 0;
@@ -83,10 +83,10 @@ const InternationalLeaveForm: React.FC = () => {
         leaveType === "sick"
           ? "ลาป่วย"
           : leaveType === "business"
-          ? "ลากิจ"
-          : leaveType === "4"
-          ? "ลาคลอดบุตร"
-          : "ลาพักร้อน",
+            ? "ลากิจ"
+            : leaveType === "4"
+              ? "ลาคลอดบุตร"
+              : "ลาพักร้อน",
       countries: selectedCountries,
       leaveDays: leaveDays,
       remaining: remainingLeaveDays,
@@ -155,67 +155,67 @@ const InternationalLeaveForm: React.FC = () => {
           <Input.TextArea rows={3} placeholder="กรอกเหตุผลการลา..." />
         </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              label="มีกำหนดตั้งแต่วันที่"
+              name="startDate"
+              rules={[{ required: true, message: "กรุณาเลือกวันที่เริ่ม" }]}
+            >
+              <DatePicker
+                value={startDate}
+                onChange={(d) => setStartDate(d)}
+                style={{ width: "100%" }}
+              />
+            </Form.Item>
+            {startDate && (
               <Form.Item
-                label="มีกำหนดตั้งแต่วันที่"
-                name="startDate"
-                rules={[{ required: true, message: "กรุณาเลือกวันที่เริ่ม" }]}
+                name="startType"
+                rules={[{ required: true, message: "กรุณาเลือกช่วงเวลา" }]}
               >
-                <DatePicker
-                  value={startDate}
-                  onChange={(d) => setStartDate(d)}
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-              {startDate && (
-                <Form.Item
-                  name="startType"
-                  rules={[{ required: true, message: "กรุณาเลือกช่วงเวลา" }]}
+                <Radio.Group
+                  value={startType}
+                  onChange={(e) => setStartType(e.target.value)}
                 >
-                  <Radio.Group
-                    value={startType}
-                    onChange={(e) => setStartType(e.target.value)}
-                  >
-                    <Radio value="full">เต็มวัน</Radio>
-                    <Radio value="am">ครึ่งเช้า</Radio>
-                    <Radio value="pm">ครึ่งบ่าย</Radio>
-                  </Radio.Group>
-                </Form.Item>
-              )}
-            </Col>
+                  <Radio value="full">เต็มวัน</Radio>
+                  <Radio value="am">ครึ่งเช้า</Radio>
+                  <Radio value="pm">ครึ่งบ่าย</Radio>
+                </Radio.Group>
+              </Form.Item>
+            )}
+          </Col>
 
-            <Col span={12}>
+          <Col span={12}>
+            <Form.Item
+              label="ถึงวันที่"
+              name="endDate"
+              rules={[{ required: true, message: "กรุณาเลือกวันที่สิ้นสุด" }]}
+            >
+              <DatePicker
+                value={endDate}
+                onChange={(d) => setEndDate(d)}
+                style={{ width: "100%" }}
+              />
+            </Form.Item>
+            {endDate && startDate && !startDate.isSame(endDate, "day") && (
               <Form.Item
-                label="ถึงวันที่"
-                name="endDate"
-                rules={[{ required: true, message: "กรุณาเลือกวันที่สิ้นสุด" }]}
+                name="endType"
+                rules={[{ required: true, message: "กรุณาเลือกช่วงเวลา" }]}
               >
-                <DatePicker
-                  value={endDate}
-                  onChange={(d) => setEndDate(d)}
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-              {endDate && startDate && !startDate.isSame(endDate, "day") && (
-                <Form.Item
-                  name="endType"
-                  rules={[{ required: true, message: "กรุณาเลือกช่วงเวลา" }]}
+                <Radio.Group
+                  value={endType}
+                  onChange={(e) => setEndType(e.target.value)}
                 >
-                  <Radio.Group
-                    value={endType}
-                    onChange={(e) => setEndType(e.target.value)}
-                  >
-                    <Radio value="full">เต็มวัน</Radio>
-                    <Radio value="am">ครึ่งเช้า</Radio>
-                    <Radio value="pm">ครึ่งบ่าย</Radio>
-                  </Radio.Group>
-                </Form.Item>
-              )}
-            </Col>
-          </Row>
+                  <Radio value="full">เต็มวัน</Radio>
+                  <Radio value="am">ครึ่งเช้า</Radio>
+                  <Radio value="pm">ครึ่งบ่าย</Radio>
+                </Radio.Group>
+              </Form.Item>
+            )}
+          </Col>
+        </Row>
 
-          {/* แนบเอกสาร - เฉพาะลาป่วย */}
+        {/* แนบเอกสาร - เฉพาะลาป่วย */}
         {leaveType === "sick" && (
           <Form.Item
             label="แนบเอกสารเพิ่มเติม"
@@ -228,8 +228,6 @@ const InternationalLeaveForm: React.FC = () => {
           </Form.Item>
         )}
 
-
-
         {/* ตารางสรุปการลา */}
         <div className="mt-6 mb-4">
           <Table
@@ -241,25 +239,61 @@ const InternationalLeaveForm: React.FC = () => {
         </div>
 
         {/* ปุ่มส่งใบลา */}
-        <div style={{marginTop: 16, display: 'flex' ,justifyContent: 'end'}}>
-          <Form.Item>
+        <Form.Item
+          style={{
+            marginTop: 24,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "12px",
+          }}
+        >
+          <div style={{ display: "flex", gap: "12px" }}>
             <Link href="/private">
               <Button
+                style={{
+                  backgroundColor: "#8c8c8c",
+                  color: "#fff",
+                  border: "none",
+                }}
+              >
+                ย้อนกลับ
+              </Button>
+            </Link>
+
+            <Link href="/private">
+              <Button
+                style={{
+                  backgroundColor: "#52c41a",
+                  color: "#fff",
+                  border: "none",
+                }}
+                disabled={remainingLeaveDays < 0}
+              >
+                บันทึกฉบับร่าง
+              </Button>
+            </Link>
+
+            <Link href="/private">
+              {" "}
+              <Button
                 type="primary"
-                htmlType="submit"
+                style={{ border: "none" }}
                 disabled={remainingLeaveDays < 0}
               >
                 ส่งใบลา
               </Button>
             </Link>
+          </div>
 
-            {remainingLeaveDays < 0 && (
-              <Text type="danger" className="ml-3">
+          {remainingLeaveDays < 0 && (
+            <div style={{ width: "100%", textAlign: "center", marginTop: 8 }}>
+              <Text type="danger" style={{ fontWeight: 500 }}>
                 ระยะเวลาการลาเกินกว่าที่กำหนด
               </Text>
-            )}
-          </Form.Item>
-        </div>
+            </div>
+          )}
+        </Form.Item>
       </Form>
     </div>
   );
