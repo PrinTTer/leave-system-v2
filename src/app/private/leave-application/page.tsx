@@ -6,6 +6,7 @@ import GeneralLeaveForm from "./general-application/general/page";
 import FormalApplicationForm from "./formal-application/general/page";
 import InternationalLeaveForm from "./general-application/international/page";
 import InternationalFormalLeaveForm from "./formal-application/international/page";
+import { formatThaiDate } from "@/app/utils";
 // import Link from "next/link";
 
 interface User {
@@ -70,11 +71,7 @@ const LeaveSelectionPage: React.FC = () => {
                 <b>หน่วยงาน:</b> {user.department}
               </Col>
               <Col span={8}>
-                <b>วันเกิด:</b> {user.dateOfBirth}
-              </Col>
-
-              <Col span={8}>
-                <b>วันที่บรรจุ:</b> {user.employmentDate}
+                <b>วันที่บรรจุ:</b> {formatThaiDate(user.employmentDate)}(1 ปี)
               </Col>
               <Col span={8}>
                 <b>ระดับ:</b> {user.level}
