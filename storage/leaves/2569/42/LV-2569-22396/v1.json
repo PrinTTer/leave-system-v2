@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "request": {
+    "requestId": "LV-2569-22396",
+    "fiscalYear": 2569,
+    "leaveType": "personal",
+    "requester": {
+      "userId": 42,
+      "name": "สมชาย ใจดี",
+      "department": "วิศวกรรม"
+    },
+    "period": {
+      "start": "2025-11-07",
+      "end": "2025-11-11",
+      "days": 5
+    },
+    "dates": [
+      "2025-11-07",
+      "2025-11-08",
+      "2025-11-09",
+      "2025-11-10",
+      "2025-11-11"
+    ],
+    "reason": "ลา [ช่วงเวลา: เริ่ม=full, สิ้นสุด=full]",
+    "assistants": [],
+    "expenses": []
+  },
+  "policyCalc": {
+    "workingDays": 3,
+    "holidaysSkipped": 0,
+    "vacationBalanceCounted": false
+  },
+  "approval": {
+    "finalStatus": "PENDING",
+    "finalAt": null
+  },
+  "audit": {
+    "createdAt": "2025-11-07T05:51:46.994Z"
+  }
+}

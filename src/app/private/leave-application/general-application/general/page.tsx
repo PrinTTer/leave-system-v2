@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -12,22 +13,48 @@ import {
   Typography,
   Col,
   Row,
+  message,
 } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import { UploadOutlined } from "@ant-design/icons";
 import { Dayjs } from "dayjs";
-import Link from "next/link";
+import dayjs from "dayjs";
+import { createLeaveSnapshot } from "@/app/lib/leaveApi";
 
 const { Text } = Typography;
 
-// helper แปลงค่า
+// ---- helper
 const mapToValue = (val: string): number => {
   if (val === "full") return 1;
   if (val === "am" || val === "pm") return 0.5;
   return 0;
 };
 
+// คืน array ของวันที่แบบ YYYY-MM-DD รวมปลายทาง
+const datesBetween = (start: Dayjs, end: Dayjs) => {
+  const out: string[] = [];
+  let cur = start.startOf("day");
+  const last = end.startOf("day");
+  while (cur.isSame(last, "day") || cur.isBefore(last, "day")) {
+    out.push(cur.format("YYYY-MM-DD"));
+    cur = cur.add(1, "day");
+  }
+  return out;
+};
+
+// map ประเภท UI -> ชนิดที่ API รองรับ
+// (ชั่วคราว: sick/maternity(4) map เป็น "personal")
+const normalizeLeaveType = (
+  t: string
+): "business" | "personal" | "vacation" => {
+  if (t === "business") return "business";
+  if (t === "vacation") return "vacation";
+  return "personal";
+};
+
 const GeneralLeaveForm: React.FC = () => {
+  const [form] = Form.useForm();
+
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [leaveType, setLeaveType] = useState<string>("");
 
@@ -36,6 +63,10 @@ const GeneralLeaveForm: React.FC = () => {
 
   const [startType, setStartType] = useState<string>("full");
   const [endType, setEndType] = useState<string>("full");
+
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [lastResult, setLastResult] = useState<any>(null);
 
   const totalLeaveDays = 10;
 
@@ -71,10 +102,10 @@ const GeneralLeaveForm: React.FC = () => {
         leaveType === "sick"
           ? "ลาป่วย"
           : leaveType === "business"
-            ? "ลากิจ"
-            : leaveType === "4"
-              ? "ลาคลอดบุตร"
-              : "ลาพักร้อน",
+          ? "ลากิจ"
+          : leaveType === "4"
+          ? "ลาคลอดบุตร"
+          : "ลาพักร้อน",
       countries: "ต่างประเทศ",
       leaveDays: leaveDays,
       remaining: remainingLeaveDays,
@@ -93,11 +124,103 @@ const GeneralLeaveForm: React.FC = () => {
     },
   ];
 
+  // ===== ส่งไป createLeaveSnapshot =====
+  const buildPayload = (status: "DRAFT" | "PENDING") => {
+    if (!leaveType) {
+      message.error("กรุณาเลือกประเภทการลา");
+      return null;
+    }
+    if (!startDate || !endDate) {
+      message.error("กรุณาเลือกวันที่เริ่มและสิ้นสุด");
+      return null;
+    }
+    if (endDate.isBefore(startDate, "day")) {
+      message.error("วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่ม");
+      return null;
+    }
+
+    // แปลงช่วงวันที่เป็น array YYYY-MM-DD (ชั่วคราวยังไม่แยกครึ่งวัน)
+    const dates = datesBetween(startDate, endDate);
+
+    const reason = (form.getFieldValue("reason") as string) || "";
+    const halfNote = `[ช่วงเวลา: เริ่ม=${startType}, สิ้นสุด=${endType}]`;
+
+    // mock requester; ภายหลังดึงจาก Auth จริง
+    const requester = { userId: 42, name: "สมชาย ใจดี", department: "วิศวกรรม" };
+
+    return {
+      requester,
+      leaveType: normalizeLeaveType(leaveType),
+      dates,
+      reason: `${reason} ${halfNote}`.trim(),
+      assistants: [],
+      expenses: [],
+      status,
+    } as const;
+  };
+
+  const onSaveDraft = async () => {
+    const payload = buildPayload("DRAFT");
+    if (!payload) return;
+    try {
+      setSavingDraft(true);
+      const hide = message.loading("กำลังบันทึกฉบับร่าง...", 0);
+      const res = await createLeaveSnapshot(payload as any);
+      setLastResult(res);
+      hide();
+      message.success(`บันทึกฉบับร่างแล้ว: ${res.requestId}`);
+      // console.debug("[Draft saved]", res);
+    } catch (e: any) {
+      message.error(`บันทึกล้มเหลว: ${e.message}`);
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const onSubmit = async () => {
+    const payload = buildPayload("PENDING");
+    if (!payload) return;
+    try {
+      setSubmitting(true);
+      const hide = message.loading("กำลังส่งใบลา...", 0);
+      const res = await createLeaveSnapshot(payload as any);
+      setLastResult(res);
+      hide();
+      message.success(`ส่งใบลาเรียบร้อย: ${res.requestId}`);
+      // console.debug("[Submit success]", res);
+    } catch (e: any) {
+      message.error(`ส่งลาล้มเหลว: ${e.message}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ปุ่มทดสอบยิง API ตรง ๆ
+  const testFire = async () => {
+    try {
+      const res = await createLeaveSnapshot({
+        requester: { userId: 42, name: "สมชาย ใจดี", department: "วิศวกรรม" },
+        leaveType: "business",
+        dates: [dayjs().format("YYYY-MM-DD")],
+        reason: "test",
+        assistants: [],
+        expenses: [],
+        status: "DRAFT",
+      } as any);
+      setLastResult(res);
+      message.success("ทดสอบยิง API สำเร็จ");
+    } catch (e: any) {
+      message.error(`ทดสอบล้มเหลว: ${e.message}`);
+    }
+  };
+
   return (
     <div>
       <Form
         layout="vertical"
+        form={form}
         className="max-w-lg p-6 border rounded-lg bg-white shadow-sm"
+        onSubmitCapture={(e) => e.preventDefault()}
       >
         {/* ประเภทการลา */}
         <Form.Item
@@ -125,7 +248,7 @@ const GeneralLeaveForm: React.FC = () => {
           <Input.TextArea rows={3} placeholder="กรอกเหตุผลการลา..." />
         </Form.Item>
 
-        {/* วันที่เริ่มและสิ้นสุดให้อยู่แถวเดียวกัน */}
+        {/* วันที่เริ่มและสิ้นสุด */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -186,7 +309,7 @@ const GeneralLeaveForm: React.FC = () => {
           </Col>
         </Row>
 
-        {/* แนบเอกสาร - เฉพาะลาป่วย */}
+        {/* แนบเอกสาร - เฉพาะลาป่วย (ยังไม่อัปโหลดจริง แค่เก็บไฟล์ใน state) */}
         {leaveType === "sick" && (
           <Form.Item
             label="แนบเอกสารเพิ่มเติม"
@@ -209,7 +332,7 @@ const GeneralLeaveForm: React.FC = () => {
           />
         </div>
 
-        {/* ปุ่มส่งใบลา */}
+        {/* ปุ่ม */}
         <Form.Item
           style={{
             marginTop: 24,
@@ -220,41 +343,43 @@ const GeneralLeaveForm: React.FC = () => {
           }}
         >
           <div style={{ display: "flex", gap: "12px" }}>
-            <Link href="/private">
-              <Button
-                style={{
-                  backgroundColor: "#8c8c8c",
-                  color: "#fff",
-                  border: "none",
-                }}
-              >
-                ย้อนกลับ
-              </Button>
-            </Link>
+            <Button
+              htmlType="button"
+              style={{
+                backgroundColor: "#8c8c8c",
+                color: "#fff",
+                border: "none",
+              }}
+            >
+              ย้อนกลับ
+            </Button>
 
-            <Link href="/private">
-              <Button
-                style={{
-                  backgroundColor: "#52c41a",
-                  color: "#fff",
-                  border: "none",
-                }}
-                disabled={remainingLeaveDays < 0}
-              >
-                บันทึกฉบับร่าง
-              </Button>
-            </Link>
+            <Button
+              htmlType="button"
+              style={{
+                backgroundColor: "#52c41a",
+                color: "#fff",
+                border: "none",
+              }}
+              onClick={onSaveDraft}
+              disabled={remainingLeaveDays < 0 || savingDraft || submitting}
+            >
+              {savingDraft ? "กำลังบันทึก..." : "บันทึกฉบับร่าง"}
+            </Button>
 
-            <Link href="/private">
-              {" "}
-              <Button
-                type="primary"
-                style={{ border: "none" }}
-                disabled={remainingLeaveDays < 0}
-              >
-                ส่งใบลา
-              </Button>
-            </Link>
+            <Button
+              htmlType="button"
+              type="primary"
+              style={{ border: "none" }}
+              onClick={onSubmit}
+              disabled={remainingLeaveDays < 0 || savingDraft || submitting}
+            >
+              {submitting ? "กำลังส่ง..." : "ส่งใบลา"}
+            </Button>
+
+            <Button htmlType="button" onClick={testFire}>
+              ทดสอบยิง API ตรงๆ
+            </Button>
           </div>
 
           {remainingLeaveDays < 0 && (
@@ -262,6 +387,24 @@ const GeneralLeaveForm: React.FC = () => {
               <Text type="danger" style={{ fontWeight: 500 }}>
                 ระยะเวลาการลาเกินกว่าที่กำหนด
               </Text>
+            </div>
+          )}
+
+          {lastResult && (
+            <div style={{ width: "100%", marginTop: 16 }}>
+              <Text strong>ผลลัพธ์ล่าสุด:</Text>
+              <pre
+                style={{
+                  marginTop: 8,
+                  maxHeight: 260,
+                  overflow: "auto",
+                  background: "#f6f6f6",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+              >
+{JSON.stringify(lastResult, null, 2)}
+              </pre>
             </div>
           )}
         </Form.Item>

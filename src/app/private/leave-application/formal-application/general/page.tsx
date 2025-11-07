@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+'use client';
+
 import React, { useState } from "react";
 import {
   Form,
@@ -14,6 +17,7 @@ import {
   Col,
   Tag,
   DatePicker,
+  message,
 } from "antd";
 import type { CheckboxProps } from "antd";
 import dayjs, { Dayjs } from "dayjs";
@@ -21,14 +25,15 @@ import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { formatThaiDate } from "@/app/utils";
 import { CloseOutlined } from "@ant-design/icons";
+import { createLeaveSnapshot, listLeaves } from "@/app/lib/leaveApi";
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
 const { RangePicker } = DatePicker;
+const { Text } = Typography;
 
 type CheckboxValueType = string | number | CheckboxProps["checked"];
-const { Text } = Typography;
 
 const leaveTypes: Record<string, { label: string; color: string }> = {
   personal: { label: "ลากิจ", color: "orange" },
@@ -38,83 +43,70 @@ const leaveTypes: Record<string, { label: string; color: string }> = {
 
 interface LeaveDay {
   date: string;
-  type: string;
+  type: "business" | "personal" | "vacation";
 }
 
 const FormalApplicationForm: React.FC = () => {
-  // จำนวนวันลา (mock สมมติ)
+  const [form] = Form.useForm();
+
   const totalBusinessLeave = 10;
   const totalPersonalLeave = 5;
   const totalVacationLeave = 5;
 
-  // state
   const [leaveDays, setLeaveDays] = useState<LeaveDay[]>([]);
-  const [range, setRange] = useState<{
-    start: Dayjs | null;
-    end: Dayjs | null;
-  }>({
-    start: null,
-    end: null,
-  });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-
-  const [assistants, setAssistants] = useState<string[]>([]);
-
-  const [selectedExpenses, setSelectedExpenses] = useState<CheckboxValueType[]>(
-    []
+  const [range, setRange] = useState<{ start: Dayjs | null; end: Dayjs | null }>(
+    { start: null, end: null }
   );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<"business" | "personal" | "vacation" | null>(null);
+
+  const [assistants] = useState<string[]>([]);
+  const [selectedExpenses, setSelectedExpenses] = useState<CheckboxValueType[]>([]);
 
   const [businessDays, setBusinessDays] = useState<number>();
   const [vacationDays, setVacationDays] = useState<number>();
   const [personalDays, setPersonalDays] = useState<number>();
 
-  // เมื่อคลิกวันใน Calendar
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [lastResult, setLastResult] = useState<any>(null);
+  const [listed, setListed] = useState<any>(null);
+
+  // ==== Calendar handlers
   const handleSelect = (date: Dayjs) => {
     setRange({ start: date, end: date });
     setIsModalOpen(true);
   };
 
-  // บันทึกประเภทการลา
+  const addRangeToDays = (s: Dayjs, e: Dayjs, type: "business" | "personal" | "vacation") => {
+    const allDays: LeaveDay[] = [];
+    let current = s;
+    while (current.isSameOrBefore(e, "day")) {
+      allDays.push({ date: current.format("YYYY-MM-DD"), type });
+      current = current.add(1, "day");
+    }
+    setLeaveDays((prev) => {
+      const filtered = prev.filter(
+        (d) => !(dayjs(d.date).isSameOrAfter(s, "day") && dayjs(d.date).isSameOrBefore(e, "day"))
+      );
+      return [...filtered, ...allDays];
+    });
+
+    const weekdays = allDays.filter((d) => {
+      const day = dayjs(d.date).day();
+      return day >= 1 && day <= 5;
+    }).length;
+
+    switch (type) {
+      case "business": setBusinessDays((p) => (p || 0) + weekdays); break;
+      case "personal": setPersonalDays((p) => (p || 0) + weekdays); break;
+      case "vacation": setVacationDays((p) => (p || 0) + weekdays); break;
+    }
+  };
+
   const handleOk = () => {
     if (range.start && range.end && selectedType) {
-      const allDays: LeaveDay[] = [];
-      let current = range.start;
-      while (current.isSameOrBefore(range.end, "day")) {
-        allDays.push({
-          date: current.format("YYYY-MM-DD"),
-          type: selectedType,
-        });
-        current = current.add(1, "day");
-      }
-
-      setLeaveDays((prev) => {
-        const filtered = prev.filter(
-          (d) =>
-            !dayjs(d.date).isSameOrAfter(range.start, "day") ||
-            !dayjs(d.date).isSameOrBefore(range.end, "day")
-        );
-        return [...filtered, ...allDays];
-      });
-
-      // คำนวณจำนวนวันลาเฉพาะวันจันทร์–ศุกร์
-      const weekdaysCount = allDays.filter((d) => {
-        const day = dayjs(d.date).day(); // 0 = อาทิตย์, 6 = เสาร์
-        return day >= 1 && day <= 5;
-      }).length;
-
-      // อัปเดตจำนวนวันลาแยกประเภท
-      switch (selectedType) {
-        case "business":
-          setBusinessDays((prev) => (prev || 0) + weekdaysCount);
-          break;
-        case "personal":
-          setPersonalDays((prev) => (prev || 0) + weekdaysCount);
-          break;
-        case "vacation":
-          setVacationDays((prev) => (prev || 0) + weekdaysCount);
-          break;
-      }
+      addRangeToDays(range.start, range.end, selectedType);
     }
     setIsModalOpen(false);
     setSelectedType(null);
@@ -125,20 +117,13 @@ const FormalApplicationForm: React.FC = () => {
     setIsModalOpen(false);
   };
 
-  // ลบวันลาออกจาก state
   const handleRemoveLeave = (date: string) => {
     setLeaveDays((prev) => prev.filter((d) => d.date !== date));
-
-    // ถ้าวันที่ลบตรงกับ range ปัจจุบัน ให้รีเซ็ต
-    if (
-      range.start?.format("YYYY-MM-DD") === date ||
-      range.end?.format("YYYY-MM-DD") === date
-    ) {
+    if (range.start?.format("YYYY-MM-DD") === date || range.end?.format("YYYY-MM-DD") === date) {
       setRange({ start: null, end: null });
     }
   };
 
-  // render ป้าย Tag + กากบาท
   const dateCellRender = (date: Dayjs) => {
     const leave = leaveDays.find((d) => d.date === date.format("YYYY-MM-DD"));
     if (leave) {
@@ -150,7 +135,7 @@ const FormalApplicationForm: React.FC = () => {
           </Tag>
           <CloseOutlined
             onClick={(e) => {
-              e.stopPropagation(); // กันไม่ให้ trigger onSelect
+              e.stopPropagation();
               handleRemoveLeave(date.format("YYYY-MM-DD"));
             }}
             style={{
@@ -171,6 +156,7 @@ const FormalApplicationForm: React.FC = () => {
     return null;
   };
 
+  // ==== Summary + expenses
   const handleExpensesChange = (checkedValues: CheckboxValueType[]) => {
     setSelectedExpenses(checkedValues);
   };
@@ -179,7 +165,7 @@ const FormalApplicationForm: React.FC = () => {
     {
       key: "1",
       type: "ลาราชการ",
-      dates: leaveDays.filter((d) => d.type === "business").map((d) => d.date), // ต้องเป็น array
+      dates: leaveDays.filter((d) => d.type === "business").map((d) => d.date),
       days: businessDays || 0,
       remaining: totalBusinessLeave - (businessDays || 0),
     },
@@ -228,10 +214,129 @@ const FormalApplicationForm: React.FC = () => {
 
   const isOverLimit = summaryData.some((item) => item.remaining < 0);
 
+  // ==== Build payload + API calls
+  const gatherDatesAndType = () => {
+    const types = new Set(leaveDays.map((d) => d.type));
+    return {
+      uniqueTypes: types,
+      dates: leaveDays.map((d) => d.date),
+      oneType: types.size === 1 ? (Array.from(types)[0] as "business" | "personal" | "vacation") : null,
+    };
+  };
+
+  // auto เติมช่วงที่เลือกถ้ายังไม่ได้กด "เพิ่มการลา"
+  const ensureCurrentRangeAppended = () => {
+    if (!leaveDays.length && range.start && range.end && selectedType) {
+      addRangeToDays(range.start, range.end, selectedType);
+      message.info("เพิ่มช่วงวันที่ที่เลือกเข้าใบลาให้อัตโนมัติแล้ว");
+    }
+  };
+
+  const buildPayload = (status: "DRAFT" | "PENDING") => {
+    ensureCurrentRangeAppended();
+    const { uniqueTypes, dates, oneType } = gatherDatesAndType();
+    if (!dates.length) {
+      message.error("กรุณาเลือกวันที่ลาอย่างน้อย 1 วัน");
+      return null;
+    }
+    if (uniqueTypes.size !== 1) {
+      message.error("ใบลาหนึ่งอนุญาตเฉพาะ 1 ประเภทการลา");
+      return null;
+    }
+
+    const requester = { userId: 42, name: "สมชาย ใจดี", department: "วิศวกรรม" };
+    const expenses: any[] = (selectedExpenses as string[]).map((t) => ({ type: t }));
+
+    return {
+      requester,
+      leaveType: oneType!,
+      dates,
+      reason: (form.getFieldValue("reason") as string) || "",
+      assistants,
+      expenses,
+      status,
+    } as const;
+  };
+
+  const refreshList = async () => {
+    try {
+      const data = await listLeaves();
+      setListed(data);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const onSaveDraft = async () => {
+    console.log("[UI] click save draft");
+    const payload = buildPayload("DRAFT");
+    if (!payload) return;
+    try {
+      setSavingDraft(true);
+      const hide = message.loading("กำลังบันทึกฉบับร่าง...", 0);
+      const res = await createLeaveSnapshot(payload as any);
+      setLastResult(res);
+      hide();
+      message.success(`บันทึกฉบับร่างแล้ว: ${res.requestId}`);
+      console.debug("[Draft saved]", res);
+      await refreshList();
+    } catch (e: any) {
+      message.error(`บันทึกล้มเหลว: ${e.message}`);
+      console.debug("[Draft error]", e);
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const onSubmit = async () => {
+    console.log("[UI] click submit");
+    const payload = buildPayload("PENDING");
+    if (!payload) return;
+    try {
+      setSubmitting(true);
+      const hide = message.loading("กำลังส่งใบลา...", 0);
+      const res = await createLeaveSnapshot(payload as any);
+      setLastResult(res);
+      hide();
+      message.success(`ส่งใบลาเรียบร้อย: ${res.requestId}`);
+      console.debug("[Submit success]", res);
+      await refreshList();
+    } catch (e: any) {
+      message.error(`ส่งลาล้มเหลว: ${e.message}`);
+      console.debug("[Submit error]", e);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ==== FORCE TEST BUTTON: ยิง API ตรงๆ ไม่พึ่ง form
+  const testFire = async () => {
+    console.log("[UI] testFire");
+    try {
+      const res = await createLeaveSnapshot({
+        requester: { userId: 42, name: "สมชาย ใจดี", department: "วิศวกรรม" },
+        leaveType: "business",
+        dates: ["2025-11-10", "2025-11-11"],
+        reason: "test",
+        assistants: [],
+        expenses: [],
+        status: "DRAFT",
+      } as any);
+      setLastResult(res);
+      message.success("ทดสอบยิง API สำเร็จ");
+      await refreshList();
+    } catch (e: any) {
+      message.error(`ทดสอบล้มเหลว: ${e.message}`);
+    }
+  };
+
+  // ==== UI
   return (
     <div>
       <Form
+        form={form}
         layout="vertical"
+        onSubmitCapture={(e) => e.preventDefault()}
         className="max-w-3xl p-6 border rounded-lg bg-white shadow-sm"
       >
         <Row gutter={16}>
@@ -253,7 +358,7 @@ const FormalApplicationForm: React.FC = () => {
             </Form.Item>
           </Col>
         </Row>
-        {/* เหตุผลการลา */}
+
         <Form.Item
           label="เนื่องจาก"
           name="reason"
@@ -261,6 +366,7 @@ const FormalApplicationForm: React.FC = () => {
         >
           <Input.TextArea rows={3} placeholder="..." />
         </Form.Item>
+
         <Row gutter={16}>
           <Col span={6}>
             <Form.Item label="เลือกประเภทการลา" name="leavetype">
@@ -268,22 +374,18 @@ const FormalApplicationForm: React.FC = () => {
                 style={{ width: "100%" }}
                 placeholder="เลือกประเภทการลา"
                 value={selectedType || undefined}
-                onChange={(val) => setSelectedType(val)}
-              >
-                {Object.entries(leaveTypes).map(([key, { label }]) => (
-                  <Select.Option key={key} value={key}>
-                    {label}
-                  </Select.Option>
-                ))}
-              </Select>
+                onChange={(val) => setSelectedType(val as any)}
+                options={[
+                  { value: "business", label: leaveTypes.business.label },
+                  { value: "personal", label: leaveTypes.personal.label },
+                  { value: "vacation", label: leaveTypes.vacation.label },
+                ]}
+              />
             </Form.Item>
           </Col>
 
-          <Col span={6}>
-            <Form.Item
-              label="มีกำหนดตั้งแต่วันที่ ถึง วันที่"
-              name="leaveRange"
-            >
+          <Col span={10}>
+            <Form.Item label="มีกำหนดตั้งแต่วันที่ ถึง วันที่" name="leaveRange">
               <RangePicker
                 onChange={(dates) =>
                   setRange({
@@ -295,12 +397,13 @@ const FormalApplicationForm: React.FC = () => {
             </Form.Item>
           </Col>
 
-          <Col span={6}>
-            <Form.Item label={null}>
+          <Col span={8}>
+            <Form.Item /* ไม่มี label เพื่อไม่ให้ antd ใส่ <label htmlFor> โดยไม่มี input จริง */>
               <Button
+                htmlType="button"
                 type="primary"
                 onClick={handleOk}
-                style={{ width: "30%", marginTop: 30 }}
+                style={{ width: "40%", marginTop: 30 }}
               >
                 เพิ่มการลา
               </Button>
@@ -308,7 +411,6 @@ const FormalApplicationForm: React.FC = () => {
           </Col>
         </Row>
 
-        {/* ปฏิทินเลือกวันลา */}
         <div>
           <Calendar
             fullscreen={false}
@@ -324,120 +426,81 @@ const FormalApplicationForm: React.FC = () => {
             okText="บันทึก"
             cancelText="ยกเลิก"
           >
-            <Form.Item label="ประเภทการลา">
+            <Form.Item label="ประเภทการลา" name="modalLeaveType">
               <Select
                 style={{ width: "100%" }}
                 placeholder="เลือกประเภทการลา"
                 value={selectedType || undefined}
-                onChange={(val) => setSelectedType(val)}
-              >
-                {Object.entries(leaveTypes).map(([key, { label }]) => (
-                  <Select.Option key={key} value={key}>
-                    {label}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-            {/* 
-            <Form.Item label="ตั้งแต่วันที่">
-              <DatePicker
-                style={{ width: "100%", marginBottom: 12 }}
-                value={range.start}
-                onChange={(date) => date && setRange({ ...range, start: date })}
+                onChange={(val) => setSelectedType(val as any)}
+                options={[
+                  { value: "business", label: "ไปราชการ" },
+                  { value: "personal", label: "ลากิจ" },
+                  { value: "vacation", label: "ลาพักร้อน" },
+                ]}
               />
             </Form.Item>
-            <Form.Item label="ลาถึงวันที่">
-              <DatePicker
-                style={{ width: "100%", marginBottom: 12 }}
-                value={range.end}
-                onChange={(date) => date && setRange({ ...range, end: date })}
-              />
-            </Form.Item> */}
           </Modal>
         </div>
-        <Form.Item label="ผู้ติดตาม" name="assistants">
-          <Select
-            mode="multiple"
-            showSearch
-            placeholder="-- ผู้ติดตาม --"
-            optionFilterProp="label"
-            value={assistants}
-            onChange={(value) => setAssistants(value)}
-            options={[
-              { value: "1", label: "สมชาย ใจดี" },
-              { value: "2", label: "วรัญญา ประวันโน" },
-              { value: "3", label: "กิตติพงษ์ รัตนชัย" },
-              { value: "4", label: "สุภาพร ศรีสุข" },
-              { value: "5", label: "ณัฐพล อินทร์ทอง" },
-            ]}
-          />
-        </Form.Item>
-        <Form.Item label="รายละเอียดการเดินทาง">
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label="ยี่ห้อรถ">
-                <Input placeholder="เช่น TOYOTA" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="ป้ายทะเบียน">
-                <Input placeholder="เช่น กข 1234" />
-              </Form.Item>
-            </Col>
-          </Row>
 
-          <Form.Item label="พนักงานขับรถ">
-            <Input placeholder="ชื่อพนักงาน (ถ้ามี)" />
-          </Form.Item>
+        {/* --- แทนที่จะใช้ Form.Item label="รายละเอียดการเดินทาง" --- */}
+        <Typography.Text strong>รายละเอียดการเดินทาง</Typography.Text>
+        <Row gutter={16} style={{ marginTop: 8 }}>
+          <Col span={12}>
+            <Form.Item label="ยี่ห้อรถ" name="vehicleBrand">
+              <Input placeholder="เช่น TOYOTA" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="ป้ายทะเบียน" name="vehiclePlate">
+              <Input placeholder="เช่น กข 1234" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Form.Item label="พนักงานขับรถ" name="driverName">
+          <Input placeholder="ชื่อพนักงาน (ถ้ามี)" />
         </Form.Item>
-        {/* ค่าใช้จ่าย */}
-        <Form.Item label="ขอเบิกค่าใช้จ่าย">
+
+        <Form.Item label="ขอเบิกค่าใช้จ่าย" name="expenseFlags">
           <Checkbox.Group
             style={{ display: "flex", flexDirection: "column", gap: "8px" }}
             onChange={handleExpensesChange}
           >
             <Checkbox value="rs">ค่าเบี้ยเลี้ยงเดินทาง (รศ)</Checkbox>
-            {selectedExpenses.includes("rs") && (
+            {(selectedExpenses as string[]).includes("rs") && (
               <div className="ml-6 mt-1 flex gap-2">
                 <InputNumber min={0} placeholder="จำนวนเงินต่อคน" />
                 <InputNumber min={1} placeholder="จำนวนคน" />
               </div>
             )}
+
             <Checkbox value="asst">ค่าเบี้ยเลี้ยงเดินทาง (ผศ ลงมา)</Checkbox>
-            {selectedExpenses.includes("asst") && (
+            {(selectedExpenses as string[]).includes("asst") && (
               <div className="ml-6 mt-1 flex gap-2">
                 <InputNumber min={0} placeholder="จำนวนเงินต่อคน" />
                 <InputNumber min={1} placeholder="จำนวนคน" />
               </div>
             )}
+
             <Checkbox value="driver">ค่าตอบแทนพนักงานขับรถ</Checkbox>
-            {selectedExpenses.includes("driver") && (
-              <InputNumber
-                min={0}
-                placeholder="จำนวนเงิน"
-                className="ml-6 mt-1"
-              />
+            {(selectedExpenses as string[]).includes("driver") && (
+              <InputNumber min={0} placeholder="จำนวนเงิน" className="ml-6 mt-1" />
             )}
+
             <Checkbox value="accommodation">ค่าเช่าที่พัก</Checkbox>
-            {selectedExpenses.includes("accommodation") && (
-              <InputNumber
-                min={0}
-                placeholder="จำนวนเงิน"
-                className="ml-6 mt-1"
-              />
+            {(selectedExpenses as string[]).includes("accommodation") && (
+              <InputNumber min={0} placeholder="จำนวนเงิน" className="ml-6 mt-1" />
             )}
+
             <Checkbox value="vehicle">ค่ายานพาหนะ</Checkbox>
-            {selectedExpenses.includes("vehicle") && (
+            {(selectedExpenses as string[]).includes("vehicle") && (
               <div className="ml-6 mt-1 flex gap-2">
-                <Input
-                  placeholder="เช่น เหมารถตู้ 1 คัน"
-                  style={{ width: "50%" }}
-                />
+                <Input placeholder="เช่น เหมารถตู้ 1 คัน" style={{ width: "50%" }} />
                 <InputNumber min={0} placeholder="จำนวนเงิน" />
               </div>
             )}
+
             <Checkbox value="other">ค่าใช้จ่ายอื่นๆ</Checkbox>
-            {selectedExpenses.includes("other") && (
+            {(selectedExpenses as string[]).includes("other") && (
               <div className="ml-6 mt-1 flex gap-2">
                 <Input placeholder="ระบุรายละเอียด" style={{ width: "50%" }} />
                 <InputNumber min={0} placeholder="จำนวนเงิน" />
@@ -445,16 +508,11 @@ const FormalApplicationForm: React.FC = () => {
             )}
           </Checkbox.Group>
         </Form.Item>
-        {/* ตารางสรุป */}
+
         <div className="mt-6 mb-4">
-          <Table
-            dataSource={summaryData}
-            pagination={false}
-            bordered
-            columns={summaryColumns}
-          />
+          <Table dataSource={summaryData} pagination={false} bordered columns={summaryColumns} />
         </div>
-        {/* ปุ่มส่ง */}
+
         <Form.Item
           style={{
             marginTop: 24,
@@ -465,34 +523,32 @@ const FormalApplicationForm: React.FC = () => {
           }}
         >
           <div style={{ display: "flex", gap: "12px" }}>
-            <Button
-              style={{
-                backgroundColor: "#8c8c8c",
-                color: "#fff",
-                border: "none",
-              }}
-              disabled={isOverLimit}
-            >
+            <Button htmlType="button" style={{ backgroundColor: "#8c8c8c", color: "#fff", border: "none" }}>
               ย้อนกลับ
             </Button>
 
             <Button
-              style={{
-                backgroundColor: "#52c41a",
-                color: "#fff",
-                border: "none",
-              }}
-              disabled={isOverLimit}
+              htmlType="button"
+              style={{ backgroundColor: "#52c41a", color: "#fff", border: "none" }}
+              onClick={onSaveDraft}
+              disabled={isOverLimit || savingDraft || submitting}
             >
-              บันทึกฉบับร่าง
+              {savingDraft ? "กำลังบันทึก..." : "บันทึกฉบับร่าง"}
             </Button>
 
             <Button
+              htmlType="button"
               type="primary"
               style={{ border: "none" }}
-              disabled={isOverLimit}
+              onClick={onSubmit}
+              disabled={isOverLimit || savingDraft || submitting}
             >
-              ส่งใบลา
+              {submitting ? "กำลังส่ง..." : "ส่งใบลา"}
+            </Button>
+
+            {/* ปุ่มทดสอบยิง API ตรงๆ */}
+            <Button htmlType="button" onClick={testFire}>
+              ทดสอบยิง API ตรงๆ
             </Button>
           </div>
 
@@ -501,6 +557,39 @@ const FormalApplicationForm: React.FC = () => {
               <Text type="danger" style={{ fontWeight: 500 }}>
                 ระยะเวลาการลาเกินกว่าที่กำหนด
               </Text>
+            </div>
+          )}
+
+          {lastResult && (
+            <div style={{ width: "100%", marginTop: 16 }}>
+              <Text strong>ผลลัพธ์ล่าสุด:</Text>
+              <pre
+                style={{
+                  marginTop: 8,
+                  maxHeight: 260,
+                  overflow: "auto",
+                  background: "#f6f6f6",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+              >
+{JSON.stringify(lastResult, null, 2)}
+              </pre>
+              <Button onClick={refreshList} style={{ marginTop: 8 }}>รีเฟรชรายการไฟล์ใน STORAGE_ROOT</Button>
+              {listed && (
+                <pre
+                  style={{
+                    marginTop: 8,
+                    maxHeight: 260,
+                    overflow: "auto",
+                    background: "#f0f0f0",
+                    padding: 12,
+                    borderRadius: 8,
+                  }}
+                >
+{JSON.stringify(listed, null, 2)}
+                </pre>
+              )}
             </div>
           )}
         </Form.Item>
