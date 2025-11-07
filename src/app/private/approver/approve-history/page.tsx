@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Breadcrumb,
   Button,
   Col,
   Form,
@@ -14,6 +15,7 @@ import {
 } from "antd";
 import { Tag } from "antd";
 import * as Icons from "lucide-react";
+import router from "next/router";
 
 type ApproveReq = {
   reqId: number;
@@ -50,7 +52,7 @@ interface DataType {
   raw: ApproveReq;
 }
 
-function getUniqueFilters<T>(data: DataType[], key: keyof DataType) {
+function getUniqueFilters(data: DataType[], key: keyof DataType) {
   const set = new Set<string>();
   data.forEach((item) => set.add(item[key] as string));
   return Array.from(set).map((v) => ({ text: v, value: v }));
@@ -58,7 +60,7 @@ function getUniqueFilters<T>(data: DataType[], key: keyof DataType) {
 
 const ApproveHistoryTable: React.FC<{ data: ApproveReq[] }> = ({ data }) => {
   const [currentSearch, setCurrentSearch] = useState({ name: "", leaveType: "" });
-const [currentPage, setCurrentPage] = useState(1); // สำหรับ pagination
+  const [currentPage, setCurrentPage] = useState(1);
 
 
   const transformedData = useMemo(() => {
@@ -96,10 +98,10 @@ const [currentPage, setCurrentPage] = useState(1); // สำหรับ paginat
 
       return [baseItem];
     }).filter((item) =>
-    item.name.toLowerCase().includes(currentSearch.name.toLowerCase()) &&
-    item.leaveType.toLowerCase().includes(currentSearch.leaveType.toLowerCase())
-  );
-}, [data, currentSearch]);
+      item.name.toLowerCase().includes(currentSearch.name.toLowerCase()) &&
+      item.leaveType.toLowerCase().includes(currentSearch.leaveType.toLowerCase())
+    );
+  }, [data, currentSearch]);
 
   const nameFilters = getUniqueFilters(transformedData, "name");
   const leaveTypeFilters = getUniqueFilters(transformedData, "leaveType");
@@ -151,34 +153,34 @@ const [currentPage, setCurrentPage] = useState(1); // สำหรับ paginat
       ),
     },
     {
-  title: <span className="text-dark dark:text-white">สถานะ</span>,
-  dataIndex: "status",
-  align: "center",
-  filters: statusFilters,
-  onFilter: (value, record) => record.status.includes(value as string),
-  render: (status) => {
-    let color: "success" | "processing" | "error" | "warning" | "default" = "default";
+      title: <span className="text-dark dark:text-white">สถานะ</span>,
+      dataIndex: "status",
+      align: "center",
+      filters: statusFilters,
+      onFilter: (value, record) => record.status.includes(value as string),
+      render: (status) => {
+        let color: "success" | "processing" | "error" | "warning" | "default" = "default";
 
-    switch (status) {
-      case "อนุมัติ":
-        color = "success"; // เขียว
-        break;
-      case "ไม่อนุมัติ":
-        color = "error"; // แดง
-        break;
-      case "ยกเลิกอนุมัติ":
-        color = "warning"; // ส้ม
-        break;
-      case "รอดำเนินการ":
-        color = "processing"; // น้ำเงิน
-        break;
-      default:
-        color = "default";
-    }
+        switch (status) {
+          case "อนุมัติ":
+            color = "success";
+            break;
+          case "ไม่อนุมัติ":
+            color = "error";
+            break;
+          case "ยกเลิกอนุมัติ":
+            color = "warning";
+            break;
+          case "รอดำเนินการ":
+            color = "processing";
+            break;
+          default:
+            color = "default";
+        }
 
-    return <Tag color={color}>{status}</Tag>;
-  },
-},
+        return <Tag color={color}>{status}</Tag>;
+      },
+    },
     {
       title: <span className="text-dark dark:text-white">การจัดการ</span>,
       key: "actions",
@@ -241,17 +243,17 @@ const [currentPage, setCurrentPage] = useState(1); // สำหรับ paginat
 
   const [form] = Form.useForm();
 
-const onSearch = () => {
-  const values = form.getFieldsValue(); // ดึงค่าจาก Form
-  setCurrentSearch({
-    name: values.name || "",
-    leaveType: values.leaveType || "",
-  });
-  setCurrentPage(1); // reset หน้า pagination
-};
+  const onSearch = () => {
+    const values = form.getFieldsValue();
+    setCurrentSearch({
+      name: values.name || "",
+      leaveType: values.leaveType || "",
+    });
+    setCurrentPage(1);
+  };
 
   return (
-    <div style={{ padding: 10 }}>
+    <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: "100%" }} size={10}>
         <Row>
           <Col span={12}>
@@ -260,6 +262,20 @@ const onSearch = () => {
             </Typography.Title>
           </Col>
         </Row>
+        <Breadcrumb
+          items={[
+            {
+              title: (
+                <a
+                  onClick={() => {
+                    router.push(`/private/approver/approve-history`);
+                  }}>
+                  คำขออนุมัติลา
+                </a>
+              ),
+            },
+          ]}
+        />
         <div className="chemds-container">
           <Row style={{ marginBottom: "1%" }}>
             <Col span={16}>
@@ -289,9 +305,9 @@ const onSearch = () => {
                 dataSource={transformedData}
                 locale={{ emptyText: "ไม่มีรายการอนุมัติ" }}
                 pagination={{
-                    pageSize: 10,
-                    current: currentPage,
-                    onChange: (page) => setCurrentPage(page),
+                  pageSize: 10,
+                  current: currentPage,
+                  onChange: (page) => setCurrentPage(page),
                 }}
                 bordered
                 rowKey="key"

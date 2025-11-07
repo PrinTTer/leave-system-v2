@@ -19,6 +19,7 @@ import {
   Table,
   Tooltip,
   Tag,
+  Breadcrumb,
 } from 'antd';
 import { useRouter } from 'next/navigation';
 import type { LeaveTypeConfig, GenderCode } from '@/types/leave';
@@ -137,11 +138,27 @@ export default function AddVacationLeavePage() {
   };
 
   return (
-    <div style={{ padding: 10 }}>
+    <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: '100%' }} size={10}>
         <Title level={4} style={{ margin: 0 }}>
           เพิ่มประเภทลา (ลาพักผ่อน)
         </Title>
+        <Breadcrumb
+            items={[
+              {
+                title: (
+                  <a
+                    onClick={() => {
+                      router.push(`/private/admin/manage-leave`);
+                    }}>
+                    ตั้งค่าประเภทการลา
+                  </a>
+                ),
+              },
+              { title: "เพิ่ม" },
+            ]}
+          />
+
 
         <Card>
           <Form<LeaveTypeFormValues> form={form} layout="vertical" onFinish={onFinish}>

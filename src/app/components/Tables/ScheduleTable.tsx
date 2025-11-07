@@ -8,7 +8,6 @@ import "dayjs/locale/th";
 import isBetween from "dayjs/plugin/isBetween";
 import type { CalendarSchedule } from "@/types/calendar";
 
-// ensure locale + plugins
 dayjs.locale("th");
 dayjs.extend(isBetween);
 
@@ -25,7 +24,6 @@ export interface ScheduleTableProps {
   headerTitleRenderer?: (monthDate: Dayjs) => React.ReactNode;
 }
 
-// Mapping ชนิดปฏิทิน -> แสดงผลภาษาไทย
 const CAL_TYPE_TH: Record<string, string> = {
   standard: "ปฏิทินวันหยุดราชการ",
   academic: "ปฏิทินการศึกษา",
@@ -46,14 +44,11 @@ function formatThaiDateRange(start: Dayjs, end: Dayjs): string {
   const sameDay = start.isSame(end, "day");
   const sameMonth = start.isSame(end, "month") && start.isSame(end, "year");
   if (sameDay) {
-    // 6 เมษายน 2568
     return `${start.date()} ${start.format("MMMM")} ${beYear(start)}`;
   }
   if (sameMonth) {
-    // 13–15 เมษายน
     return `${start.date()}–${end.date()} ${start.format("MMMM")}`;
   }
-  // ข้ามเดือน/ข้ามปี
   const left = `${start.date()} ${start.format("MMM.")}`;
   const right = `${end.date()} ${end.format("MMM.")} ${beYear(end)}`;
   return `${left} – ${right}`;
@@ -72,7 +67,6 @@ function filterSchedulesForMonth(
     .filter((s) => {
       const sStart = dayjs(s.startDate);
       const sEnd = dayjs(s.endDate || s.startDate);
-      // เงื่อนไขทับซ้อนช่วงเวลา (inclusive)
       return (
         sStart.isBefore(endOfMonth.add(1, "day"), "day") &&
         sEnd.isAfter(startOfMonth.subtract(1, "day"), "day")
@@ -191,8 +185,6 @@ export default function ScheduleTable({
       />
     );
   }
-
-  // quarter: แสดง 4 เดือนถัดไป (รวมเดือนปัจจุบัน)
   const months: Dayjs[] = [0, 1, 2, 3].map((i) => start.add(i, "month"));
 
   return (

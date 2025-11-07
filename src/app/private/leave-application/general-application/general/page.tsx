@@ -89,7 +89,6 @@ const GeneralLeaveForm: React.FC = () => {
 
   const leaveDays = useMemo(
     () => calculateLeaveDays(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [startDate, endDate, startType, endType]
   );
 

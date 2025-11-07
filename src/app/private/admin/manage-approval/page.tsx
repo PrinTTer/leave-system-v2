@@ -15,6 +15,7 @@ import {
     Tooltip,
     Select,
     Tag,
+    Breadcrumb,
 } from "antd";
 import { useRouter } from "next/navigation";
 import * as Icons from "lucide-react";
@@ -38,82 +39,82 @@ export default function UserIndexPage() {
         department: "",
     });
 
-const renderApproversByLevel = (record: any, level: number) => {
-    const approvers = record.approver?.filter((a: any) => a.level?.includes(level)) || [];
-    if (approvers.length === 0) return "-";
+    const renderApproversByLevel = (record: any, level: number) => {
+        const approvers = record.approver?.filter((a: any) => a.level?.includes(level)) || [];
+        if (approvers.length === 0) return "-";
 
-    return (
-        <Space size={[0, 4]} wrap>
-            {approvers.map((a: any) => (
-                <Tag color="blue" key={a.id}>
-                    {(a.academicPosition ? a.academicPosition + " " : "") + a.thaiName}
-                </Tag>
-            ))}
-        </Space>
-    );
-};
-
-const columns: TableProps["columns"] = [
-    {
-        title: "ชื่อ",
-        key: "thaiName",
-        align: "left",
-        fixed: "left",
-        sorter: (a, b) =>
-            (a.thaiName || "").localeCompare(b.thaiName || ""),
-        render: (_, record) =>
-            `${record.academicPosition ? record.academicPosition + " " : ""}${record.thaiName}`,
-    },
-    {
-        title: "ตำแหน่ง",
-        dataIndex: "position",
-        key: "position",
-        align: "left",
-        sorter: (a, b) =>
-        (a.position || "").localeCompare(b.position || ""),
-    },
-    {
-        title: "ผู้อนุมัติ 1",
-        key: "approver1",
-        align: "left",
-        render: (_, record) => renderApproversByLevel(record, 1),
-    },
-    {
-        title: "ผู้อนุมัติ 2",
-        key: "approver2",
-        align: "left",
-        render: (_, record) => renderApproversByLevel(record, 2),
-    },
-    {
-        title: "ผู้อนุมัติ 3",
-        key: "approver3",
-        align: "left",
-        render: (_, record) => renderApproversByLevel(record, 3),
-    },
-    {
-        title: "ผู้อนุมัติ 4",
-        key: "approver4",
-        align: "left",
-        render: (_, record) => renderApproversByLevel(record, 4),
-    },
-    {
-        title: "การจัดการ",
-        key: "actions",
-        align: "center",
-        width: "20%",
-        render: (_, record) => (
-            <Space size="middle">
-                <Tooltip title="แก้ไขผู้อนุมัติ">
-                    <Icons.UserPen
-                        size={18}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => router.push(`/private/admin/manage-approval/${record.id}`)}
-                    />
-                </Tooltip>
+        return (
+            <Space size={[0, 4]} wrap>
+                {approvers.map((a: any) => (
+                    <Tag color="blue" key={a.id}>
+                        {(a.academicPosition ? a.academicPosition + " " : "") + a.thaiName}
+                    </Tag>
+                ))}
             </Space>
-        ),
-    },
-];
+        );
+    };
+
+    const columns: TableProps["columns"] = [
+        {
+            title: "ชื่อ",
+            key: "thaiName",
+            align: "left",
+            fixed: "left",
+            sorter: (a, b) =>
+                (a.thaiName || "").localeCompare(b.thaiName || ""),
+            render: (_, record) =>
+                `${record.academicPosition ? record.academicPosition + " " : ""}${record.thaiName}`,
+        },
+        {
+            title: "ตำแหน่ง",
+            dataIndex: "position",
+            key: "position",
+            align: "left",
+            sorter: (a, b) =>
+                (a.position || "").localeCompare(b.position || ""),
+        },
+        {
+            title: "ผู้อนุมัติ 1",
+            key: "approver1",
+            align: "left",
+            render: (_, record) => renderApproversByLevel(record, 1),
+        },
+        {
+            title: "ผู้อนุมัติ 2",
+            key: "approver2",
+            align: "left",
+            render: (_, record) => renderApproversByLevel(record, 2),
+        },
+        {
+            title: "ผู้อนุมัติ 3",
+            key: "approver3",
+            align: "left",
+            render: (_, record) => renderApproversByLevel(record, 3),
+        },
+        {
+            title: "ผู้อนุมัติ 4",
+            key: "approver4",
+            align: "left",
+            render: (_, record) => renderApproversByLevel(record, 4),
+        },
+        {
+            title: "การจัดการ",
+            key: "actions",
+            align: "center",
+            width: "20%",
+            render: (_, record) => (
+                <Space size="middle">
+                    <Tooltip title="แก้ไขผู้อนุมัติ">
+                        <Icons.UserPen
+                            size={18}
+                            style={{ cursor: "pointer" }}
+                            onClick={() => router.push(`/private/admin/manage-approval/${record.id}`)}
+                        />
+                    </Tooltip>
+                </Space>
+            ),
+        },
+    ];
 
 
 
@@ -508,7 +509,7 @@ const columns: TableProps["columns"] = [
     }, [currentPage, currentSearch]);
 
     return (
-        <div style={{ padding: 10 }}>
+        <div style={{ padding: 24 }}>
             <Space direction="vertical" style={{ width: "100%" }} size={10}>
                 <Row>
                     <Col span={12}>
@@ -517,6 +518,20 @@ const columns: TableProps["columns"] = [
                         </Title>
                     </Col>
                 </Row>
+                <Breadcrumb
+                    items={[
+                        {
+                            title: (
+                                <a
+                                    onClick={() => {
+                                        router.push(`/private/admin/manage-approval`);
+                                    }}>
+                                    ผู้ขออนุมัติ
+                                </a>
+                            ),
+                        },
+                    ]}
+                />
                 <div className="chemds-container">
                     {/* filter */}
                     <Row style={{ marginBottom: "1%" }}>
@@ -561,7 +576,7 @@ const columns: TableProps["columns"] = [
                                 </Col>
                             </Form>
                         </Col>
-                        
+
                     </Row>
 
                     {/* table */}

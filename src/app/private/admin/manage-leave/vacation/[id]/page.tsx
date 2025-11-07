@@ -20,6 +20,7 @@ import {
   Table,
   Tooltip,
   Tag,
+  Breadcrumb
 } from 'antd';
 import { useRouter, useParams } from 'next/navigation';
 
@@ -190,11 +191,27 @@ export default function EditVacationLeavePage() {
   };
 
   return (
-    <div style={{ padding: 10 }}>
+    <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: '100%' }} size={10}>
         <Title level={4} style={{ margin: 0 }}>
           แก้ไขประเภทลา (ลาพักผ่อน)
         </Title>
+        <Breadcrumb
+            items={[
+              {
+                title: (
+                  <a
+                    onClick={() => {
+                      router.push(`/private/admin/manage-leave`);
+                    }}>
+                    ตั้งค่าประเภทการลา
+                  </a>
+                ),
+              },
+              { title: "แก้ไข" },
+            ]}
+          />
+
 
         <Card>
           {loading ? (

@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import type { TableProps } from "antd";
-import { Table, Row, Col, Card, Button } from "antd";
+import { Table, Row, Col, Card, Button, Breadcrumb, Typography, Space } from "antd";
 import PlusOutlined from "@ant-design/icons/lib/icons/PlusOutlined";
 import Link from "next/link";
 import { formatThaiDate } from "../utils/utils";
+import router from "next/router";
 
 interface User {
   pronoun: string;
@@ -14,8 +15,8 @@ interface User {
   position: string;
   department: string;
   dateOfBirth: string;
-  employmentDate: string; // วันที่บรรจุ
-  level: string; // ระดับ
+  employmentDate: string;
+  level: string;
 }
 
 interface LeaveStatistics {
@@ -29,7 +30,6 @@ interface LeaveStatistics {
 type ColumnTypes = Exclude<TableProps<LeaveStatistics>["columns"], undefined>;
 
 const HomePage: React.FC = () => {
-  // ✅ mock data ข้อมูลส่วนบุคคล
   const user: User = {
     pronoun: "นางสาว",
     firstName: "วรัญญา",
@@ -94,79 +94,105 @@ const HomePage: React.FC = () => {
     },
   ]);
 
-  // ✅ columns ของตารางลา
   const defaultColumns: (ColumnTypes[number] & {
     editable?: boolean;
     dataIndex: string;
   })[] = [
-    { title: "ประเภทการลา", dataIndex: "type", width: "30%" },
-    {
-      title: "สิทธิ์ทั้งหมด (วัน)",
-      dataIndex: "totalLeave",
-      sorter: (a, b) => a.totalLeave - b.totalLeave,
-    },
-    {
-      title: "ใช้ไปแล้ว (วัน)",
-      dataIndex: "usedLeave",
-      sorter: (a, b) => a.usedLeave - b.usedLeave,
-    },
-    {
-      title: "คงเหลือ (วัน)",
-      dataIndex: "leftLeave",
-      sorter: (a, b) => (a.leftLeave ?? 0) - (b.leftLeave ?? 0),
-    },
-  ];
+      { title: "ประเภทการลา", dataIndex: "type", width: "30%" },
+      {
+        title: "สิทธิ์ทั้งหมด (วัน)",
+        dataIndex: "totalLeave",
+        sorter: (a, b) => a.totalLeave - b.totalLeave,
+      },
+      {
+        title: "ใช้ไปแล้ว (วัน)",
+        dataIndex: "usedLeave",
+        sorter: (a, b) => a.usedLeave - b.usedLeave,
+      },
+      {
+        title: "คงเหลือ (วัน)",
+        dataIndex: "leftLeave",
+        sorter: (a, b) => (a.leftLeave ?? 0) - (b.leftLeave ?? 0),
+      },
+    ];
 
   return (
     <div style={{ padding: 24 }}>
-      {/* ✅ ส่วนข้อมูลผู้ใช้ */}
-      <Card title="ข้อมูลส่วนบุคคล" style={{ marginBottom: 24 }}>
-        <Row gutter={[16, 16]}>
-          <Col span={8}>
-            <b>คำนำหน้า:</b> {user.pronoun}
-          </Col>
-          <Col span={8}>
-            <b>ชื่อ:</b> {user.firstName}
-          </Col>
-          <Col span={8}>
-            <b>นามสกุล:</b> {user.lastName}
-          </Col>
-
-          <Col span={8}>
-            <b>ตำแหน่ง:</b> {user.position}
-          </Col>
-          <Col span={8}>
-            <b>หน่วยงาน:</b> {user.department}
-          </Col>
-          {/* <Col span={8}><b>วันเกิด:</b> {user.dateOfBirth}</Col> */}
-
-          <Col span={8}>
-            <b>วันที่บรรจุ:</b> {formatThaiDate(user.employmentDate)}(1 ปี)
-          </Col>
-          <Col span={8}>
-            <b>ระดับ:</b> {user.level}
+      <Space direction="vertical" style={{ width: "100%" }} size={10}>
+        <Row>
+          <Col span={12}>
+            <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}>
+              ข้อมูลการลา
+            </Typography.Title>
           </Col>
         </Row>
-      </Card>
+        <Row>
+          <Col span={12}>
+            <Breadcrumb
+              items={[
+                {
+                  title: (
+                    <a
+                      onClick={() => {
+                        router.push(`/private`);
+                      }}>
+                      ข้อมูลการลา
+                    </a>
+                  ),
+                },
+              ]}
+            />
+          </Col>
+        </Row>
+        {/* ✅ ส่วนข้อมูลผู้ใช้ */}
+        <Card title="ข้อมูลส่วนบุคคล" style={{ marginBottom: 24 }}>
+          <Row gutter={[16, 16]}>
+            <Col span={8}>
+              <b>คำนำหน้า:</b> {user.pronoun}
+            </Col>
+            <Col span={8}>
+              <b>ชื่อ:</b> {user.firstName}
+            </Col>
+            <Col span={8}>
+              <b>นามสกุล:</b> {user.lastName}
+            </Col>
 
-      <Card
-        title="สถิติการลา"
-        extra={
-          <Link href="/private/leave-application">
-            <Button type="primary" icon={<PlusOutlined />}>
-              เพิ่มใบลา
-            </Button>
-          </Link>
-        }
-        variant="outlined"
-      >
-        <Table<LeaveStatistics>
-          bordered
-          dataSource={dataSource}
-          columns={defaultColumns as ColumnTypes}
-          pagination={false}
-        />
-      </Card>
+            <Col span={8}>
+              <b>ตำแหน่ง:</b> {user.position}
+            </Col>
+            <Col span={8}>
+              <b>หน่วยงาน:</b> {user.department}
+            </Col>
+            {/* <Col span={8}><b>วันเกิด:</b> {user.dateOfBirth}</Col> */}
+
+            <Col span={8}>
+              <b>วันที่บรรจุ:</b> {formatThaiDate(user.employmentDate)}(1 ปี)
+            </Col>
+            <Col span={8}>
+              <b>ระดับ:</b> {user.level}
+            </Col>
+          </Row>
+        </Card>
+
+        <Card
+          title="สถิติการลา"
+          extra={
+            <Link href="/private/leave-application">
+              <Button type="primary" icon={<PlusOutlined />}>
+                เพิ่มใบลา
+              </Button>
+            </Link>
+          }
+          variant="outlined"
+        >
+          <Table<LeaveStatistics>
+            bordered
+            dataSource={dataSource}
+            columns={defaultColumns as ColumnTypes}
+            pagination={false}
+          />
+        </Card>
+      </Space>
     </div>
   );
 };

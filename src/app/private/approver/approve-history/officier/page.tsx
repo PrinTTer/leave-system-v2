@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Breadcrumb,
   Button,
   Col,
   Form,
@@ -13,6 +14,7 @@ import {
   Typography,
 } from "antd";
 import * as Icons from "lucide-react";
+import router from "next/router";
 
 type ApproveReq = {
   reqId: number;
@@ -33,7 +35,6 @@ type ApproveReq = {
     totalDate: number;
     reason: string;
   }[];
-  // เพิ่ม follower (ผู้ติดตาม)
   follower?: {
     fName: string;
     lName: string;
@@ -52,7 +53,6 @@ interface DataType {
   country?: string | null;
   additionLeave?: ApproveReq["additionLeave"];
   raw: ApproveReq;
-  // จำนวนผู้ติดตาม
   followerCount: number;
   follower?: ApproveReq["follower"];
 }
@@ -103,7 +103,6 @@ const columns: TableColumnsType<DataType> = [
     ),
   },
 
-  // ---- เพิ่มคอลัมน์ จำนวนผู้ติดตาม ----
   {
     title: <span className="text-dark dark:text-white">ผู้ติดตาม</span>,
     dataIndex: "followerCount",
@@ -126,8 +125,8 @@ const columns: TableColumnsType<DataType> = [
           status === "อนุมัติ"
             ? "inline-block rounded-full bg-green-100 px-3 py-1 text-green-700 text-xs font-semibold dark:bg-green-900 dark:text-green-200"
             : status === "ไม่อนุมัติ"
-            ? "inline-block rounded-full bg-red-100 px-3 py-1 text-red-700 text-xs font-semibold dark:bg-red-900 dark:text-red-200"
-            : "inline-block rounded-full bg-yellow-100 px-3 py-1 text-yellow-700 text-xs font-semibold dark:bg-yellow-900 dark:text-yellow-200"
+              ? "inline-block rounded-full bg-red-100 px-3 py-1 text-red-700 text-xs font-semibold dark:bg-red-900 dark:text-red-200"
+              : "inline-block rounded-full bg-yellow-100 px-3 py-1 text-yellow-700 text-xs font-semibold dark:bg-yellow-900 dark:text-yellow-200"
         }
       >
         {status}
@@ -143,7 +142,6 @@ const columns: TableColumnsType<DataType> = [
         <Tooltip title="ดูรายละเอียดการลา">
           <Icons.Eye
             onClick={() => {
-              // แทนที่จะ console.log คุณอาจเปิด modal หรือ route ไปหน้า detail ได้
               console.log("ดูรายละเอียดการลา:", record.raw);
             }}
             style={{ cursor: "pointer" }}
@@ -194,7 +192,6 @@ const ApproveHistoryTable: React.FC<{ data: ApproveReq[] }> = ({ data }) => {
           follower: item.follower,
         };
 
-        // ถ้าเป็นต่างประเทศและมี additionLeave ให้แตก row เพิ่ม (เหมือนของเดิม)
         if (item.leaveType.includes("ต่างประเทศ") && item.additionLeave?.length) {
           const additionalRows = item.additionLeave.map((leave, index) => ({
             key: `${item.reqId}-${index + 1}`,
@@ -208,13 +205,12 @@ const ApproveHistoryTable: React.FC<{ data: ApproveReq[] }> = ({ data }) => {
             country: null,
             additionLeave: [],
             raw: item,
-            followerCount, // สืบทอดจำนวนผู้ติดตามมาจากรายการหลัก (ถ้ามี)
+            followerCount,
             follower: item.follower,
           })) as DataType[];
           return [baseItem, ...additionalRows];
         }
 
-        // ปกติ return แถวเดียว
         return [baseItem];
       })
       .filter((item) =>
@@ -225,7 +221,6 @@ const ApproveHistoryTable: React.FC<{ data: ApproveReq[] }> = ({ data }) => {
 
   const nameFilters = getUniqueFilters(transformedData, "name");
   const leaveTypeFilters = getUniqueFilters(transformedData, "leaveType");
-  // update filters (mutate columns เพื่อให้ filter แสดง)
   columns[0].filters = nameFilters;
   columns[1].filters = leaveTypeFilters;
 
@@ -240,7 +235,7 @@ const ApproveHistoryTable: React.FC<{ data: ApproveReq[] }> = ({ data }) => {
   const [form] = Form.useForm();
 
   return (
-    <div style={{ padding: 10 }}>
+    <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: "100%" }} size={10}>
         <Row>
           <Col span={12}>
@@ -256,6 +251,20 @@ const ApproveHistoryTable: React.FC<{ data: ApproveReq[] }> = ({ data }) => {
             </Typography.Title>
           </Col>
         </Row>
+        <Breadcrumb
+          items={[
+            {
+              title: (
+                <a
+                  onClick={() => {
+                    router.push(`/private/approver/approve-history`);
+                  }}>
+                  การลาของผู้ใต้บังคับบัญชา
+                </a>
+              ),
+            },
+          ]}
+        />
         <div className="chemds-container">
           <Row style={{ marginBottom: "1%" }}>
             <Col span={16}>
@@ -316,7 +325,6 @@ const ApproveHistoryPage = () => {
         endDate: "2026-09-29",
         status: "อนุมัติ",
         country: null,
-        // ตัวอย่าง follower (ผู้ติดตาม)
         follower: [
           { fName: "สมชาย", lName: "ใจดี" },
           { fName: "สมหมาย", lName: "สุขใจ" },
@@ -326,7 +334,7 @@ const ApproveHistoryPage = () => {
       {
         reqId: 2,
         user: { fName: "กันตพงษ์", lName: "กลางเมือง" },
-        leaveType: "ลาราชการ", // ลาราชการในประเทศ — จะมีผู้ติดตามไปด้วย
+        leaveType: "ลาราชการ",
         totalDate: 3,
         startDate: "2025-10-03",
         endDate: "2025-10-03",
@@ -345,12 +353,11 @@ const ApproveHistoryPage = () => {
         endDate: "2025-10-20",
         status: "ยกเลิกอนุมัติ",
         country: "null",
-        // กรณีต่างประเทศ มี additionLeave (ตัวอย่าง)
         follower: [
-            { fName: "สมชาย", lName: "ใจดี" },
+          { fName: "สมชาย", lName: "ใจดี" },
           { fName: "สมหมาย", lName: "สุขใจ" },
           { fName: "นภาพร", lName: "ผู้ติดตาม" },
-        ], // อาจไม่มี follower
+        ],
       },
     ];
     setData(mockData);

@@ -5,7 +5,8 @@ import React from 'react';
 import {
   Button, Card, Checkbox, Col, Divider, Form, Input, InputNumber,
   Row, Select, Space, Typography, message, Table,
-  Tag
+  Tag,
+  Breadcrumb
 } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
@@ -82,9 +83,24 @@ export default function AddLeaveTypePage() {
   };
 
   return (
-    <div style={{ padding: 10 }}>
+    <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: '100%' }} size={10}>
         <Title level={4} style={{ margin: 0 }}>เพิ่มประเภทลา (ลาทั่วไป)</Title>
+        <Breadcrumb
+            items={[
+              {
+                title: (
+                  <a
+                    onClick={() => {
+                      router.push(`/private/admin/manage-leave`);
+                    }}>
+                    ตั้งค่าประเภทการลา
+                  </a>
+                ),
+              },
+              { title: "เพิ่ม" },
+            ]}
+          />
 
         <Card>
           <Form<LeaveTypeFormValues> form={form} layout="vertical" onFinish={onFinish}>
@@ -133,34 +149,34 @@ export default function AddLeaveTypePage() {
 
             {/* -------- ผู้อนุมัติ (เหลือแค่จำนวนสูงสุด) -------- */}
             <Divider orientation="left">ผู้อนุมัติ (กำหนดเพียงจำนวนสูงสุด)</Divider>
-<Row gutter={16}>
-  <Col xs={24} md={8}>
-    <Form.Item
-      name="maxApproverCount"
-      label="จำนวนผู้อนุมัติสูงสุด"
-      rules={[{ required: true, message: 'กรุณาระบุจำนวนผู้อนุมัติสูงสุด' }]}
-      extra="เช่น 10 จะได้ลำดับผู้อนุมัติ 1–10"
-    >
-      <InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="เช่น 10" />
-    </Form.Item>
-  </Col>
+            <Row gutter={16}>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  name="maxApproverCount"
+                  label="จำนวนผู้อนุมัติสูงสุด"
+                  rules={[{ required: true, message: 'กรุณาระบุจำนวนผู้อนุมัติสูงสุด' }]}
+                  extra="เช่น 10 จะได้ลำดับผู้อนุมัติ 1–10"
+                >
+                  <InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="เช่น 10" />
+                </Form.Item>
+              </Col>
 
-  <Col xs={24} md={16}>
-    <Form.Item label="ลำดับผู้อนุมัติที่จะเกิดขึ้น">
-      <Space wrap>
-        {approverOrders.length === 0 ? (
-          <Tag>ยังไม่กำหนด</Tag>
-        ) : (
-          approverOrders.map((n) => (
-            <Tag key={n} color="blue">
-              ลำดับที่ {n}
-            </Tag>
-          ))
-        )}
-      </Space>
-    </Form.Item>
-  </Col>
-</Row>
+              <Col xs={24} md={16}>
+                <Form.Item label="ลำดับผู้อนุมัติที่จะเกิดขึ้น">
+                  <Space wrap>
+                    {approverOrders.length === 0 ? (
+                      <Tag>ยังไม่กำหนด</Tag>
+                    ) : (
+                      approverOrders.map((n) => (
+                        <Tag key={n} color="blue">
+                          ลำดับที่ {n}
+                        </Tag>
+                      ))
+                    )}
+                  </Space>
+                </Form.Item>
+              </Col>
+            </Row>
 
             {/* -------- เอกสารแนบ (ตาราง) -------- */}
             <Divider orientation="left">เอกสารแนบที่ต้องส่ง</Divider>
