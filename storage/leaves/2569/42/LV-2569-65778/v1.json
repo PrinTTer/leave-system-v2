@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "request": {
+    "requestId": "LV-2569-65778",
+    "fiscalYear": 2569,
+    "leaveType": "business",
+    "requester": {
+      "userId": 42,
+      "name": "สมชาย ใจดี",
+      "department": "วิศวกรรม"
+    },
+    "period": {
+      "start": "2025-11-11",
+      "end": "2025-11-11",
+      "days": 1
+    },
+    "dates": [
+      "2025-11-11"
+    ],
+    "reason": "ำกฟำด",
+    "assistants": [],
+    "expenses": []
+  },
+  "policyCalc": {
+    "workingDays": 1,
+    "holidaysSkipped": 0,
+    "vacationBalanceCounted": false
+  },
+  "approval": {
+    "finalStatus": "PENDING",
+    "finalAt": null
+  },
+  "audit": {
+    "createdAt": "2025-11-07T05:46:57.412Z"
+  }
+}
