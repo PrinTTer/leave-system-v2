@@ -69,12 +69,6 @@ export default function PersonnelApproverLayout({
             icon: <Icons.UsersRound />,
             onClick: () => setUserRole("approver"),
         },
-        // {
-        //     key: "7",
-        //     label: "อาจารย์/บุคลากร",
-        //     icon: <Icons.UsersRound />,
-        //     onClick: () => setUserRole("user"),
-        // },
         {
             type: "divider",
         },
@@ -158,15 +152,6 @@ export default function PersonnelApproverLayout({
                                     },
                                 ],
                             },
-                            // {
-                            //   key: "approval",
-                            //   icon: <Icons.UserSearch />,
-                            //   style: { fontSize: 16, color: "#FDFEFE" },
-                            //   label: "การอนุมัติ",
-                            //   onClick: () => {
-                            //     router.push(`/private/approve`);
-                            //   },
-                            // },
                             {
                                 key: "leaveManagement",
                                 icon: <Icons.Settings />,

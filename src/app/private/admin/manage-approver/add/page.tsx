@@ -12,6 +12,7 @@ import {
   Tooltip,
   Input,
   Checkbox,
+  Breadcrumb,
 } from "antd";
 import { useRouter } from "next/navigation";
 import * as Icons from "lucide-react";
@@ -68,7 +69,6 @@ export default function NewUserPage() {
     ];
 
     setAllUsers(mockData);
-    // default เลือกสังกัดแรก
     setSelectedDept(mockData[0].department);
     setFilteredUsers(mockData.filter((u) => u.department === mockData[0].department));
     setLoading(false);
@@ -78,22 +78,18 @@ export default function NewUserPage() {
     fetchNewUser();
   }, []);
 
-  // ดึงชื่อ unique department
   const departments = Array.from(new Set(allUsers.map((u) => u.department)));
-
-  // handle add user เข้า selectedUsers
   const addUser = (user: any) => {
     setSelectedUsers((prev) => [
       ...prev,
       {
         ...user,
-        positionApprover: user.position, // default
-        level: [], // ลำดับยังไม่เลือก
+        positionApprover: user.position,
+        level: [],
       },
     ]);
   };
 
-  // table columns
   const columns = [
     {
       title: "ชื่อ",
@@ -163,7 +159,7 @@ export default function NewUserPage() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: 10 }}>
+    <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: "100%" }} size={10}>
         <Row>
           <Col span={24}>
@@ -172,7 +168,21 @@ export default function NewUserPage() {
             </Title>
           </Col>
         </Row>
-
+        <Breadcrumb
+          items={[
+            {
+              title: (
+                <a
+                  onClick={() => {
+                    router.push(`/private/admin/manage-approver`);
+                  }}>
+                  ผู้อนุมัติ
+                </a>
+              ),
+            },
+            { title: "เพิ่ม" },
+          ]}
+        />
         <div className="chemds-container">
           {/* Select controls */}
           <Row gutter={16} style={{ marginBottom: 16 }}>

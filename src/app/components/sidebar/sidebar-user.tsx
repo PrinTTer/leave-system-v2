@@ -69,12 +69,6 @@ export default function PersonnelUserLayout({
             icon: <Icons.UsersRound />,
             onClick: () => setUserRole("approver"),
         },
-        // {
-        //     key: "7",
-        //     label: "อาจารย์/บุคลากร",
-        //     icon: <Icons.UsersRound />,
-        //     onClick: () => setUserRole("user"),
-        // },
         {
             type: "divider",
         },

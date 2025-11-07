@@ -1,4 +1,3 @@
-// src/app/private/layout.tsx
 "use client";
 
 import { useUser } from "@/app/contexts/userContext";
@@ -16,7 +15,6 @@ export default function PrivateLayout({
   const { user } = useUser();
   const router = useRouter();
 
-  // redirect หน้าแรกตาม role ทุกครั้งที่ user.role เปลี่ยน
   useEffect(() => {
     if (!user) return;
 
@@ -45,7 +43,7 @@ export default function PrivateLayout({
       Sidebar = <PersonnelUserLayout>{children}</PersonnelUserLayout>;
       break;
     default:
-      Sidebar = null; // public page หรือยังไม่ login
+      Sidebar = null;
   }
 
   return (

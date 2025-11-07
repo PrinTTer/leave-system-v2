@@ -48,7 +48,6 @@ const InternationalLeaveForm: React.FC = () => {
   const [startType, setStartType] = useState<string>("full");
   const [endType, setEndType] = useState<string>("full");
 
-  // mock: จำนวนวันลาทั้งหมดที่มีสิทธิ์
   const totalLeaveDays = 10;
 
   const handleChange = (info: { fileList: UploadFile[] }) => {
@@ -70,7 +69,6 @@ const InternationalLeaveForm: React.FC = () => {
 
   const leaveDays = useMemo(
     () => calculateLeaveDays(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [startDate, endDate, startType, endType]
   );
 

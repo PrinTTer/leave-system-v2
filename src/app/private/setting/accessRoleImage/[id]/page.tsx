@@ -70,7 +70,7 @@ export default function AccessRoleImageDetailPage() {
 
   return (
     <>
-      <div style={{ padding: 10 }}>
+      <div style={{ padding: 24 }}>
         <Space direction="vertical" style={{ width: "100%" }} size={10}>
           <Row>
             <Col span={24}>

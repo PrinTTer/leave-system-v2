@@ -13,12 +13,10 @@ import {
     TableProps,
     Typography,
     Tooltip,
-    // InputNumber,
-    Select,
+    Breadcrumb,
 } from "antd";
 import { useRouter } from "next/navigation";
 import * as Icons from "lucide-react";
-// import { convertDateTimeFormate, convertDateTimeToNumber } from "@/app/utils";
 
 export default function UserIndexPage() {
     const { Title } = Typography;
@@ -94,7 +92,6 @@ export default function UserIndexPage() {
                             size={18}
                             style={{ cursor: "pointer", color: "red" }}
                             onClick={() => {
-                                // TODO: ใส่ฟังก์ชันยืนยันการลบ
                                 console.log("delete", record.id);
                             }}
                         />
@@ -208,11 +205,6 @@ export default function UserIndexPage() {
                 totalCount: 10,
             };
             setUsers(data);
-
-            // if (data.data.length > 0) {
-            //     form.setFieldsValue({ userSelect: data.data[0].id });
-            // }
-
             setLoading(false);
             setTableLoading(false);
         } catch (error) {
@@ -244,7 +236,7 @@ export default function UserIndexPage() {
 
     return (
         <>
-            <div style={{ padding: 10 }}>
+            <div style={{ padding: 24 }}>
                 <Space direction="vertical" style={{ width: "100%" }} size={10}>
                     <Row>
                         <Col span={12}>
@@ -258,6 +250,20 @@ export default function UserIndexPage() {
                             </Title>
                         </Col>
                     </Row>
+                    <Breadcrumb
+                        items={[
+                            {
+                                title: (
+                                    <a
+                                        onClick={() => {
+                                            router.push(`/private/admin/manage-approval`);
+                                        }}>
+                                        ผู้อนุมัติ
+                                    </a>
+                                ),
+                            },
+                        ]}
+                    />
                     <div className="chemds-container">
                         <Row style={{ marginBottom: "1%" }}>
                             <Col span={16}>

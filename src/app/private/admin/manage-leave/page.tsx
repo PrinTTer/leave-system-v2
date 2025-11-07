@@ -4,7 +4,8 @@
 import React, { useMemo, useState } from 'react';
 import {
   Button, Card, Col, Empty, Input, Row, Space, Statistic, Switch, Table, Tag, Tooltip,
-  Typography, Dropdown, message
+  Typography, Dropdown, message,
+  Breadcrumb
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import * as Icons from 'lucide-react';
@@ -26,14 +27,11 @@ export default function LeaveTypePage() {
     { key: 'vacation', label: 'เพิ่มการลา (ลาพักผ่อน)' },
   ];
 
-  // ใช้ mock data ตรง ๆ เป็นค่าเริ่มต้น
   const items: AnyLeave[] = leaveTypesSeed as AnyLeave[];
 
-  // ตัวช่วย: ระบุว่าเป็น “ลาพักผ่อน” ไหม
   const isVacation = (it: AnyLeave) =>
     it?.name === 'ลาพักผ่อน' || Array.isArray((it as any)?.vacationRules);
 
-  // UI state เท่านั้น (ค้นหา/สลับมุมมอง)
   const [viewTable, setViewTable] = useState(false);
   const [q, setQ] = useState('');
 
@@ -43,7 +41,7 @@ export default function LeaveTypePage() {
   );
 
   const vacationList = useMemo(() => data.filter(isVacation), [data]);
-  const generalList  = useMemo(() => data.filter((it) => !isVacation(it)), [data]);
+  const generalList = useMemo(() => data.filter((it) => !isVacation(it)), [data]);
 
   const baseCondTags = (r: AnyLeave) => (
     <Space size={[8, 8]} wrap>
@@ -55,7 +53,6 @@ export default function LeaveTypePage() {
     </Space>
   );
 
-  // ใช้ AnyLeave เพื่อให้เข้มงวดน้อยลง (รองรับฟิลด์เสริมของ seed)
   const generalColumns: ColumnsType<AnyLeave> = [
     { title: 'ประเภทการลา', dataIndex: 'name' },
     {
@@ -267,10 +264,29 @@ export default function LeaveTypePage() {
   };
 
   return (
-    <div style={{ padding: 10 }}>
+    <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: '100%' }} size={10}>
-        <Row justify="space-between" align="middle">
-          <Col><Title level={4} style={{ margin: 0 }}>ตั้งค่าประเภทการลา</Title></Col>
+        
+          <Row>
+            <Col>
+              <Title level={4} style={{ margin: 0 }}>ตั้งค่าประเภทการลา</Title>
+            </Col>
+          </Row>
+          <Breadcrumb
+            items={[
+              {
+                title: (
+                  <a
+                    onClick={() => {
+                      router.push(`/private/admin/manage-leave`);
+                    }}>
+                    ตั้งค่าประเภทการลา
+                  </a>
+                ),
+              },
+              
+            ]}
+          />
           <Col>
             <Space>
               <Input.Search
@@ -280,6 +296,9 @@ export default function LeaveTypePage() {
                 onChange={(e) => setQ(e.target.value)}
               />
               <Space align="center"><span>ตาราง</span><Switch checked={viewTable} onChange={setViewTable} /></Space>
+              <Col
+                                
+                                style={{ display: "flex", justifyContent: "right" }}>
               <Dropdown
                 menu={{
                   items: addMenuItems,
@@ -289,13 +308,16 @@ export default function LeaveTypePage() {
                   },
                 }}
               >
+                
                 <Button type="primary" icon={<PlusOutlined />}>
                   เพิ่มประเภทการลา <DownOutlined style={{ marginLeft: 6 }} />
                 </Button>
+                
               </Dropdown>
+              </Col>
             </Space>
           </Col>
-        </Row>
+        
 
         {/* ======= โหมดตาราง: แยกตารางชัดเจน ======= */}
         {viewTable ? (
@@ -320,7 +342,6 @@ export default function LeaveTypePage() {
             </Card>
           </Space>
         ) : (
-          // ======= โหมดการ์ด: แยกหัวข้อ =======
           <Space direction="vertical" style={{ width: '100%' }} size={12}>
             <Card title="ลาทั่วไป">
               <Row gutter={[16, 16]}>

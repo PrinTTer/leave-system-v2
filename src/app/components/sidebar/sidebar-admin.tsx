@@ -70,12 +70,6 @@ export default function PersonnelAdminLayout({
             icon: <Icons.UsersRound />,
             onClick: () => setUserRole("approver"),
         },
-        // {
-        //     key: "7",
-        //     label: "อาจารย์/บุคลากร",
-        //     icon: <Icons.UsersRound />,
-        //     onClick: () => setUserRole("user"),
-        // },
         {
             type: "divider",
         },
@@ -133,15 +127,6 @@ export default function PersonnelAdminLayout({
                         defaultSelectedKeys={["home"]}
                         mode="inline"
                         items={[
-                            // {
-                            //     key: "home",
-                            //     icon: <Icons.House />,
-                            //     style: { fontSize: 16, color: "#FDFEFE" },
-                            //     label: "ข้อมูลการลา",
-                            //     onClick: () => {
-                            //         router.push(`/private`);
-                            //     },
-                            // },
                             {
                                 key: "calendar",
                                 icon: <Icons.Calendar />,
@@ -210,15 +195,6 @@ export default function PersonnelAdminLayout({
                                             router.push(`/private/admin/manage-leave`);
                                         },
                                     },
-                                    // {
-                                    //   key: "privilege",
-                                    //   icon: <Icons.UserCheck />,
-                                    //   style: { fontSize: 16, color: "#FDFEFE" },
-                                    //   label: "สิทธิการลา",
-                                    //   onClick: () => {
-                                    //     router.push(`/private/manage-privilege`);
-                                    //   },
-                                    // }
                                 ]
                             },
                         ]}
