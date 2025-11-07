@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Table, Button, Select, Space, Tooltip, Input, Row, Col, Typography, Form } from "antd";
+import { Table, Button, Select, Space, Tooltip, Input, Row, Col, Typography, Form, Breadcrumb } from "antd";
 import { useRouter, useParams } from "next/navigation";
 import * as Icons from "lucide-react";
+
 const { Title } = Typography;
-// สมมติข้อมูลผู้อนุมัติทั้งหมด (mock)
 const allApprovers = [
     {
         id: 1,
@@ -99,7 +99,6 @@ const allApprovers = [
     },
 ];
 
-// mock ข้อมูลผู้ใช้
 const mockUserData = {
     data: [
         {
@@ -461,7 +460,6 @@ const mockUserData = {
 };
 
 export default function ManageApproverPage() {
-    // สมมติเลือก user คนแรก
     const [userData, setUserData] = useState<any>(null);
     const [levels, setLevels] = useState<{ [key: number]: any[] }>({
         1: [],
@@ -474,19 +472,17 @@ export default function ManageApproverPage() {
     const params = useParams();
 
     useEffect(() => {
-        // โหลด user จาก data ตาม id ที่ต้องการ
-        const userId = Number(params.id); // <-- เปลี่ยนเป็น id ที่ต้องการ
+        const userId = Number(params.id);
         const user = mockUserData.data.find((u: any) => u.id === userId);
         if (!user) return;
 
         setUserData(user);
         form.setFieldsValue({
-                fullName: `${user.academicPosition ? user.academicPosition + " " : ""}${user.thaiName}`,
-                position: user.position,
-                department: user.department,
-            });
+            fullName: `${user.academicPosition ? user.academicPosition + " " : ""}${user.thaiName}`,
+            position: user.position,
+            department: user.department,
+        });
 
-        // จัดกลุ่มผู้อนุมัติตาม level
         const grouped: { [key: number]: any[] } = { 1: [], 2: [], 3: [], 4: [] };
         user.approver.forEach((a) => {
             a.level.forEach((lv: number) => {
@@ -507,7 +503,6 @@ export default function ManageApproverPage() {
         const approver = allApprovers.find((a) => a.id === approverId);
         if (!approver) return;
 
-        // ตรวจว่ามีอยู่แล้วหรือยัง
         if (levels[level].some((a) => a.id === approver.id)) return;
 
         setLevels((prev) => ({
@@ -547,7 +542,7 @@ export default function ManageApproverPage() {
     if (!userData) return <div>Loading...</div>;
 
     return (
-        <div style={{ padding: 10 }}>
+        <div style={{ padding: 24 }}>
             <Space direction="vertical" style={{ width: "100%" }} size={10}>
                 <Row>
                     <Col span={12}>
@@ -561,15 +556,30 @@ export default function ManageApproverPage() {
                         </Title>
                     </Col>
                 </Row>
+                <Breadcrumb
+                    items={[
+                        {
+                            title: (
+                                <a
+                                    onClick={() => {
+                                        router.push(`/private/admin/manage-approval`);
+                                    }}>
+                                    ผู้ขออนุมัติ
+                                </a>
+                            ),
+                        },
+                        { title: "แก้ไข" },
+                    ]}
+                />
                 <div className="chemds-container">
                     <h3>ผู้ขออนุมัติ</h3>
-                        <Form form={form} layout="vertical">
-                        
-                            <Form.Item label="ชื่อ:" name="fullName">
-                                <Input disabled />
-                            </Form.Item>
-                        
-                        <Row  gutter={16}>
+                    <Form form={form} layout="vertical">
+
+                        <Form.Item label="ชื่อ:" name="fullName">
+                            <Input disabled />
+                        </Form.Item>
+
+                        <Row gutter={16}>
                             <Col span={12}>
                                 <Form.Item label="สังกัด" name="department">
                                     <Input disabled />
@@ -581,8 +591,8 @@ export default function ManageApproverPage() {
                                 </Form.Item>
                             </Col>
                         </Row>
-                        </Form>
-                    
+                    </Form>
+
 
                     {[1, 2, 3, 4].map((level) => (
                         <div key={level} style={{ marginBottom: 32 }}>

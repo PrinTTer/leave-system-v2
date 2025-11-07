@@ -4,7 +4,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Button, Card, Checkbox, Col, Divider, Form, Input, InputNumber,
-  Row, Select, Space, Typography, message, Table, Tag, Popconfirm
+  Row, Select, Space, Typography, message, Table, Tag, Popconfirm,
+  Breadcrumb
 } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useRouter, useParams } from 'next/navigation';
@@ -48,7 +49,6 @@ const fileTypeOptions = [
  * 3) legacy approvers (ลิสต์ {position}) -> นับความยาวใช้เป็น maxApproverCount
  */
 function deriveMaxApproverCount(found: any): number {
-  // เคสใหม่: มี approverPolicy
   const p = found?.approverPolicy;
   if (p && Number.isInteger(p.maxApproverCount) && p.maxApproverCount > 0) {
     return p.maxApproverCount;
@@ -125,8 +125,6 @@ export default function EditLeaveTypePage() {
       router.push('/private/admin/manage-leave');
       return;
     }
-
-    // สร้างค่าเริ่มต้นให้อยู่ “รูปแบบเดียวกับหน้า Add”
     const maxApproverCount = deriveMaxApproverCount(found);
     const rules = deriveApprovalRules(found, maxApproverCount);
 
@@ -137,15 +135,13 @@ export default function EditLeaveTypePage() {
       minServiceYears: found.minServiceYears,
       workingDaysOnly: found.workingDaysOnly,
       documents: found.documents ?? [],
-      maxApproverCount: maxApproverCount || 1, // กัน null -> อย่างน้อย 1
+      maxApproverCount: maxApproverCount || 1,
       approvalRules: rules,
     };
 
     form.setFieldsValue(initValues);
     setLoading(false);
   }, [form, params.id, router]);
-
-  // ใช้ดูค่า maxApproverCount เพื่อสร้างตัวเลือก “ลำดับที่ 1..N”
   const maxApproverCount = Form.useWatch('maxApproverCount', form) ?? 0;
   const approverOrders = useMemo(
     () =>
@@ -158,8 +154,6 @@ export default function EditLeaveTypePage() {
 
   const onFinish = (values: LeaveTypeFormValues) => {
     const { maxApproverCount, approvalRules = [] } = values;
-
-    // ทำความสะอาด rule: จำกัดให้อยู่ในช่วง 1..maxApproverCount, unique, sort
     const normalizedRules = approvalRules.map((r) => {
       const cleanOrders = Array.from(
         new Set(
@@ -174,8 +168,6 @@ export default function EditLeaveTypePage() {
         requiredApproverOrders: cleanOrders,
       };
     });
-
-    // === Payload แบบเดียวกับหน้า Add ===
     const payload = {
       ...values,
       approverPolicy: {
@@ -183,8 +175,6 @@ export default function EditLeaveTypePage() {
         rules: normalizedRules,
       },
     };
-
-    // เดโม: ยังไม่ persist จริง
     console.log('[MOCK UPDATE] payload:', payload);
     message.success('บันทึก (โหมด Mock) — ไม่มีการเปลี่ยนแปลงข้อมูลจริง');
     router.push('/private/admin/manage-leave');
@@ -198,9 +188,25 @@ export default function EditLeaveTypePage() {
   };
 
   return (
-    <div style={{ padding: 10 }}>
+    <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: '100%' }} size={10}>
         <Title level={4} style={{ margin: 0 }}>แก้ไขประเภทลา (ลาทั่วไป)</Title>
+        <Breadcrumb
+          items={[
+            {
+              title: (
+                <a
+                  onClick={() => {
+                    router.push(`/private/admin/manage-leave`);
+                  }}>
+                  ตั้งค่าประเภทการลา
+                </a>
+              ),
+            },
+            { title: "แก้ไข" },
+          ]}
+        />
+
 
         <Card loading={loading /* ใช้ Card ปกติ (ไม่ใช้ prop ที่ deprecated) */}>
           <Form<LeaveTypeFormValues> form={form} layout="vertical" onFinish={onFinish}>

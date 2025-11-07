@@ -13,7 +13,7 @@ const positionOptions = [
 ];
 
 type Props = {
-  nameList?: (string | number)[];        // default: ['approverPositions']
+  nameList?: (string | number)[];
 };
 
 export default function ApproverPositionEditor({

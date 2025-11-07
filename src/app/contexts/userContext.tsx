@@ -20,7 +20,7 @@ interface User {
 interface UserContextType {
   user: User | null;
   setUserDetails: (user: User) => void;
-  setUserRole: (role: Role) => void; // เพิ่ม
+  setUserRole: (role: Role) => void;
   logout: () => void;
 }
 
@@ -40,7 +40,7 @@ export const UserProvider: FC<{ children: ReactNode }> = ({ children }) => {
     firstname: "Test User",
     lastname: "Lastname",
     email: "test@gmail.com",
-    role: "user", // default role
+    role: "user",
   });
 
   const setUserDetails = (userDetails: User) => {

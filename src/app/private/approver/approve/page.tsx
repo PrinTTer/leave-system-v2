@@ -13,6 +13,7 @@ import {
   TableProps,
   Typography,
   Tooltip,
+  Breadcrumb,
 } from "antd";
 import { useRouter } from "next/navigation";
 import * as Icons from "lucide-react";
@@ -42,7 +43,7 @@ const columns: TableProps["columns"] = [
     dataIndex: "user",
     key: "thaiName",
     align: "center",
-    sorter: (a, b) => a.user.thaiName.localeCompare(b.user.thaiName), // เรียงตามชื่อภาษาไทย
+    sorter: (a, b) => a.user.thaiName.localeCompare(b.user.thaiName),
     sortDirections: ["ascend", "descend"],
     render: (user) => user.thaiName,
   },
@@ -51,14 +52,14 @@ const columns: TableProps["columns"] = [
     dataIndex: "leaveCategory",
     key: "leaveCategory",
     align: "center",
-    sorter: (a, b) => a.leaveCategory.localeCompare(b.leaveCategory), // เรียงตามประเภทการลา
+    sorter: (a, b) => a.leaveCategory.localeCompare(b.leaveCategory),
     sortDirections: ["ascend", "descend"],
     render: (_, record) => {
       if (record.leaveCategory === "ลาทั่วไป" && record.leaveGeneral?.length) {
-        return record.leaveGeneral[0].leaveType; // แสดง leaveType เช่น ลาคลอดบุตร
+        return record.leaveGeneral[0].leaveType;
       }
       if (record.leaveCategory === "ลาราชการต่างประเทศ" && record.leaveGeneral?.length) {
-        return record.leaveCategory; // แถวแรกแสดง ลาราชการต่างประเทศ
+        return record.leaveCategory;
       }
       return record.leaveCategory;
     },
@@ -72,7 +73,7 @@ const columns: TableProps["columns"] = [
       const aStart = a.leaveGeneral?.[0]?.startDate || a.leaveOfficial?.[0]?.startDate || a.leaveOverseas?.[0]?.startDate || "";
       const bStart = b.leaveGeneral?.[0]?.startDate || b.leaveOfficial?.[0]?.startDate || b.leaveOverseas?.[0]?.startDate || "";
       return new Date(aStart).getTime() - new Date(bStart).getTime();
-    }, // เรียงตามวันที่เริ่มลาจากข้อมูล
+    },
     sortDirections: ["ascend", "descend"],
     render: (_, record) => {
       if (record.leaveGeneral?.length) return record.leaveGeneral[0].startDate || "-";
@@ -90,7 +91,7 @@ const columns: TableProps["columns"] = [
       const aEnd = a.leaveGeneral?.[a.leaveGeneral.length - 1]?.endDate || a.leaveOfficial?.[0]?.endDate || a.leaveOverseas?.[0]?.endDate || "";
       const bEnd = b.leaveGeneral?.[b.leaveGeneral.length - 1]?.endDate || b.leaveOfficial?.[0]?.endDate || b.leaveOverseas?.[0]?.endDate || "";
       return new Date(aEnd).getTime() - new Date(bEnd).getTime();
-    }, // เรียงตามวันที่สิ้นสุดจากข้อมูล
+    },
     sortDirections: ["ascend", "descend"],
     render: (_, record) => {
       if (record.leaveGeneral?.length) return record.leaveGeneral[record.leaveGeneral.length - 1].endDate || "-";
@@ -112,7 +113,7 @@ const columns: TableProps["columns"] = [
       const aDays = (!aStart || !aEnd) ? 0 : Math.ceil(Math.abs(new Date(aEnd).getTime() - new Date(aStart).getTime()) / (1000 * 60 * 60 * 24)) + 1;
       const bDays = (!bStart || !bEnd) ? 0 : Math.ceil(Math.abs(new Date(bEnd).getTime() - new Date(bStart).getTime()) / (1000 * 60 * 60 * 24)) + 1;
       return aDays - bDays;
-    }, // เรียงตามจำนวนวันจากข้อมูล
+    },
     sortDirections: ["ascend", "descend"],
     render: (_, record) => {
       const start = record.leaveGeneral?.[0]?.startDate || record.leaveOfficial?.[0]?.startDate || record.leaveOverseas?.[0]?.startDate;
@@ -295,13 +296,11 @@ const columns: TableProps["columns"] = [
         page: 1,
         totalPage: 1,
         limit: 10,
-        totalCount: 4, // ปรับ totalCount เป็น 4 เพราะจะมีแถวเพิ่ม
+        totalCount: 4,
       };
 
-      // แปลงข้อมูลให้รวมแถว "ลาราชการต่างประเทศ" และแยกประเภทย่อย
       const transformedData = data.data.flatMap(item => {
         if (item.leaveCategory === "ลาราชการต่างประเทศ" && item.leaveOverseas?.length && item.leaveGeneral?.length) {
-          // แถวแรกสำหรับ "ลาราชการต่างประเทศ" ใช้ข้อมูลจาก leaveOverseas
           const baseRow = {
             ...item,
             id: `${item.id}-0`,
@@ -310,7 +309,6 @@ const columns: TableProps["columns"] = [
             endDate: item.leaveOverseas[0].endDate,
             leaveGeneral: [],
           };
-          // แถวสำหรับประเภทย่อยจาก leaveGeneral
           const generalRows = item.leaveGeneral.map((leave, index) => ({
             ...item,
             id: `${item.id}-${index + 1}`,
@@ -358,7 +356,7 @@ const columns: TableProps["columns"] = [
 
   return (
     <>
-      <div style={{ padding: 10 }}>
+      <div style={{ padding: 24 }}>
         <Space direction="vertical" style={{ width: "100%" }} size={10}>
           <Row>
             <Col span={12}>
@@ -372,6 +370,7 @@ const columns: TableProps["columns"] = [
               </Title>
             </Col>
           </Row>
+          
           <div className="chemds-container">
             <Row style={{ marginBottom: "1%" }}>
               <Col span={16}>
@@ -398,19 +397,6 @@ const columns: TableProps["columns"] = [
                   </Col>
                 </Form>
               </Col>
-              {/* <Col
-                span={8}
-                style={{ display: "flex", justifyContent: "right" }}>
-                <Button
-                  className="chemds-button"
-                  type="primary"
-                  onClick={() => {
-                    setLoading(true);
-                    router.push(`/private/system/new`);
-                  }}>
-                  เพิ่ม
-                </Button>
-              </Col> */}
             </Row>
             <Row style={{ marginBottom: "1%" }}>
               <Col span={24}>

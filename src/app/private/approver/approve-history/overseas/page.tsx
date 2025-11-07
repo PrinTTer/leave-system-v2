@@ -12,8 +12,10 @@ import {
   Tooltip,
   Typography,
   Tag,
+  Breadcrumb,
 } from "antd";
 import * as Icons from "lucide-react";
+import router from "next/router";
 
 type AdditionLeave = {
   leaveType: string;
@@ -206,7 +208,7 @@ const ApproveHistoryTable: React.FC<{ data: ApproveReq[] }> = ({ data }) => {
   ];
 
   return (
-    <div style={{ padding: 10 }}>
+    <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: "100%" }} size={10}>
         <Row>
           <Col span={12}>
@@ -215,13 +217,27 @@ const ApproveHistoryTable: React.FC<{ data: ApproveReq[] }> = ({ data }) => {
             </Typography.Title>
           </Col>
         </Row>
+        <Breadcrumb
+          items={[
+            {
+              title: (
+                <a
+                  onClick={() => {
+                    router.push(`/private/approve-history/overseas`);
+                  }}>
+                  ลาราชการ
+                </a>
+              ),
+            },
+          ]}
+        />
         <div className="chemds-container">
           <Row style={{ marginBottom: "1%" }}>
             <Col span={16}>
               <Form form={form} layout="inline" initialValues={{ name: "" }}>
                 <Col>
                   <Form.Item name="name">
-                    <Input placeholder="ชื่อ" allowClear defaultValue=""/>
+                    <Input placeholder="ชื่อ" allowClear defaultValue="" />
                   </Form.Item>
                 </Col>
                 <Col>

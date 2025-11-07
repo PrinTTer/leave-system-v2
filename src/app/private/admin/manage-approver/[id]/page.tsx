@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Button, Checkbox, Col, Form, Input, Row, Space, Typography } from "antd";
+import { Breadcrumb, Button, Checkbox, Col, Form, Input, Row, Space, Typography } from "antd";
 
 const { Title } = Typography;
 
@@ -140,7 +140,7 @@ export default function EditApproverPage() {
     if (!approver) return <p>ไม่พบข้อมูล</p>;
 
     return (
-        <div style={{ padding: 10 }}>
+        <div style={{ padding: 24 }}>
             <Space direction="vertical" style={{ width: "100%" }} size={10}>
                 <Row>
                     <Col span={12}>
@@ -154,6 +154,21 @@ export default function EditApproverPage() {
                         </Title>
                     </Col>
                 </Row>
+                <Breadcrumb
+                    items={[
+                        {
+                            title: (
+                                <a
+                                    onClick={() => {
+                                        router.push(`/private/admin/manage-approver`);
+                                    }}>
+                                    ผู้อนุมัติ
+                                </a>
+                            ),
+                        },
+                        { title: "แก้ไข" },
+                    ]}
+                />
                 <div className="chemds-container">
                     <Form form={form} layout="vertical" onFinish={handleSave}>
                         <Row gutter={16}>
@@ -195,8 +210,6 @@ export default function EditApproverPage() {
                                 </Button>
                             </Space>
                         </Form.Item>
-
-
                         <Row style={{ justifyContent: "space-between", marginTop: 15 }}>
                             <Col>
                                 <Button

@@ -13,7 +13,6 @@ import type { CalendarBoxProps, LeaveItem, UserRef, CalendarSchedule, CalendarTy
 
 dayjs.extend(isBetween);
 
-// mock users (ต่อ API ภายหลัง)
 const users: UserRef[] = [
   { id: '1', name: 'John Doe' },
   { id: '2', name: 'Jane Smith' },
@@ -321,24 +320,17 @@ const renderQuarterView = () => {
       {months.map((m, idx) => (
         <div key={m.format('YYYY-MM')} style={{ border: '1px solid #eee', borderRadius: 8, background: '#fff' }}>
           <Calendar
-            /* คุมเดือนของแต่ละกล่องให้เป็นเดือนถัดไปตาม index */
             value={m}
             fullscreen={false}
-
-            /* กล่องแรก: ให้ผู้ใช้เปลี่ยนเดือน/ปีได้ → อัปเดต selectedDate */
             headerRender={idx === 0
               ? undefined
               : () => <ReadonlyHeader label={m.format('MMMM YYYY')} />
             }
             onPanelChange={(val) => {
               if (idx === 0) {
-                // อิงเฉพาะเดือน/ปีที่ผู้ใช้เปลี่ยน แล้ว propagate ไปยังอีก 3 กล่อง
                 setSelectedDate(val.startOf('month'));
               }
             }}
-
-            /* ป้องกัน “เลื่อนเดือน” ทาง header สำหรับ 3 กล่องหลัง (เราไม่มี header control แล้ว)
-               และล็อก state ให้ไม่เปลี่ยน ด้วยการคุม value แบบ controlled */
             fullCellRender={(current, info) => {
               if (info.type !== 'date') return info.originNode;
               return (
@@ -377,13 +369,11 @@ const renderQuarterView = () => {
   const detailSchedules = useMemo(() => {
     if (!detailDate) return [];
     return getSchedulesForDay(detailDate);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailDate, selectedCalendars]);
 
   const detailLeaves = useMemo(() => {
     if (!detailDate) return [];
     return getLeavesForDay(detailDate!);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailDate, visibleUserIds]);
 
   return (
@@ -418,7 +408,6 @@ const renderQuarterView = () => {
             onChange={(d) => setSelectedDate(d)}
             onSelect={(d) => openDetail(d)}
             fullscreen={false}
-            // ใช้ fullCellRender เพื่อคุมโครงสร้างเซลล์เอง (เหมือน quarter view)
             fullCellRender={(current, info) => {
               if (info.type !== 'date') return info.originNode;
               return (

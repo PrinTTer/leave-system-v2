@@ -20,7 +20,6 @@ interface Props {
   monthDate?: Dayjs;
 }
 
-// แปลงประเภทการลาเป็นไทย
 const LEAVE_TYPE_TH: Record<string, string> = {
   sick: 'ลาป่วย',
   personal: 'ลากิจ',
@@ -51,7 +50,6 @@ function formatThaiDateRange(start: Dayjs, end: Dayjs): string {
 function overlapsRange(item: LeaveItem, rangeStart: Dayjs, rangeEnd: Dayjs) {
   const s = dayjs(item.startDate).startOf('day');
   const e = dayjs(item.endDate || item.startDate).endOf('day');
-  // รวมวันปลายทั้งสองฝั่งแบบ inclusive
   return s.isBefore(rangeEnd.add(1, 'day'), 'day') && e.isAfter(rangeStart.subtract(1, 'day'), 'day');
 }
 
@@ -70,29 +68,20 @@ export default function LeaveScheduleTable({
   monthDate,
 }: Props) {
   const userMap = useMemo(() => new Map(users.map((u) => [String(u.id), u.name])), [users]);
-
-  // ฟิลเตอร์ช่วงเวลา (ค่าเริ่มต้น: สัปดาห์นี้)
   const [rangeFilter, setRangeFilter] = useState<RangeFilter>('week');
-
-  // baseDate ใช้วันนี้เป็นหลัก หากส่ง monthDate มาก็ใช้เป็น base ของ "เดือนนี้"
   const baseDate = monthDate ?? dayjs();
-
-  // คำนวณช่วงตามฟิลเตอร์
   const { rangeStart, rangeEnd, rangeTitle } = useMemo(() => {
     if (rangeFilter === 'week') {
-      // วันอาทิตย์เป็นวันเริ่มต้นสัปดาห์ (0) — ไม่ต้องใช้ปลั๊กอิน
-      const start = baseDate.startOf('day').subtract(baseDate.day(), 'day'); // อาทิตย์
-      const end = start.add(6, 'day').endOf('day'); // เสาร์
+      const start = baseDate.startOf('day').subtract(baseDate.day(), 'day');
+      const end = start.add(6, 'day').endOf('day');
       return {
         rangeStart: start,
         rangeEnd: end,
         rangeTitle: `การลาประจำสัปดาห์ ${formatThaiDateRange(start, end)} ${beYear(start)}`,
       };
     }
-    // เดือนนี้
     const start = baseDate.startOf('month');
     const end = baseDate.endOf('month');
-    // เพิ่มปี พ.ศ. ต่อท้ายให้ชัดเจน
     return {
       rangeStart: start,
       rangeEnd: end,

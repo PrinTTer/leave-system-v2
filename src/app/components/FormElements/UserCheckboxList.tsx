@@ -33,8 +33,8 @@ interface UserCheckboxListProps {
   showSelectAllActions?: boolean;
   title?: React.ReactNode;
   gridCols?: { xs?: number; sm?: number; md?: number; lg?: number; xl?: number; xxl?: number };
-  onSave?: () => void;              // <-- เพิ่ม
-  showSaveButton?: boolean;         // <-- เพิ่ม (default: true)
+  onSave?: () => void;
+  showSaveButton?: boolean;      
 }
 
 const { Text } = Typography;
@@ -74,8 +74,8 @@ const UserCheckboxList: React.FC<UserCheckboxListProps> = ({
   showSelectAllActions = true,
   title = 'การตั้งค่าการมองเห็นวันลา',
   gridCols = { xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 6 },
-  onSave,                           // <-- รับเข้ามา
-  showSaveButton = true,            // <-- ค่าเริ่มต้น
+  onSave,
+  showSaveButton = true,
 }) => {
   const filteredOptions = useMemo(
     () =>
@@ -118,7 +118,7 @@ const UserCheckboxList: React.FC<UserCheckboxListProps> = ({
       className="rounded-xl shadow-sm"
       title={<span className="font-semibold">{title}</span>}
       styles={{
-        body: { padding: 16 }, // ✅ แทน bodyStyle ที่ deprecate
+        body: { padding: 16 },
       }}
       extra={
         <Text type="secondary">
