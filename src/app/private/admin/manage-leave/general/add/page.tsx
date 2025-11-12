@@ -10,38 +10,25 @@ import {
 } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import type { LeaveTypeConfig, GenderCode } from '@/types/leave';
+import { createLeaveType } from '@/services/leaveTypeApi';
+import { LeaveTypeApiItem } from '@/types/leave';
 
-type ApprovalRuleForm = {
-  maxDaysThreshold: number;
-  requiredApproverOrders: number[]; // เลือกลำดับผู้อนุมัติแบบหลายค่า (เช่น [1,2,4])
-};
-
-type LeaveTypeFormValues = Omit<
-  LeaveTypeConfig,
-  'id' | 'createdAt' | 'updatedAt' | 'approvalRules'
-> & {
-  maxApproverCount: number;           // จำนวนผู้อนุมัติสูงสุด (ทำให้มีลำดับ 1..N)
-  approvalRules?: ApprovalRuleForm[]; // เงื่อนไข: เลือกลำดับใดบ้าง
-};
-
-const genderOptions: { label: string; value: GenderCode }[] = [
+const genderOptions = [
   { label: 'ชาย', value: 'male' },
-  { label: 'หญิง', value: 'female' },
-  { label: 'อื่นๆ', value: 'other' },
+  { label: 'หญิง', value: 'female' }
 ];
 
 const fileTypeOptions = [
-  { label: 'PDF', value: 'pdf' },
-  { label: 'รูปภาพ', value: 'image' },
-  { label: 'เอกสาร Word', value: 'doc' },
-  { label: 'อื่นๆ', value: 'other' },
+  { label: 'pdf', value: 'pdf' },
+  { label: 'png', value: 'png' },
+  { label: 'jpg', value: 'jpg' },
+  { label: 'doc', value: 'doc' }
 ];
 
 export default function AddLeaveTypePage() {
   const { Title, Text } = Typography;
   const router = useRouter();
-  const [form] = Form.useForm<LeaveTypeFormValues>();
+  const [form] = Form.useForm();
 
   // ใช้ดูค่า maxApproverCount เพื่อสร้างตัวเลือก “ลำดับที่ 1..N”
   const maxApproverCount = Form.useWatch('maxApproverCount', form) ?? 0;
@@ -50,37 +37,71 @@ export default function AddLeaveTypePage() {
     (_, i) => i + 1
   );
 
+  const onFinish = async (values: any) => {
+    try {
+      // หา gender รูปแบบ backend: 'all' | 'male' | 'female'
+      let gender: string = 'all';
+      if (Array.isArray(values.allowedGenders) && values.allowedGenders.length === 1) {
+        gender = values.allowedGenders[0];
+      } else if (Array.isArray(values.allowedGenders) && values.allowedGenders.length === 0) {
+        gender = 'all';
+      }
 
-  const onFinish = (values: LeaveTypeFormValues) => {
-    const rules = values.approvalRules ?? [];
-    const maxCount = values.maxApproverCount ?? 0;
+      // เอกสาร: map เป็น LeaveTypeDocument[]
+      const leave_type_document = (values.documents ?? []).map((d: any) => ({
+        // leave_type_document_id / leave_type_id จะถูก server สร้างเอง
+        name: d?.name ?? '',
+        file_type: d?.fileType ?? 'pdf',
+        is_required: !!d?.required,
+      })) as LeaveTypeApiItem['leave_type_document'];
 
-    // ทำความสะอาดข้อมูล rule: จำกัดให้อยู่ในช่วง 1..maxCount, เอาค่าซ้ำออก และเรียงจากน้อยไปมาก
-    const normalizedRules = rules.map((r) => {
-      const uniqueSorted = Array.from(
-        new Set((r.requiredApproverOrders ?? [])
-          .map(n => Number(n))
-          .filter(n => Number.isInteger(n) && n >= 1 && n <= maxCount))
-      ).sort((a, b) => a - b);
+      // เงื่อนไขอนุมัติ: map เป็น LeaveApprovalRule[]
+      // UI ให้เลือกหลายลำดับ (requiredApproverOrders: number[]) แต่ backend type ต้องการ approval_level:number
+      // ตัดสินใจ: ส่งเป็นค่าสูงสุด (max) ของที่เลือก (หมายถึงต้องผ่านจนถึงลำดับนี้)
+      const leave_approval_rule = (values.approvalRules ?? [])
+        .map((r: any) => {
+          const threshold = Number(r?.maxDaysThreshold) || 0;
+          const orders = Array.isArray(r?.requiredApproverOrders)
+            ? r.requiredApproverOrders.map((n: any) => Number(n)).filter((n: number) => Number.isInteger(n) && n >= 1)
+            : [];
 
-      return {
-        maxDaysThreshold: r.maxDaysThreshold,
-        requiredApproverOrders: uniqueSorted,
+          if (!threshold || orders.length === 0) return null;
+
+          const approval_level = Math.max(...orders); // ถ้าต้องการ logic อื่น ให้เปลี่ยนที่นี่
+          return {
+            leave_less_than: threshold,
+            approval_level,
+          };
+        })
+        .filter(Boolean) as LeaveTypeApiItem['leave_approval_rule'];
+
+      // สร้าง payload ตาม LeaveTypeApiItem
+      const payload: LeaveTypeApiItem = {
+        name: String(values.name ?? ''),
+        max_leave: Number(values.maxDays ?? 0),
+        gender,
+        service_year: Number(values.minServiceYears ?? 0),
+        is_count_vacation: !!values.workingDaysOnly,
+        number_approver: Number(values.maxApproverCount ?? 0),
+        category: 'general',
+        leave_type_document,
+        leave_approval_rule,
       };
-    });
 
-    // ตัวอย่าง payload (โหมด Mock)
-    console.log('[MOCK ADD] payload:', {
-      ...values,
-      approverPolicy: {
-        maxApproverCount: maxCount,
-        rules: normalizedRules, // แต่ละ rule มี requiredApproverOrders: number[]
-      },
-    });
+      // เรียก API สร้างประเภทลา
+      console.log('create: payload', payload);
+      await createLeaveType(payload);
 
-    message.success('เพิ่มประเภทการลา (โหมด Mock) — ไม่ได้บันทึกจริง');
-    router.push('/private/admin/manage-leave');
+      message.success('เพิ่มประเภทการลาเรียบร้อยแล้ว');
+      router.push('/private/admin/manage-leave');
+    } catch (err: any) {
+      console.error('createLeaveType error', err);
+      // ถ้า backend ส่งข้อความ error ชัดเจน ให้แสดง
+      const errMsg = err?.response?.data?.message ?? err?.message ?? 'เกิดข้อผิดพลาดในการเพิ่มประเภทการลา';
+      message.error(errMsg);
+    }
   };
+
 
   return (
     <div style={{ padding: 24 }}>
@@ -103,7 +124,7 @@ export default function AddLeaveTypePage() {
           />
 
         <Card>
-          <Form<LeaveTypeFormValues> form={form} layout="vertical" onFinish={onFinish}>
+          <Form form={form} layout="vertical" onFinish={onFinish}>
             {/* -------- แถว 1: ชื่อ + สูงสุด (วัน) -------- */}
             <Row gutter={16}>
               <Col xs={24} md={12}>
@@ -232,19 +253,19 @@ export default function AddLeaveTypePage() {
                       <Space>
                         <Button
                           size="small"
-                          onClick={() => move(fields[idx].name, Math.max(0, fields[idx].name - 1))}
+                          onClick={() => move(idx, Math.max(0, idx - 1))}
                           disabled={idx === 0}
                         >
                           <ArrowUpOutlined />
                         </Button>
                         <Button
                           size="small"
-                          onClick={() => move(fields[idx].name, Math.min(fields.length - 1, fields[idx].name + 1))}
+                          onClick={() => move(idx, Math.min(fields.length - 1, idx + 1))}
                           disabled={idx === fields.length - 1}
                         >
                           <ArrowDownOutlined />
                         </Button>
-                        <Button size="small" danger onClick={() => remove(fields[idx].name)}>
+                        <Button size="small" danger onClick={() => remove(idx)}>
                           <DeleteOutlined />
                         </Button>
                       </Space>
@@ -321,19 +342,19 @@ export default function AddLeaveTypePage() {
                       <Space>
                         <Button
                           size="small"
-                          onClick={() => move(fields[idx].name, Math.max(0, fields[idx].name - 1))}
+                          onClick={() => move(idx, Math.max(0, idx - 1))}
                           disabled={idx === 0}
                         >
                           <ArrowUpOutlined />
                         </Button>
                         <Button
                           size="small"
-                          onClick={() => move(fields[idx].name, Math.min(fields.length - 1, fields[idx].name + 1))}
+                          onClick={() => move(idx, Math.min(fields.length - 1, idx + 1))}
                           disabled={idx === fields.length - 1}
                         >
                           <ArrowDownOutlined />
                         </Button>
-                        <Button size="small" danger onClick={() => remove(fields[idx].name)}>
+                        <Button size="small" danger onClick={() => remove(idx)}>
                           <DeleteOutlined />
                         </Button>
                       </Space>
