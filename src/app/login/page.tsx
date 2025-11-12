@@ -1,10 +1,8 @@
 "use client";
 import {
   Button,
-  Card,
   Col,
   Form,
-  Image,
   Input,
   Row,
   Typography,
@@ -13,7 +11,7 @@ import {
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import * as dataprovider from "@/dataprovider";
-import { getSession, setSession } from "../../session";
+import { setSession } from "../../session";
 import { Role } from "../utils/constants";
 import { LoadingLoginPage } from "../components/Loading-login";
 

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   mysql:
     image: mysql:8.0
-    container_name: mysql_user_control_db
+    container_name: mysql_leave_system_db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root_password
@@ -19,7 +19,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: user_control_phpmyadmin
+    container_name: leave_system_phpmyadmin
     restart: always
     environment:
       PMA_HOST: mysql
@@ -27,6 +27,23 @@ services:
       PMA_PASSWORD: root_password
     ports:
       - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - my_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: leave_system_next_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      # ถ้ามี env สำหรับ DB ให้ใส่ที่นี่ เช่น:
+      # NEXT_PUBLIC_API_URL: "http://your-api:port"
     depends_on:
       - mysql
     networks:

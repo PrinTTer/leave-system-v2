@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button, Table, Tag, Modal, Form, Input, DatePicker, Select, Checkbox, Space, Popconfirm, message,
   Breadcrumb,
@@ -43,6 +43,36 @@ export default function ScheduleManagePage() {
     const diff = buildDiffFromData(data, calendarSchedulesMock);
     saveDiff(diff);
   }, [data]);
+
+  const onAdd = useCallback(() => {
+    setEditing(null);
+    form.resetFields();
+    form.setFieldsValue({ calendarType: 'standard', dateMode: 'single' });
+    setOpen(true);
+  }, [form]);
+
+  const onEdit = useCallback((rec: CalendarSchedule) => {
+    setEditing(rec);
+    form.resetFields();
+    const isSame = rec.startDate === rec.endDate;
+    form.setFieldsValue({
+      id: rec.id,
+      calendarType: rec.calendarType,
+      isHoliday: !!rec.isHoliday,
+      dateMode: isSame ? 'single' : 'range',
+      singleDate: isSame ? dayjs(rec.startDate) : undefined,
+      rangeDate: !isSame ? [dayjs(rec.startDate), dayjs(rec.endDate)] : undefined,
+      dayCount: rec.dayCount,
+      title: rec.title,
+      description: rec.description,
+    });
+    setOpen(true);
+  }, [form]);
+
+  const onDelete = useCallback((id: string) => {
+    setData(prev => prev.filter(i => i.id !== id));
+    message.success('ลบแล้ว');
+  }, []);
 
   const columns: ColumnsType<CalendarSchedule> = useMemo(() => [
     {
@@ -111,37 +141,7 @@ export default function ScheduleManagePage() {
         </Space>
       ),
     },
-  ], [data]);
-
-  const onAdd = () => {
-    setEditing(null);
-    form.resetFields();
-    form.setFieldsValue({ calendarType: 'standard', dateMode: 'single' });
-    setOpen(true);
-  };
-
-  const onEdit = (rec: CalendarSchedule) => {
-    setEditing(rec);
-    form.resetFields();
-    const isSame = rec.startDate === rec.endDate;
-    form.setFieldsValue({
-      id: rec.id,
-      calendarType: rec.calendarType,
-      isHoliday: !!rec.isHoliday,
-      dateMode: isSame ? 'single' : 'range',
-      singleDate: isSame ? dayjs(rec.startDate) : undefined,
-      rangeDate: !isSame ? [dayjs(rec.startDate), dayjs(rec.endDate)] : undefined,
-      dayCount: rec.dayCount,
-      title: rec.title,
-      description: rec.description,
-    });
-    setOpen(true);
-  };
-
-  const onDelete = (id: string) => {
-    setData(prev => prev.filter(i => i.id !== id));
-    message.success('ลบแล้ว');
-  };
+  ], [onEdit, onDelete]);
 
   const handleOk = async () => {
     const v = await form.validateFields();
@@ -225,7 +225,7 @@ export default function ScheduleManagePage() {
                 </a>
               ),
             },
-            
+
           ]}
         />
 

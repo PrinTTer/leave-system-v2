@@ -10,43 +10,67 @@ import {
     Row,
     Space,
     Table,
-    TableProps,
     Typography,
     Tooltip,
     Breadcrumb,
 } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
 import * as Icons from "lucide-react";
+
+/** Local types to avoid colliding with project-global types */
+interface LocalUser {
+    id: number;
+    academicPosition?: string | null;
+    pronuon?: string;
+    thaiName: string;
+    englishName?: string;
+    department?: string;
+    position?: string;
+    positionApprover?: string;
+    updatedAt?: string;
+    createdAt?: string;
+    level?: number[];
+}
+
+interface LocalUserList {
+    data: LocalUser[];
+    page: number;
+    totalPage: number;
+    limit: number;
+    totalCount: number;
+}
 
 export default function UserIndexPage() {
     const { Title } = Typography;
     const [form] = Form.useForm();
     const router = useRouter();
-    const [loading, setLoading] = useState(true);
-    const [tableLoading, setTableLoading] = useState(true);
+
+    // removed unused `loading` variable; keep only tableLoading which is used
+    const [tableLoading, setTableLoading] = useState<boolean>(true);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [users, setUsers] = useState<UserList>({
+    const [users, setUsers] = useState<LocalUserList>({
         data: [],
         page: 0,
         totalPage: 1,
         limit: 0,
         totalCount: 0,
     });
-    const [currentSearch, setcurrentSearch] = useState({
+
+    const [currentSearch, setCurrentSearch] = useState({
         thaiName: "",
         department: "",
         position: "",
     });
 
-
-    const columns: TableProps["columns"] = [
+    const columns: ColumnsType<LocalUser> = [
         {
             title: "ชื่อ",
             key: "thaiName",
             align: "left",
-            sorter: (a, b) =>
+            sorter: (a: LocalUser, b: LocalUser) =>
                 (a.thaiName || "").localeCompare(b.thaiName || ""),
-            render: (_, record) =>
+            render: (_text: unknown, record: LocalUser) =>
                 `${record.academicPosition ? record.academicPosition + " " : ""}${record.thaiName}`,
         },
         {
@@ -54,7 +78,7 @@ export default function UserIndexPage() {
             dataIndex: "position",
             key: "position",
             align: "left",
-            sorter: (a, b) =>
+            sorter: (a: LocalUser, b: LocalUser) =>
                 (a.position || "").localeCompare(b.position || ""),
         },
         {
@@ -62,23 +86,23 @@ export default function UserIndexPage() {
             dataIndex: "positionApprover",
             key: "positionApprover",
             align: "left",
-            sorter: (a, b) =>
+            sorter: (a: LocalUser, b: LocalUser) =>
                 (a.positionApprover || "").localeCompare(b.positionApprover || ""),
         },
         {
             title: "ลำดับ",
             key: "level",
             align: "center",
-            sorter: (a, b) =>
+            sorter: (a: LocalUser, b: LocalUser) =>
                 (a.level?.length || 0) - (b.level?.length || 0),
-            render: (_, record) => record.level?.join(", ") || "-",
+            render: (_text: unknown, record: LocalUser) => record.level?.join(", ") || "-",
         },
         {
             title: "การจัดการ",
             key: "actions",
             align: "center",
             width: "20%",
-            render: (_, record) => (
+            render: (_text: unknown, record: LocalUser) => (
                 <Space size="middle">
                     <Tooltip title="แก้ไข">
                         <Icons.Edit
@@ -101,11 +125,10 @@ export default function UserIndexPage() {
         },
     ];
 
-
-
     const fetchUsers = async () => {
         try {
-            const data = {
+            // mock response typed as LocalUserList
+            const data: LocalUserList = {
                 data: [
                     {
                         id: 1,
@@ -152,7 +175,7 @@ export default function UserIndexPage() {
                         pronuon: "นางสาว",
                         thaiName: "กนกพร ปราบนที",
                         englishName: "Kanokporn Prabnatee",
-                        department: "คณะวิศวกรรมศาสตร์",
+                        department: "คณะวิศวกรรมคอมพิวเตอร์",
                         position: "อธิการบดี",
                         positionApprover: "อธิการบดี",
                         updatedAt: "2025-07-03T10:20:08Z",
@@ -165,7 +188,7 @@ export default function UserIndexPage() {
                         pronuon: "นาย",
                         thaiName: "สมชาย ดอนเมือง",
                         englishName: "Somchai Donmuang",
-                        department: "คณะวิศวกรรมศาสตร์",
+                        department: "คณะวิศวกรรมคอมพิวเตอร์",
                         position: "คณบดี",
                         positionApprover: "คณบดี",
                         updatedAt: "2025-07-03T10:20:08Z",
@@ -204,23 +227,21 @@ export default function UserIndexPage() {
                 limit: 10,
                 totalCount: 10,
             };
+
             setUsers(data);
-            setLoading(false);
             setTableLoading(false);
         } catch (error) {
             console.log("error: ", error);
-            setLoading(false);
             setTableLoading(false);
         }
     };
-
 
     const onPageChange: PaginationProps["onChange"] = (pageNumber) => {
         setCurrentPage(pageNumber);
     };
 
     const onSearch = () => {
-        setcurrentSearch({
+        setCurrentSearch({
             thaiName: form.getFieldValue("thaiName") || "",
             department: form.getFieldValue("department") || "",
             position: form.getFieldValue("position") || "",
@@ -228,114 +249,109 @@ export default function UserIndexPage() {
         setCurrentPage(1);
     };
 
-
     useEffect(() => {
         setTableLoading(true);
         fetchUsers();
     }, [currentPage, currentSearch]);
 
     return (
-        <>
-            <div style={{ padding: 24 }}>
-                <Space direction="vertical" style={{ width: "100%" }} size={10}>
-                    <Row>
-                        <Col span={12}>
-                            <Title
-                                style={{
-                                    marginTop: 0,
-                                    marginBottom: 0,
-                                    fontSize: 18,
+        <div style={{ padding: 24 }}>
+            <Space direction="vertical" style={{ width: "100%" }} size={10}>
+                <Row>
+                    <Col span={12}>
+                        <Title
+                            style={{
+                                marginTop: 0,
+                                marginBottom: 0,
+                                fontSize: 18,
+                            }}>
+                            {"ผู้อนุมัติ"}
+                        </Title>
+                    </Col>
+                </Row>
+                <Breadcrumb
+                    items={[
+                        {
+                            title: (
+                                <a
+                                    onClick={() => {
+                                        router.push(`/private/admin/manage-approval`);
+                                    }}>
+                                    ผู้อนุมัติ
+                                </a>
+                            ),
+                        },
+                    ]}
+                />
+                <div className="chemds-container">
+                    <Row style={{ marginBottom: "1%" }}>
+                        <Col span={16}>
+                            <Form layout="inline" form={form}>
+                                <Col>
+                                    <Form.Item name="thaiName">
+                                        <Input placeholder="ชื่อ-นามสกุล" allowClear />
+                                    </Form.Item>
+                                </Col>
+                                <Col>
+                                    <Form.Item name="department">
+                                        <Input placeholder="สังกัด" allowClear />
+                                    </Form.Item>
+                                </Col>
+                                <Col>
+                                    <Form.Item name="position">
+                                        <Input placeholder="ตำแหน่ง" allowClear />
+                                    </Form.Item>
+                                </Col>
+                                <Col>
+                                    <Button
+                                        className="chemds-button"
+                                        type="primary"
+                                        onClick={onSearch}>
+                                        ค้นหา
+                                    </Button>
+                                </Col>
+                            </Form>
+                        </Col>
+                        <Col
+                            span={8}
+                            style={{ display: "flex", justifyContent: "right" }}>
+                            <Button
+                                className="chemds-button"
+                                type="primary"
+                                onClick={() => {
+                                    setTableLoading(true);
+                                    router.push(`/private/admin/manage-approver/add`);
                                 }}>
-                                {"ผู้อนุมัติ"}
-                            </Title>
+                                เพิ่ม
+                            </Button>
                         </Col>
                     </Row>
-                    <Breadcrumb
-                        items={[
-                            {
-                                title: (
-                                    <a
-                                        onClick={() => {
-                                            router.push(`/private/admin/manage-approval`);
-                                        }}>
-                                        ผู้อนุมัติ
-                                    </a>
-                                ),
-                            },
-                        ]}
-                    />
-                    <div className="chemds-container">
-                        <Row style={{ marginBottom: "1%" }}>
-                            <Col span={16}>
-                                <Form layout="inline" form={form}>
-                                    <Col>
-                                        <Form.Item name="thaiName">
-                                            <Input placeholder="ชื่อ-นามสกุล" allowClear />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col>
-                                        <Form.Item name="department">
-                                            <Input placeholder="สังกัด" allowClear />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col>
-                                        <Form.Item name="position">
-                                            <Input placeholder="ตำแหน่ง" allowClear />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col>
-                                        <Button
-                                            className="chemds-button"
-                                            type="primary"
-                                            onClick={onSearch}>
-                                            ค้นหา
-                                        </Button>
-                                    </Col>
-                                </Form>
-
-                            </Col>
-                            <Col
-                                span={8}
-                                style={{ display: "flex", justifyContent: "right" }}>
-                                <Button
-                                    className="chemds-button"
-                                    type="primary"
-                                    onClick={() => {
-                                        setLoading(true);
-                                        router.push(`/private/admin/manage-approver/add`);
-                                    }}>
-                                    เพิ่ม
-                                </Button>
-                            </Col>
-                        </Row>
-                        <Row style={{ marginBottom: "1%" }}>
-                            <Col span={24}>
-                                <Table
-                                    columns={columns}
-                                    rowKey={(record) => record.id}
-                                    dataSource={users.data}
-                                    style={{ width: "100%" }}
-                                    pagination={false}
-                                    bordered
-                                    loading={tableLoading}
-                                />
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col span={24}>
-                                <Pagination
-                                    defaultCurrent={1}
-                                    total={users.totalCount}
-                                    showSizeChanger={false}
-                                    pageSize={10}
-                                    onChange={onPageChange}
-                                    align="end"
-                                />
-                            </Col>
-                        </Row>
-                    </div>
-                </Space>
-            </div>
-        </>
+                    <Row style={{ marginBottom: "1%" }}>
+                        <Col span={24}>
+                            <Table
+                                columns={columns}
+                                rowKey={(record) => record.id}
+                                dataSource={users.data}
+                                style={{ width: "100%" }}
+                                pagination={false}
+                                bordered
+                                loading={tableLoading}
+                            />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col span={24}>
+                            <Pagination
+                                current={users.page || currentPage}
+                                total={users.totalCount}
+                                showSizeChanger={false}
+                                pageSize={10}
+                                onChange={onPageChange}
+                            />
+                        </Col>
+                    </Row>
+                </div>
+            </Space>
+        </div>
     );
 }

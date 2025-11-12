@@ -83,8 +83,16 @@ function computeDayCount(s: CalendarSchedule) {
   return b.endOf("day").diff(a.startOf("day"), "day") + 1;
 }
 
+interface ScheduleRow {
+  key: string;
+  calendarType: string;
+  dateRange: string;
+  title: string;
+  dayCount: number;
+}
+
 /** สร้างคอลัมน์ของ antd Table */
-function createColumns(): ColumnsType<any> {
+function createColumns(): ColumnsType<ScheduleRow> {
   return [
     {
       title: "ชนิดปฏิทิน",

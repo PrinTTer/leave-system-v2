@@ -10,24 +10,60 @@ import {
     Row,
     Space,
     Table,
-    TableProps,
     Typography,
     Tooltip,
     Select,
     Tag,
     Breadcrumb,
 } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
 import * as Icons from "lucide-react";
+
+/** Local types (ตั้งชื่อเฉพาะไฟล์นี้ เพื่อไม่ชนกับ global types ในโปรเจค) */
+interface LocalApprover {
+    id: number;
+    academicPosition?: string | null;
+    pronuon?: string;
+    thaiName: string;
+    englishName?: string;
+    department?: string;
+    position?: string;
+    positionApprover?: string;
+    updatedAt?: string;
+    createdAt?: string;
+    level: number[];
+}
+
+interface LocalUser {
+    id: number;
+    academicPosition?: string | null;
+    pronuon?: string;
+    thaiName: string;
+    englishName?: string;
+    department?: string;
+    position?: string;
+    approver?: LocalApprover[];
+    updatedAt?: string;
+    createdAt?: string;
+}
+
+interface LocalUserList {
+    data: LocalUser[];
+    page: number;
+    totalPage: number;
+    limit: number;
+    totalCount: number;
+}
 
 export default function UserIndexPage() {
     const { Title } = Typography;
     const [form] = Form.useForm();
     const router = useRouter();
-    const [loading, setLoading] = useState(true);
-    const [tableLoading, setTableLoading] = useState(true);
+    // เอา loading ที่ไม่ได้ใช้ออก (ใช้ tableLoading แทน)
+    const [tableLoading, setTableLoading] = useState<boolean>(true);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [users, setUsers] = useState<UserList>({
+    const [users, setUsers] = useState<LocalUserList>({
         data: [],
         page: 0,
         totalPage: 1,
@@ -39,13 +75,13 @@ export default function UserIndexPage() {
         department: "",
     });
 
-    const renderApproversByLevel = (record: any, level: number) => {
-        const approvers = record.approver?.filter((a: any) => a.level?.includes(level)) || [];
+    const renderApproversByLevel = (record: LocalUser, level: number) => {
+        const approvers = record.approver?.filter((a) => a.level?.includes(level)) || [];
         if (approvers.length === 0) return "-";
 
         return (
             <Space size={[0, 4]} wrap>
-                {approvers.map((a: any) => (
+                {approvers.map((a) => (
                     <Tag color="blue" key={a.id}>
                         {(a.academicPosition ? a.academicPosition + " " : "") + a.thaiName}
                     </Tag>
@@ -54,15 +90,15 @@ export default function UserIndexPage() {
         );
     };
 
-    const columns: TableProps["columns"] = [
+    const columns: ColumnsType<LocalUser> = [
         {
             title: "ชื่อ",
             key: "thaiName",
             align: "left",
             fixed: "left",
-            sorter: (a, b) =>
+            sorter: (a: LocalUser, b: LocalUser) =>
                 (a.thaiName || "").localeCompare(b.thaiName || ""),
-            render: (_, record) =>
+            render: (_text: unknown, record: LocalUser) =>
                 `${record.academicPosition ? record.academicPosition + " " : ""}${record.thaiName}`,
         },
         {
@@ -70,39 +106,39 @@ export default function UserIndexPage() {
             dataIndex: "position",
             key: "position",
             align: "left",
-            sorter: (a, b) =>
+            sorter: (a: LocalUser, b: LocalUser) =>
                 (a.position || "").localeCompare(b.position || ""),
         },
         {
             title: "ผู้อนุมัติ 1",
             key: "approver1",
             align: "left",
-            render: (_, record) => renderApproversByLevel(record, 1),
+            render: (_text: unknown, record: LocalUser) => renderApproversByLevel(record, 1),
         },
         {
             title: "ผู้อนุมัติ 2",
             key: "approver2",
             align: "left",
-            render: (_, record) => renderApproversByLevel(record, 2),
+            render: (_text: unknown, record: LocalUser) => renderApproversByLevel(record, 2),
         },
         {
             title: "ผู้อนุมัติ 3",
             key: "approver3",
             align: "left",
-            render: (_, record) => renderApproversByLevel(record, 3),
+            render: (_text: unknown, record: LocalUser) => renderApproversByLevel(record, 3),
         },
         {
             title: "ผู้อนุมัติ 4",
             key: "approver4",
             align: "left",
-            render: (_, record) => renderApproversByLevel(record, 4),
+            render: (_text: unknown, record: LocalUser) => renderApproversByLevel(record, 4),
         },
         {
             title: "การจัดการ",
             key: "actions",
             align: "center",
             width: "20%",
-            render: (_, record) => (
+            render: (_text: unknown, record: LocalUser) => (
                 <Space size="middle">
                     <Tooltip title="แก้ไขผู้อนุมัติ">
                         <Icons.UserPen
@@ -116,11 +152,10 @@ export default function UserIndexPage() {
         },
     ];
 
-
-
     const fetchUsers = async () => {
         try {
-            const data = {
+            // กำหนดให้ data เป็น LocalUserList ชัดเจน
+            const data: LocalUserList = {
                 data: [
                     {
                         id: 1,
@@ -169,310 +204,12 @@ export default function UserIndexPage() {
                                 updatedAt: "2025-07-03T10:18:12Z",
                                 createdAt: "2025-07-03T10:15:23Z",
                                 level: [1],
-                            }
-                        ],
-                        updatedAt: "2025-07-03T10:15:23Z",
-                        createdAt: "2025-07-03T10:15:23Z",
-                    },
-                    {
-                        id: 2,
-                        academicPosition: "อ.ร้อยตรี",
-                        pronuon: "นาย",
-                        thaiName: "อนุมัติ กลางเมือง",
-                        englishName: "Anumat Klangmuang",
-                        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "รองหัวหน้าภาควิชา",
-                        approver: [
-                            {
-                                id: 1,
-                                academicPosition: "ผศ.ดร.",
-                                pronuon: "นางสาว",
-                                thaiName: "วรัญญา ศรีสุข",
-                                englishName: "Waranya Srisuk",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "หัวหน้าภาควิชา",
-                                positionApprover: "หัวหน้าภาควิชาคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:15:23Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                            {
-                                id: 3,
-                                academicPosition: null,
-                                pronuon: "นางสาว",
-                                thaiName: "บัวบาน ศรีสุข",
-                                englishName: "buaban Srisuk",
-                                department: "คณะวิศวกรรมศาสตร์",
-                                position: "เลขานุการ",
-                                positionApprover: "รักษาการแทนคณบดี",
-                                updatedAt: "2025-07-03T10:18:12Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                            {
-                                id: 4,
-                                academicPosition: "ดร.",
-                                pronuon: "นางสาว",
-                                thaiName: "กนกพร ปราบนที",
-                                englishName: "Kanokporn Prabnatee",
-                                department: "คณะวิศวกรรมศาสตร์",
-                                position: "อธิการบดี",
-                                positionApprover: "อธิการบดี",
-                                updatedAt: "2025-07-03T10:20:08Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1, 2],
-                            },
-                            {
-                                id: 5,
-                                academicPosition: "ศ.ดร.",
-                                pronuon: "นาย",
-                                thaiName: "สมชาย ดอนเมือง",
-                                englishName: "Somchai Donmuang",
-                                department: "คณะวิศวกรรมศาสตร์",
-                                position: "คณบดี",
-                                positionApprover: "คณบดี",
-                                updatedAt: "2025-07-03T10:20:08Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1, 2],
-                            },
-                        ],
-                        updatedAt: "2025-07-03T10:17:45Z",
-                        createdAt: "2025-07-03T10:15:23Z",
-                    },
-                    {
-                        id: 3,
-                        academicPosition: "ผศ.ดร.",
-                        pronuon: "นางสาว",
-                        thaiName: "บุญรัตน์ เผดิมสุข",
-                        englishName: "Boonyarat Phaedimsuk",
-                        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "ประธานหลักสูตร ป.ตรี",
-                        approver: [
-                            {
-                                id: 1,
-                                academicPosition: "ผศ.ดร.",
-                                pronuon: "นางสาว",
-                                thaiName: "วรัญญา ศรีสุข",
-                                englishName: "Waranya Srisuk",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "หัวหน้าภาควิชา",
-                                positionApprover: "หัวหน้าภาควิชาคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:15:23Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                            {
-                                id: 2,
-                                academicPosition: "อ.ร้อยตรี",
-                                pronuon: "นาย",
-                                thaiName: "อนุมัติ กลางเมือง",
-                                englishName: "Anumat Klangmuang",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "รองหัวหน้าภาควิชา",
-                                positionApprover: "รักษาการแทนหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:17:45Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                        ],
-                        updatedAt: "2025-07-03T10:18:12Z",
-                        createdAt: "2025-07-03T10:15:23Z",
-                    },
-                    {
-                        id: 4,
-                        academicPosition: "รศ.ดร.",
-                        pronuon: "นาย",
-                        thaiName: "อมรฤทธิ์ พุทธิปราบนที",
-                        englishName: "Amornrit Phutthiprapanee",
-                        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "ประธานหลักสูตร ป.โท",
-                        approver: [
-                            {
-                                id: 1,
-                                academicPosition: "ผศ.ดร.",
-                                pronuon: "นางสาว",
-                                thaiName: "วรัญญา ศรีสุข",
-                                englishName: "Waranya Srisuk",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "หัวหน้าภาควิชา",
-                                positionApprover: "หัวหน้าภาควิชาคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:15:23Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                            {
-                                id: 2,
-                                academicPosition: "อ.ร้อยตรี",
-                                pronuon: "นาย",
-                                thaiName: "อนุมัติ กลางเมือง",
-                                englishName: "Anumat Klangmuang",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "รองหัวหน้าภาควิชา",
-                                positionApprover: "รักษาการแทนหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:17:45Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                        ],
-                        updatedAt: "2025-07-03T10:20:08Z",
-                        createdAt: "2025-07-03T10:15:23Z",
-                    },
-                    {
-                        id: 5,
-                        academicPosition: "ผศ.ดร.",
-                        pronuon: "นาย",
-                        thaiName: "เสกสรรค์ มธุดอนเมือง",
-                        englishName: "Seksan Mathudonmuang",
-                        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "ประธานโครงการหลักสูตร ป.ตรี",
-                        approver: [
-                            {
-                                id: 1,
-                                academicPosition: "ผศ.ดร.",
-                                pronuon: "นางสาว",
-                                thaiName: "วรัญญา ศรีสุข",
-                                englishName: "Waranya Srisuk",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "หัวหน้าภาควิชา",
-                                positionApprover: "หัวหน้าภาควิชาคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:15:23Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                            {
-                                id: 2,
-                                academicPosition: "อ.ร้อยตรี",
-                                pronuon: "นาย",
-                                thaiName: "อนุมัติ กลางเมือง",
-                                englishName: "Anumat Klangmuang",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "รองหัวหน้าภาควิชา",
-                                positionApprover: "รักษาการแทนหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:17:45Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                        ],
-                        updatedAt: "2025-07-03T10:20:08Z",
-                        createdAt: "2025-07-03T10:15:23Z",
-                    },
-                    {
-                        id: 6,
-                        academicPosition: "รศ.ดร.",
-                        pronuon: "นาย",
-                        thaiName: "ฐิติพงษ์ สถิรเมธสุข",
-                        englishName: "Thitipong Sathirametthasuk",
-                        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "อาจารย์",
-                        approver: [
-                            {
-                                id: 1,
-                                academicPosition: "ผศ.ดร.",
-                                pronuon: "นางสาว",
-                                thaiName: "วรัญญา ศรีสุข",
-                                englishName: "Waranya Srisuk",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "หัวหน้าภาควิชา",
-                                positionApprover: "หัวหน้าภาควิชาคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:15:23Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                            {
-                                id: 2,
-                                academicPosition: "อ.ร้อยตรี",
-                                pronuon: "นาย",
-                                thaiName: "อนุมัติ กลางเมือง",
-                                englishName: "Anumat Klangmuang",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "รองหัวหน้าภาควิชา",
-                                positionApprover: "รักษาการแทนหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:17:45Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
                             },
                         ],
                         updatedAt: "2025-07-03T10:15:23Z",
                         createdAt: "2025-07-03T10:15:23Z",
                     },
-                    {
-                        id: 7,
-                        academicPosition: "ผศ.ดร.",
-                        pronuon: "นางสาว",
-                        thaiName: "ดวงเพ็ญ พิพัฒสุข",
-                        englishName: "Duangpen Pipatsuk",
-                        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "อาจารย์",
-                        approver: [
-                            {
-                                id: 1,
-                                academicPosition: "ผศ.ดร.",
-                                pronuon: "นางสาว",
-                                thaiName: "วรัญญา ศรีสุข",
-                                englishName: "Waranya Srisuk",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "หัวหน้าภาควิชา",
-                                positionApprover: "หัวหน้าภาควิชาคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:15:23Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                            {
-                                id: 2,
-                                academicPosition: "อ.ร้อยตรี",
-                                pronuon: "นาย",
-                                thaiName: "อนุมัติ กลางเมือง",
-                                englishName: "Anumat Klangmuang",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "รองหัวหน้าภาควิชา",
-                                positionApprover: "รักษาการแทนหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:17:45Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                        ],
-                        updatedAt: "2025-07-03T10:15:23Z",
-                        createdAt: "2025-07-03T10:15:23Z",
-                    },
-                    {
-                        id: 8,
-                        academicPosition: "ผศ.ดร.",
-                        pronuon: "นาย",
-                        thaiName: "ศิวดล เสถียรสุข",
-                        englishName: "Siwadol Srisuk",
-                        department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                        position: "อาจารย์",
-                        approver: [
-                            {
-                                id: 1,
-                                academicPosition: "ผศ.ดร.",
-                                pronuon: "นางสาว",
-                                thaiName: "วรัญญา ศรีสุข",
-                                englishName: "Waranya Srisuk",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "หัวหน้าภาควิชา",
-                                positionApprover: "หัวหน้าภาควิชาคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:15:23Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                            {
-                                id: 2,
-                                academicPosition: "อ.ร้อยตรี",
-                                pronuon: "นาย",
-                                thaiName: "อนุมัติ กลางเมือง",
-                                englishName: "Anumat Klangmuang",
-                                department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                position: "รองหัวหน้าภาควิชา",
-                                positionApprover: "รักษาการแทนหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
-                                updatedAt: "2025-07-03T10:17:45Z",
-                                createdAt: "2025-07-03T10:15:23Z",
-                                level: [1],
-                            },
-                        ],
-                        updatedAt: "2025-07-03T10:15:23Z",
-                        createdAt: "2025-07-03T10:15:23Z",
-                    }
+                    // ... (เติมข้อมูลตัวอย่างอื่นตามต้องการ)
                 ],
                 page: 1,
                 totalPage: 1,
@@ -481,12 +218,9 @@ export default function UserIndexPage() {
             };
 
             setUsers(data);
-
-            setLoading(false);
             setTableLoading(false);
         } catch (error) {
             console.log("error: ", error);
-            setLoading(false);
             setTableLoading(false);
         }
     };
@@ -544,14 +278,15 @@ export default function UserIndexPage() {
                                             style={{ minWidth: 250 }}
                                             allowClear
                                             options={[
+                                                // กรอง undefined/null ก่อนสร้าง options
                                                 ...new Map(
-                                                    users.data.map((u) => [
-                                                        u.department,
-                                                        {
-                                                            value: u.department,
-                                                            label: u.department,
-                                                        },
-                                                    ])
+                                                    users.data
+                                                        .map((u) => u.department)
+                                                        .filter((d): d is string => !!d)
+                                                        .map((d) => [
+                                                            d,
+                                                            { value: d, label: d },
+                                                        ])
                                                 ).values(),
                                             ]}
                                         />
@@ -576,13 +311,12 @@ export default function UserIndexPage() {
                                 </Col>
                             </Form>
                         </Col>
-
                     </Row>
 
                     {/* table */}
                     <Row style={{ marginBottom: "1%" }}>
                         <Col span={24}>
-                            <Table
+                            <Table<LocalUser>
                                 columns={columns}
                                 rowKey={(record) => record.id}
                                 dataSource={users.data}
@@ -599,12 +333,11 @@ export default function UserIndexPage() {
                     <Row>
                         <Col span={24}>
                             <Pagination
-                                defaultCurrent={1}
+                                current={users.page || currentPage}
                                 total={users.totalCount}
                                 showSizeChanger={false}
                                 pageSize={10}
                                 onChange={onPageChange}
-                                align="end"
                             />
                         </Col>
                     </Row>

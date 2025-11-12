@@ -108,7 +108,8 @@ const columns: TableColumnsType<DataType> = [
     dataIndex: "followerCount",
     align: "center",
     sorter: (a, b) => a.followerCount - b.followerCount,
-    render: (count: number, record: DataType) => (
+    // แก้: รับแค่ count เพราะ `record` ไม่ถูกใช้งานที่นี่
+    render: (count: number) => (
       <span className="text-dark dark:text-white">
         {count}
       </span>
@@ -159,7 +160,7 @@ const columns: TableColumnsType<DataType> = [
   },
 ];
 
-function getUniqueFilters<T>(data: DataType[], key: keyof DataType) {
+function getUniqueFilters(data: DataType[], key: keyof DataType) {
   const set = new Set<string>();
   data.forEach((item) => {
     const v = item[key];
@@ -224,6 +225,8 @@ const ApproveHistoryTable: React.FC<{ data: ApproveReq[] }> = ({ data }) => {
   columns[0].filters = nameFilters;
   columns[1].filters = leaveTypeFilters;
 
+  const [form] = Form.useForm();
+
   const onSearch = () => {
     const formValues = form.getFieldsValue();
     setCurrentSearch({
@@ -231,8 +234,6 @@ const ApproveHistoryTable: React.FC<{ data: ApproveReq[] }> = ({ data }) => {
       leaveType: formValues.leaveType || "",
     });
   };
-
-  const [form] = Form.useForm();
 
   return (
     <div style={{ padding: 24 }}>

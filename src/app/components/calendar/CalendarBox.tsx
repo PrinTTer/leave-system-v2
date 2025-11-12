@@ -1,5 +1,4 @@
 'use client';
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, Button, Avatar, Tooltip, Flex, Modal, Tag, Divider } from 'antd';
 import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
@@ -158,32 +157,32 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
   }, []);
 
   // กำหนดการ/วันหยุดของวัน
-  const getSchedulesForDay = (value: Dayjs): CalendarSchedule[] => {
-    const orderType: Record<CalendarType, number> = { academic: 0, standard: 1, fiscal: 2 };
-    return calendarSchedulesMock
-      .filter((s) => selectedCalendars.includes(s.calendarType))
-      .filter((s) =>
-        value.isBetween(dayjs(s.startDate), dayjs(s.endDate), null, '[]')
-      )
-      .sort((a, b) => {
-        const lenA = dayjs(a.endDate).diff(dayjs(a.startDate), 'day');
-        const lenB = dayjs(b.endDate).diff(dayjs(b.startDate), 'day');
-        if (lenA !== lenB) return lenB - lenA;                             // ช่วงยาวมาก่อน
-        if (orderType[a.calendarType] !== orderType[b.calendarType]) {
-          return orderType[a.calendarType] - orderType[b.calendarType];    // academic → standard → fiscal
-        }
-        return a.id.localeCompare(b.id);
-      });
-  };
+const getSchedulesForDay = useCallback((value: Dayjs): CalendarSchedule[] => {
+  const orderType: Record<CalendarType, number> = { academic: 0, standard: 1, fiscal: 2 };
+  return calendarSchedulesMock
+    .filter((s) => selectedCalendars.includes(s.calendarType))
+    .filter((s) =>
+      value.isBetween(dayjs(s.startDate), dayjs(s.endDate), null, '[]')
+    )
+    .sort((a, b) => {
+      const lenA = dayjs(a.endDate).diff(dayjs(a.startDate), 'day');
+      const lenB = dayjs(b.endDate).diff(dayjs(b.startDate), 'day');
+      if (lenA !== lenB) return lenB - lenA;
+      if (orderType[a.calendarType] !== orderType[b.calendarType]) {
+        return orderType[a.calendarType] - orderType[b.calendarType];
+      }
+      return a.id.localeCompare(b.id);
+    });
+}, [selectedCalendars]);
 
   // ลาที่อนุมัติของวัน
-  const getLeavesForDay = (value: Dayjs): LeaveItem[] => {
-    return leavesMock.filter((l) =>
-      value.isBetween(dayjs(l.startDate), dayjs(l.endDate), null, '[]') &&
-      l.status === 'approved' &&
-      (visibleUserIds.length ? visibleUserIds.includes(l.userId) : true),
-    );
-  };
+const getLeavesForDay = useCallback((value: Dayjs): LeaveItem[] => {
+  return leavesMock.filter((l) =>
+    value.isBetween(dayjs(l.startDate), dayjs(l.endDate), null, '[]') &&
+    l.status === 'approved' &&
+    (visibleUserIds.length ? visibleUserIds.includes(l.userId) : true),
+  );
+}, [visibleUserIds]);
 
   const openDetail = useCallback((date: Dayjs) => {
   setDetailDate(date.startOf('day'));
@@ -366,15 +365,15 @@ const renderQuarterView = () => {
   );
 
   // ===== Data ใน Modal =====
-  const detailSchedules = useMemo(() => {
-    if (!detailDate) return [];
-    return getSchedulesForDay(detailDate);
-  }, [detailDate, selectedCalendars]);
+const detailSchedules = useMemo(() => {
+  if (!detailDate) return [];
+  return getSchedulesForDay(detailDate);
+}, [detailDate, getSchedulesForDay]);
 
-  const detailLeaves = useMemo(() => {
-    if (!detailDate) return [];
-    return getLeavesForDay(detailDate!);
-  }, [detailDate, visibleUserIds]);
+const detailLeaves = useMemo(() => {
+  if (!detailDate) return [];
+  return getLeavesForDay(detailDate);
+}, [detailDate, getLeavesForDay]);
 
   return (
     <div className="w-full max-w-full rounded-[10px] bg-white shadow-1">

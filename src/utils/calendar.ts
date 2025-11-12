@@ -1,4 +1,4 @@
-import dayjs, { Dayjs } from 'dayjs';
+import { Dayjs } from 'dayjs';
 
 export const countInclusiveDays = (start: Dayjs, end: Dayjs) =>
   end.startOf('day').diff(start.startOf('day'), 'day') + 1;

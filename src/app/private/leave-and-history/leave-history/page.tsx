@@ -55,13 +55,12 @@ const LeaveHistoryPage: React.FC = () => {
     },
   ]);
 
-  const [filters, setFilters] = useState({
+  const [filters] = useState({
     year: "",
     leaveType: "",
     search: "",
   });
 
-  // กรองข้อมูลตามปี, ประเภทการลา, และค้นหา
   const filteredData = dataSource.filter((item) => {
     const matchYear =
       !filters.year ||

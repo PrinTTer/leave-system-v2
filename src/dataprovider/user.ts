@@ -1,6 +1,49 @@
 import { snakeToCamel } from "@/app/utils";
 import { HttpStatusCode } from "axios";
 
+// --- ประกาศ types ให้ TypeScript รู้จัก ---
+export interface AllUserFilter {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+}
+
+export interface User {
+  id: number;
+  uid: string;
+  email: string;
+  role: string;
+  password: string;
+  primeNum: number;
+  username: string;
+  firstname: string;
+  lastname: string;
+  phone: string;
+  registeredAt: string;
+  pseudoKey: string;
+  tmpSystemKey: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AllUser {
+  data: User[];
+  page: number;
+  totalPage: number;
+  limit: number;
+  totalCount: number;
+}
+
+export type SingleUser = User;
+
+export interface HttpResponse<T> {
+  status: "success" | "fail";
+  errorMsg?: string;
+  data: T;
+}
+
+// --- ฟังก์ชัน getAllUser ---
 export async function getAllUser(
   body: AllUserFilter
 ): Promise<HttpResponse<AllUser>> {
@@ -16,7 +59,7 @@ export async function getAllUser(
   );
 
   if (res.status !== HttpStatusCode.Ok) {
-    const resp: HttpResponse<AllUser> = {
+    return {
       status: "fail",
       errorMsg: "Unable to get data! Please try again.",
       data: {
@@ -27,23 +70,27 @@ export async function getAllUser(
         totalCount: 0,
       },
     };
-    return resp;
   }
 
-  let resData = await res.json();
+  const resData: AllUser = await res.json();
 
-  resData.data.map((item: any, i: number) => {
-    item.key = i;
-  });
+  // กำหนด key ให้แต่ละ item
+resData.data.forEach((item, i) => {
+  (item as User & { key: number }).key = i;
+});
 
-  const resp: HttpResponse<AllUser> = {
-    status: "success",
-    data: snakeToCamel(resData),
-  };
+const dataWithKey = resData.data.map((item, i) => ({
+  ...snakeToCamel(item),
+  key: i,
+}));
 
-  return resp;
+return {
+  status: "success",
+  data: { ...snakeToCamel(resData), data: dataWithKey },
+};
 }
 
+// --- ฟังก์ชัน getSingleUser ---
 export async function getSingleUser(
   id: string
 ): Promise<HttpResponse<SingleUser>> {
@@ -55,7 +102,7 @@ export async function getSingleUser(
   );
 
   if (res.status !== HttpStatusCode.Ok) {
-    const resp: HttpResponse<SingleUser> = {
+    return {
       status: "fail",
       errorMsg: "Unable to get data! Please try again.",
       data: {
@@ -76,15 +123,12 @@ export async function getSingleUser(
         updatedAt: "",
       },
     };
-    return resp;
   }
 
-  const resData = await res.json();
+  const resData: SingleUser = await res.json();
 
-  const resp: HttpResponse<SingleUser> = {
+  return {
     status: "success",
     data: snakeToCamel(resData),
   };
-
-  return resp;
 }

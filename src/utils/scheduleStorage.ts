@@ -40,27 +40,22 @@ export const mergeMockWithDiff = (
   mockList: CalendarSchedule[],
   diff: DiffStore
 ): CalendarSchedule[] => {
-  const mockMap = toMap(mockList);
   const hidden = new Set(diff.hiddenIds || []);
   const resultMap = new Map<string, CalendarSchedule>();
 
-  // 1) ใส่ mock ก่อน (ถ้าไม่ถูกซ่อน)
   mockList.forEach(i => {
     if (!hidden.has(i.id)) resultMap.set(i.id, i);
   });
 
-  // 2) ทับด้วยของผู้ใช้ที่เพิ่ม/แก้ (ถ้าไม่ถูกซ่อน)
   (diff.items || []).forEach(i => {
     if (!hidden.has(i.id)) resultMap.set(i.id, i);
   });
 
-  // 3) เรียงตามวันที่ (ล่าสุดอยู่บน หรือแล้วแต่ชอบ)
   return Array.from(resultMap.values()).sort(
     (a, b) => dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf()
   );
 };
 
-/** สร้าง diff ใหม่จาก current data โดยเทียบกับ mock */
 export const buildDiffFromData = (
   current: CalendarSchedule[],
   mockList: CalendarSchedule[]
@@ -71,18 +66,15 @@ export const buildDiffFromData = (
   const hiddenIds: string[] = [];
   const items: CalendarSchedule[] = [];
 
-  // mock ที่ “หายไป” จาก current = ถูกซ่อน
   mockList.forEach(m => {
     if (!currentMap.has(m.id)) hiddenIds.push(m.id);
   });
 
-  // current ที่ “ไม่มีใน mock” = ผู้ใช้เพิ่มใหม่
   current.forEach(c => {
     const m = mockMap.get(c.id);
     if (!m) {
-      items.push(c); // add ใหม่
+      items.push(c);
     } else {
-      // ถ้า id อยู่ใน mock แต่ค่าต่างจาก mock = ผู้ใช้แก้ไข -> เก็บเป็น override
       const changed =
         c.title !== m.title ||
         c.description !== (m.description || '') ||

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   Form,
   DatePicker,
@@ -43,23 +43,20 @@ const GeneralLeaveForm: React.FC = () => {
     setFileList(info.fileList);
   };
 
-  const calculateLeaveDays = (): number => {
-    if (!startDate || !endDate) return 0;
-    const diff = endDate.diff(startDate, "day");
-    if (diff < 0) return 0;
+const calculateLeaveDays = useCallback((): number => {
+  if (!startDate || !endDate) return 0;
+  const diff = endDate.diff(startDate, "day");
+  if (diff < 0) return 0;
 
-    if (diff === 0) {
-      return mapToValue(startType);
-    }
+  if (diff === 0) {
+    return mapToValue(startType);
+  }
 
-    const days = diff - 1;
-    return days + mapToValue(startType) + mapToValue(endType);
-  };
+  const days = diff - 1;
+  return days + mapToValue(startType) + mapToValue(endType);
+}, [startDate, endDate, startType, endType]);
 
-  const leaveDays = useMemo(
-    () => calculateLeaveDays(),
-    [startDate, endDate, startType, endType]
-  );
+const leaveDays = useMemo(() => calculateLeaveDays(), [calculateLeaveDays]);
 
   const remainingLeaveDays = totalLeaveDays - leaveDays;
 

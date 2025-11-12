@@ -3,7 +3,6 @@
 import React from 'react';
 import { Button, Card, Col, Form, Row, Select, Space, Typography } from 'antd';
 import { ArrowDown, ArrowUp, Trash } from 'lucide-react';
-import type { ApproverConfig } from '@/types/leave';
 import { usersMock } from '@/mock/users';
 
 const positions = [
@@ -62,7 +61,7 @@ export default function ApproverEditor({ namePath = 'approvers' }: Props) {
             >
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item<ApproverConfig>
+                  <Form.Item
                     {...restField}
                     name={[name, 'position']}
                     label="ตำแหน่ง"
@@ -75,7 +74,7 @@ export default function ApproverEditor({ namePath = 'approvers' }: Props) {
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item<ApproverConfig>
+                  <Form.Item
                     {...restField}
                     name={[name, 'userId']}
                     label="ชื่อผู้อนุมัติ"
