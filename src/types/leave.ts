@@ -1,45 +1,56 @@
-export type GenderCode = 'male' | 'female' | 'other';
-
-// (คงไว้เพื่อ backward-compat ถ้ายังมีที่อ้างถึง)
-export type ApproverConfig = {
-  position: string; // eg. 'อาจารย์', 'หัวหน้าภาควิชา', 'คณบดี', 'อธิการบดี'
-  // userId?: string;   // แบบใหม่ "ไม่ใช้ userId"
+// src/types/leave.ts
+export type LeaveTypeDocument = {
+  leave_type_document_id?: number;
+  leave_type_id?: number;
+  name: string;
+  file_type: 'pdf' | 'png' | 'doc' | 'jpg' | string;
+  is_required: boolean;
 };
 
-export type DocumentRequirement = {
-  name: string;                         // ชื่อเอกสาร เช่น ใบรับรองแพทย์
-  fileType: 'pdf' | 'image' | 'doc' | 'other';
-  required: boolean;
+export type LeaveApprovalRule = {
+  leave_approval_rule_id?: number;
+  leave_type_id?: number;
+  leave_less_than: number;
+  approval_level: number;
 };
 
-/** แบบใหม่: หนึ่ง "ลำดับ" อนุมัติ = 1 step, ภายใน step ใส่ได้หลายตำแหน่ง */
-export type ApproverPositionsStep = { positions: string[] };
-
-/** แบบใหม่: chain ของแต่ละ rule = อาร์เรย์ของ step */
-export type ApprovalRule = {
-  maxDaysThreshold: number;                 // เงื่อนไข "จำนวนวันลาต่ำกว่า X วัน"
-  approverChain: ApproverPositionsStep[];   // ใช้ step ไม่ใช่ user อีกต่อไป
+export type VacationRule = {
+  vacation_rule_id?: number;
+  leave_type_id?: number;
+  service_year: number;
+  annual_leave: number;
+  max_leave: number;
 };
 
-export type LeaveTypeConfig = {
-  id: string;                   // uuid-like string
-  name: string;                 // ชื่อประเภทการลา
-  maxDays: number;              // จำนวนวันลาสูงสุด
-  allowedGenders: GenderCode[]; // ว่าง/ครบ3 = ทุกเพศ
-  minServiceYears: number;      // อายุราชการขั้นต่ำ (ปี)
-  workingDaysOnly: boolean;     // นับเฉพาะวันทำการหรือไม่
-  documents: DocumentRequirement[];
+export type VacationPerYear = {
+    service_year: number;
+  annual_leave: number;
+}
 
-  /** แบบใหม่: ลำดับผู้อนุมัติเป็น step (หนึ่งลำดับมีหลายตำแหน่งได้) */
-  approverPositions?: ApproverPositionsStep[];
+export type CarryOver = {
+    service_year: number;
+  max_leave: number;
+}
 
-  /** แบบใหม่: อ้างอิง step ใน chain */
-  approvalRules?: ApprovalRule[];
+export type LeaveTypeApiItem = {
+  leave_type_id?: number;
+  name: string;
+  gender: 'male' | 'female' | 'all' | string;
+  is_count_vacation: boolean;
+  service_year: number;
+  number_approver: number;
+  max_leave: number;
+  category: 'general' | 'vacation' | 'officialduty' | string;
+  update_at?: string;
+  create_at?: string;
+  leave_type_document?: LeaveTypeDocument[];
+  leave_approval_rule?: LeaveApprovalRule[];
+  vacation_rule?: VacationRule[];
 
-  createdAt: string;            // ISO
-  updatedAt: string;            // ISO
+  vacation_per_year?: VacationPerYear[];
+  carry_over?: CarryOver[];
 };
 
-// Helpers
-export const genderLabel = (g: GenderCode) =>
-  g === 'male' ? 'ชาย' : g === 'female' ? 'หญิง' : 'อื่นๆ';
+// helper to display gender label (keeps backend values)
+export const genderLabelFromBackend = (g: string) =>
+  g === 'male' ? 'ชาย' : g === 'female' ? 'หญิง' : 'ทุกเพศ';

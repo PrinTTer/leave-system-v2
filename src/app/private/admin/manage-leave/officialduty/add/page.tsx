@@ -25,12 +25,12 @@ const fileTypeOptions = [
   { label: 'doc', value: 'doc' }
 ];
 
-export default function AddLeaveTypePage() {
+export default function AddOfficialDutyLeaveTypePage() {
   const { Title, Text } = Typography;
   const router = useRouter();
   const [form] = Form.useForm();
 
-  // ใช้ดูค่า maxApproverCount เพื่อสร้างตัวเลือก “ลำดับที่ 1..N”
+  // ใช้ดูค่า maxApproverCount เพื่อสร้างตัวเลือก "ลำดับที่ 1..N"
   const maxApproverCount = Form.useWatch('maxApproverCount', form) ?? 0;
   const approverOrders = Array.from(
     { length: Math.max(0, Number(maxApproverCount || 0)) },
@@ -83,7 +83,7 @@ export default function AddLeaveTypePage() {
         service_year: Number(values.minServiceYears ?? 0),
         is_count_vacation: !!values.workingDaysOnly,
         number_approver: Number(values.maxApproverCount ?? 0),
-        category: 'general',
+        category: 'officialduty',
         leave_type_document,
         leave_approval_rule,
       };
@@ -93,7 +93,7 @@ export default function AddLeaveTypePage() {
       await createLeaveType(payload);
 
       message.success('เพิ่มประเภทการลาเรียบร้อยแล้ว');
-      router.push('/private/admin/manage-leave');
+      router.push('/private/admin/manage-leave/officialduty');
     } catch (err: any) {
       console.error('createLeaveType error', err);
       // ถ้า backend ส่งข้อความ error ชัดเจน ให้แสดง
@@ -106,7 +106,7 @@ export default function AddLeaveTypePage() {
   return (
     <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: '100%' }} size={10}>
-        <Title level={4} style={{ margin: 0 }}>เพิ่มประเภทลา (ลาทั่วไป)</Title>
+        <Title level={4} style={{ margin: 0 }}>เพิ่มประเภทลา (ราชการ)</Title>
         <Breadcrumb
             items={[
               {
@@ -116,6 +116,16 @@ export default function AddLeaveTypePage() {
                       router.push(`/private/admin/manage-leave`);
                     }}>
                     ตั้งค่าประเภทการลา
+                  </a>
+                ),
+              },
+              {
+                title: (
+                  <a
+                    onClick={() => {
+                      router.push(`/private/admin/manage-leave/officialduty`);
+                    }}>
+                    ราชการ
                   </a>
                 ),
               },
@@ -132,9 +142,9 @@ export default function AddLeaveTypePage() {
                   name="name"
                   label="ชื่อประเภทการลา"
                   rules={[{ required: true, message: 'กรุณาระบุชื่อประเภทการลา' }]}
-                  extra="ตัวอย่าง: ลาป่วย, ลากิจส่วนตัว, ลาคลอดบุตร (สามารถตั้งชื่ออื่นได้)"
+                  extra="ตัวอย่าง: ลาราชการต่างประเทศ, ลาราชการในประเทศ (สามารถตั้งชื่ออื่นได้)"
                 >
-                  <Input placeholder="เช่น ลาป่วย / ลากิจส่วนตัว / ลาคลอดบุตร" />
+                  <Input placeholder="เช่น ลาราชการต่างประเทศ / ลาราชการในประเทศ" />
                 </Form.Item>
               </Col>
 
@@ -144,7 +154,7 @@ export default function AddLeaveTypePage() {
                   label="จำนวนวันลาสูงสุด"
                   rules={[{ required: true, message: 'กรุณาระบุจำนวนวัน' }]}
                 >
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 120" />
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 30" />
                 </Form.Item>
               </Col>
             </Row>
@@ -176,9 +186,9 @@ export default function AddLeaveTypePage() {
                   name="maxApproverCount"
                   label="จำนวนผู้อนุมัติสูงสุด"
                   rules={[{ required: true, message: 'กรุณาระบุจำนวนผู้อนุมัติสูงสุด' }]}
-                  extra="เช่น 10 จะได้ลำดับผู้อนุมัติ 1–10"
+                  extra="เช่น 5 จะได้ลำดับผู้อนุมัติ 1–5"
                 >
-                  <InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="เช่น 10" />
+                  <InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="เช่น 5" />
                 </Form.Item>
               </Col>
 
@@ -213,7 +223,7 @@ export default function AddLeaveTypePage() {
                         style={{ marginBottom: 0 }}
                         rules={[{ required: true, message: 'ระบุชื่อเอกสาร' }]}
                       >
-                        <Input placeholder="เช่น ใบรับรองแพทย์" />
+                        <Input placeholder="เช่น หนังสือราชการ" />
                       </Form.Item>
                     ),
                   },
@@ -292,7 +302,7 @@ export default function AddLeaveTypePage() {
             </Form.List>
 
             {/* -------- เงื่อนไขอนุมัติ (ตาราง) -------- */}
-            <Divider orientation="left">เงื่อนไขของการอนุมัติ (เลือก “ลำดับที่” แบบหลายค่า)</Divider>
+            <Divider orientation="left">เงื่อนไขของการอนุมัติ </Divider>
             <Form.List name="approvalRules">
               {(fields, { add, remove, move }) => {
                 const columns = [
@@ -306,12 +316,12 @@ export default function AddLeaveTypePage() {
                         style={{ marginBottom: 0 }}
                         rules={[{ required: true, message: 'กรุณาระบุจำนวนวัน' }]}
                       >
-                        <InputNumber min={1} style={{ width: '100%' }} placeholder="เช่น 30" />
+                        <InputNumber min={1} style={{ width: '100%' }} placeholder="เช่น 7" />
                       </Form.Item>
                     ),
                   },
                   {
-                    title: 'ต้องใช้ผู้อนุมัติ “ลำดับที่”',
+                    title: 'ต้องใช้ผู้อนุมัติ "ลำดับที่"',
                     dataIndex: 'requiredApproverOrders',
                     render: (_: any, __: any, idx: number) => (
                       <Form.Item
@@ -326,7 +336,7 @@ export default function AddLeaveTypePage() {
                       >
                         <Select
                           mode="multiple"
-                          placeholder="เช่น ลำดับที่ 1, 2, 4"
+                          placeholder="เช่น ลำดับที่ 1, 2"
                           options={approverOrders.map(n => ({ label: `ลำดับที่ ${n}`, value: n }))}
                           disabled={!approverOrders.length}
                           allowClear
@@ -382,7 +392,7 @@ export default function AddLeaveTypePage() {
 
             {/* -------- Action -------- */}
             <Row justify="space-between" style={{ marginTop: 12 }}>
-              <Col><Button onClick={() => router.push('/private/admin/manage-leave')}>ยกเลิก</Button></Col>
+              <Col><Button onClick={() => router.push('/private/admin/manage-leave/officialduty')}>ยกเลิก</Button></Col>
               <Col><Button type="primary" htmlType="submit">บันทึก</Button></Col>
             </Row>
           </Form>

@@ -30,7 +30,7 @@ interface columnRow {
   key: string | number;
 }
 
-export default function EditLeaveTypePage() {
+export default function EditOfficialDutyLeaveTypePage() {
   const { Title } = Typography;
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -56,7 +56,7 @@ export default function EditLeaveTypePage() {
         const documents = (data.leave_type_document ?? []).map((d) => ({
           name: d.name,
           file_type: d.file_type,
-          is_required: d.is_required ?? false,
+          is_required: d.is_required,
         }));
 
         const approvalRules = (data.leave_approval_rule ?? []).map((r) => ({
@@ -78,7 +78,7 @@ export default function EditLeaveTypePage() {
         setLoading(false);
       } catch {
         message.error('โหลดข้อมูลผิดพลาด');
-        router.push('/private/admin/manage-leave');
+        router.push('/private/admin/manage-leave/officialduty');
       }
     };
 
@@ -101,7 +101,7 @@ export default function EditLeaveTypePage() {
         service_year: values.service_year,
         is_count_vacation: values.is_count_vacation,
         number_approver: values.number_approver,
-        category: "general",
+        category: "officialduty",
 
         leave_type_document: values.leave_type_document?.map((d) => ({
           name: d.name,
@@ -114,12 +114,12 @@ export default function EditLeaveTypePage() {
           approval_level: r.approval_level,
         })),
       };
-// console.log("id: ",id);
-//       console.log("playload gen: ",payload);
+    // console.log('id:', id);
+    // console.log('playload officail: ', payload);
+
       await updateLeaveType(id, payload);
       message.success('บันทึกสำเร็จ');
-      router.push('/private/admin/manage-leave');
-      
+      router.push('/private/admin/manage-leave/officialduty');
     } catch (e) {
       console.error(e);
       message.error('อัปเดตไม่สำเร็จ');
@@ -132,7 +132,7 @@ export default function EditLeaveTypePage() {
       const id = Array.isArray(params.id) ? params.id[0] : params.id;
       await deleteLeaveType(id);
       message.success('ลบสำเร็จ');
-      router.push('/private/admin/manage-leave');
+      router.push('/private/admin/manage-leave/officialduty');
     } catch {
       message.error('ลบไม่สำเร็จ');
     }
@@ -141,7 +141,7 @@ export default function EditLeaveTypePage() {
   return (
     <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: '100%' }} size={10}>
-        <Title level={4} style={{ margin: 0 }}>แก้ไขประเภทลา (ลาทั่วไป)</Title>
+        <Title level={4} style={{ margin: 0 }}>แก้ไขประเภทลา (ราชการ)</Title>
 
         <Breadcrumb
           items={[
@@ -152,6 +152,16 @@ export default function EditLeaveTypePage() {
                     router.push(`/private/admin/manage-leave`);
                   }}>
                   ตั้งค่าประเภทการลา
+                </a>
+              ),
+            },
+            {
+              title: (
+                <a
+                  onClick={() => {
+                    router.push(`/private/admin/manage-leave/officialduty`);
+                  }}>
+                  ราชการ
                 </a>
               ),
             },
@@ -386,7 +396,7 @@ export default function EditLeaveTypePage() {
               </Col>
               <Col>
                 <Space>
-                  <Button onClick={() => history.back()}>ยกเลิก</Button>
+                  <Button onClick={() => router.push('/private/admin/manage-leave/officialduty')}>ยกเลิก</Button>
                   <Button type="primary" htmlType="submit">
                     บันทึก
                   </Button>

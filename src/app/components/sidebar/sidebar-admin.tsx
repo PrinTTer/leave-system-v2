@@ -195,6 +195,15 @@ export default function PersonnelAdminLayout({
                                             router.push(`/private/admin/manage-leave`);
                                         },
                                     },
+                                    {
+                                        key: 'officialduty',
+                                        icon: <Icons.UserCheck/>,
+                                        style: { fontSize: 16, color: "#FDFEFE" },
+                                        label: "ลาราชการ",
+                                        onClick: () => {
+                                            router.push(`/private/admin/manage-leave/officialduty`);
+                                        }, 
+                                    }
                                 ]
                             },
                         ]}
