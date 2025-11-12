@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Button,
   Card,
@@ -20,13 +19,10 @@ import {
   Table,
   Tooltip,
   Tag,
-  Breadcrumb
+  Breadcrumb,
+  Popconfirm
 } from 'antd';
 import { useRouter, useParams } from 'next/navigation';
-
-import type { LeaveTypeConfig, GenderCode } from '@/types/leave';
-import { leaveTypesSeed } from '@/mock/leave-type';
-
 import {
   UpOutlined,
   DownOutlined,
@@ -35,159 +31,141 @@ import {
   ArrowUpOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';
+import {
+  fetchLeaveTypeById,
+  updateLeaveType
+} from '@/services/leaveTypeApi';
+import { LeaveTypeApiItem } from '@/types/leave';
 
-type VacationRule = { minServiceYears: number; daysPerYear: number };
-type CarryOverRule = { minServiceYears: number; carryOverDays: number };
-type ApprovalRuleSimple = { order: number };
-
-type LeaveTypeFormValues = Omit<
-  LeaveTypeConfig,
-  'id' | 'createdAt' | 'updatedAt' | 'approvalRules'
-> & {
-  // ให้ “Edit” เหมือน “Add”: ใช้จำนวนผู้อนุมัติสูงสุดเพื่ออนุมานลำดับ 1..N
-  maxApprovers?: number;
-  vacationRules?: VacationRule[];
-  carryOverRules?: CarryOverRule[];
-};
-
-type VacationLeavePayload = LeaveTypeConfig & {
-  vacationRules?: VacationRule[];
-  carryOverRules?: CarryOverRule[];
-  // ใช้รูปแบบเรียบง่าย: ลำดับผู้อนุมัติ 1..N
-  approvalRules?: ApprovalRuleSimple[];
-};
-
-const genderOptions: { label: string; value: GenderCode }[] = [
+const genderOptions = [
   { label: 'ชาย', value: 'male' },
-  { label: 'หญิง', value: 'female' },
-  { label: 'อื่นๆ', value: 'other' },
+  { label: 'หญิง', value: 'female' }
 ];
 
 const fileTypeOptions = [
-  { label: 'PDF', value: 'pdf' },
-  { label: 'รูปภาพ', value: 'image' },
-  { label: 'เอกสาร Word', value: 'doc' },
-  { label: 'อื่นๆ', value: 'other' },
+  { label: 'pdf', value: 'pdf' },
+  { label: 'png', value: 'png' },
+  { label: 'jpg', value: 'jpg' },
+  { label: 'doc', value: 'doc' }
 ];
 
-// ค่า default เฉพาะลาพักผ่อน กรณี record ไม่มีฟิลด์พิเศษ
-const defaultVacationRules: VacationRule[] = [
-  { minServiceYears: 1, daysPerYear: 10 },
-  { minServiceYears: 10, daysPerYear: 20 },
-];
+interface columnRow {
+  key: string | number;
+  name?: string;
+  fileType?: string;
+  required?: boolean;
+}
 
-const defaultCarryOverRules: CarryOverRule[] = [
-  { minServiceYears: 1, carryOverDays: 20 },
-  { minServiceYears: 10, carryOverDays: 20 },
-];
-
-/** ===== Adapter: suy maxApprovers จาก seed เก่า/ใหม่ =====
- * ลำดับความสำคัญ:
- * 1) approverPolicy.maxApproverCount
- * 2) ความยาว approverPositions (ลำดับตามตำแหน่ง)
- * 3) ความยาว approvers (legacy)
- */
-function deriveMaxApprovers(found: any): number {
-  if (Number.isInteger(found?.approverPolicy?.maxApproverCount) && found.approverPolicy.maxApproverCount > 0) {
-    return found.approverPolicy.maxApproverCount;
-  }
-  if (Array.isArray(found?.approverPositions) && found.approverPositions.length > 0) {
-    return found.approverPositions.length;
-  }
-  if (Array.isArray(found?.approvers) && found.approvers.length > 0) {
-    return found.approvers.length;
-  }
-  return 4; // fallback เริ่มต้น
+interface VacationRuleRow {
+  key: number;
+  nameIndex: number;
+  service_year?: number;
+  annual_leave?: number;
+  field?: any;
 }
 
 export default function EditVacationLeavePage() {
-  const { Title, Text } = Typography;
+  const { Title } = Typography;
   const router = useRouter();
-  const params = useParams();
-  const recordId = useMemo(() => {
-    const idParam = (params as any)?.id;
-    return Array.isArray(idParam) ? idParam[0] : (idParam as string);
-  }, [params]);
+  const params = useParams<{ id: string }>();
 
-  const [form] = Form.useForm<LeaveTypeFormValues>();
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
-  const [original, setOriginal] = useState<LeaveTypeConfig | null>(null);
 
-  // พรีวิว “ลำดับผู้อนุมัติ 1..N” ให้เหมือนหน้า Add
-  const maxApprovers = Form.useWatch('maxApprovers', form) ?? 0;
-  const approverOrders = useMemo(
-    () => Array.from({ length: Math.max(0, Number(maxApprovers || 0)) }, (_, i) => i + 1),
-    [maxApprovers]
-  );
+  /** จำนวนลำดับผู้อนุมัติ */
+  const maxApproverCount: number = Form.useWatch('number_approver', form) ?? 0;
+  const approverOrders = Array.from({ length: maxApproverCount }, (_, i) => i + 1);
 
-  // โหลดข้อมูล mock สำหรับ id และ set ค่าเริ่มต้นให้ “เหมือนหน้า Add”
   useEffect(() => {
-    if (!recordId) return;
-    setLoading(true);
+    const load = async () => {
+      try {
+        const id = Array.isArray(params.id) ? params.id[0] : params.id;
+        const data = await fetchLeaveTypeById(id);
+        console.log("data", data);
 
-    const found = leaveTypesSeed.find((x) => x.id === recordId) ?? null;
+        const allowedGenders =
+          data.gender === 'all'
+            ? ['male', 'female']
+            : [data.gender];
 
-    if (!found) {
-      message.error('ไม่พบประเภทการลาที่ต้องการแก้ไข');
+        const documents = (data.leave_type_document ?? []).map((d) => ({
+          name: d.name,
+          file_type: d.file_type,
+          is_required: d.is_required,
+        }));
+
+        const approvalRules = (data.leave_approval_rule ?? []).map((r) => ({
+          leave_less_than: r.leave_less_than,
+          approval_level: r.approval_level,
+        }));
+
+        form.setFieldsValue({
+          name: data.name,
+          max_leave: data.max_leave,
+          gender: allowedGenders,
+          service_year: data.service_year,
+          is_count_vacation: data.is_count_vacation,
+          number_approver: data.number_approver,
+          leave_type_document: documents,
+          leave_approval_rule: approvalRules,
+        });
+
+        setLoading(false);
+      } catch {
+        message.error('โหลดข้อมูลผิดพลาด');
+        router.push('/private/admin/manage-leave');
+      }
+    };
+
+    load();
+  }, [form, params.id, router]);
+
+  const onFinish = async (values: LeaveTypeApiItem) => {
+    try {
+      const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
+      let gender = 'all';
+      if (values.gender?.length === 1) {
+        gender = values.gender[0];
+      }
+
+      const payload: LeaveTypeApiItem = {
+        name: values.name,
+        max_leave: values.max_leave,
+        gender,
+        service_year: values.service_year,
+        is_count_vacation: values.is_count_vacation,
+        number_approver: values.number_approver,
+        category: "vacation",
+
+        leave_type_document: values.leave_type_document?.map((d) => ({
+          name: d.name,
+          file_type: d.file_type,
+          is_required: d.is_required,
+        })),
+
+        leave_approval_rule: values.leave_approval_rule?.map((r) => ({
+          leave_less_than: r.leave_less_than,
+          approval_level: r.approval_level,
+        })),
+      };
+
+      await updateLeaveType(id!, payload);
+      message.success('บันทึกสำเร็จ');
       router.push('/private/admin/manage-leave');
-      return;
+    } catch (e) {
+      console.error(e);
+      message.error('อัปเดตไม่สำเร็จ');
     }
+  };
 
-    setOriginal(found);
-
-    const initValues: LeaveTypeFormValues = {
-      name: found.name ?? 'ลาพักผ่อน',
-      maxDays: Number(found.maxDays ?? 20),
-      allowedGenders: found.allowedGenders ?? [],
-      minServiceYears: Number(found.minServiceYears ?? 0),
-      workingDaysOnly: !!found.workingDaysOnly,
-      documents: found.documents ?? [],
-      maxApprovers: deriveMaxApprovers(found),
-      vacationRules: (found as any).vacationRules ?? defaultVacationRules,
-      carryOverRules: (found as any).carryOverRules ?? defaultCarryOverRules,
-    };
-
-    form.setFieldsValue(initValues);
-    setLoading(false);
-  }, [recordId, router, form]);
-
-  const onFinish = (values: LeaveTypeFormValues) => {
-    if (!original) return;
-
-    const approverCount = Number(values.maxApprovers || 0);
-
-    // ทำให้ “Edit” เหมือน “Add”: สร้างลิสต์ลำดับผู้อนุมัติ 1..N
-    const approvalRules = Array.from({ length: approverCount }, (_, i) => ({
-      order: i + 1,
-      maxDaysThreshold: Number(values.maxDays ?? 0), // จะปรับเป็น threshold จริงในอนาคตได้
-      approverChain: [], // โหมด Mock
-    }));
-
-    const payload: VacationLeavePayload = {
-      id: original.id,
-      createdAt: original.createdAt,
-      updatedAt: new Date().toISOString(),
-      name: values.name,
-      maxDays: Number(values.maxDays ?? 0),
-      allowedGenders: values.allowedGenders ?? [],
-      minServiceYears: Number(values.minServiceYears ?? 0),
-      workingDaysOnly: !!values.workingDaysOnly,
-      documents: values.documents ?? [],
-      approvalRules,
-
-      vacationRules: (values.vacationRules ?? []).map((r) => ({
-        minServiceYears: Number(r.minServiceYears ?? 0),
-        daysPerYear: Number(r.daysPerYear ?? 0),
-      })),
-      carryOverRules: (values.carryOverRules ?? []).map((r) => ({
-        minServiceYears: Number(r.minServiceYears ?? 0),
-        carryOverDays: Number(r.carryOverDays ?? 0),
-      })),
-    };
-
-    console.log('[MOCK UPDATE VACATION]', payload);
-    message.success('บันทึกการแก้ไขประเภทการลา (ลาพักผ่อน) — โหมด Mock (ไม่บันทึกจริง)');
-    router.push('/private/admin/manage-leave');
+  const onDelete = async () => {
+    try {
+      message.success('ลบสำเร็จ');
+      router.push('/private/admin/manage-leave');
+    } catch {
+      message.error('ลบไม่สำเร็จ');
+    }
   };
 
   return (
@@ -197,27 +175,23 @@ export default function EditVacationLeavePage() {
           แก้ไขประเภทลา (ลาพักผ่อน)
         </Title>
         <Breadcrumb
-            items={[
-              {
-                title: (
-                  <a
-                    onClick={() => {
-                      router.push(`/private/admin/manage-leave`);
-                    }}>
-                    ตั้งค่าประเภทการลา
-                  </a>
-                ),
-              },
-              { title: "แก้ไข" },
-            ]}
-          />
-
+          items={[
+            {
+              title: (
+                <a onClick={() => router.push(`/private/admin/manage-leave`)}>
+                  ตั้งค่าประเภทการลา
+                </a>
+              ),
+            },
+            { title: "แก้ไข" },
+          ]}
+        />
 
         <Card>
           {loading ? (
             <Skeleton active />
           ) : (
-            <Form<LeaveTypeFormValues> form={form} layout="vertical" onFinish={onFinish}>
+            <Form form={form} layout="vertical" onFinish={onFinish}>
               {/* -------- แถว 1: ชื่อ + อายุราชการขั้นต่ำ -------- */}
               <Row gutter={16}>
                 <Col xs={24} md={12}>
@@ -226,11 +200,11 @@ export default function EditVacationLeavePage() {
                     label="ชื่อประเภทการลา"
                     rules={[{ required: true, message: 'กรุณาระบุชื่อประเภทการลา' }]}
                   >
-                    <Input disabled /> {/* ล็อกชื่อเป็น ลาพักผ่อน */}
+                    <Input  />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
-                  <Form.Item name="minServiceYears" label="อายุราชการขั้นต่ำในการมีสิทธิ์ (ปี)">
+                  <Form.Item name="service_year" label="อายุราชการขั้นต่ำในการมีสิทธิ์ (ปี)">
                     <InputNumber min={0} style={{ width: '100%' }} placeholder="เช่น 0 หรือ 1" />
                   </Form.Item>
                 </Col>
@@ -239,24 +213,31 @@ export default function EditVacationLeavePage() {
               {/* -------- แถว 2: เพศ + นับเฉพาะวันทำการ -------- */}
               <Row gutter={16}>
                 <Col xs={24} md={12}>
-                  <Form.Item name="allowedGenders" label="เพศที่สามารถลาในประเภทนี้ได้">
-                    <Checkbox.Group options={genderOptions} />
+                  <Form.Item label="เพศที่สามารถลาในประเภทนี้ได้">
+                    <div>
+                      <Form.Item
+                        name="gender"
+                        noStyle
+                        rules={[{ required: true, message: 'กรุณาเลือกเพศ' }]}
+                      >
+                        <Checkbox.Group options={genderOptions} />
+                      </Form.Item>
+                    </div>
                   </Form.Item>
-                  <Text type="secondary">ไม่เลือก/เลือกครบทุกเพศ = ทุกเพศ</Text>
                 </Col>
                 <Col xs={24} md={12}>
-                  <Form.Item name="workingDaysOnly" valuePropName="checked" label=" ">
+                  <Form.Item name="is_count_vacation" valuePropName="checked" label=" ">
                     <Checkbox>นับวันลาเฉพาะวันทำการ</Checkbox>
                   </Form.Item>
                 </Col>
               </Row>
 
-              {/* ========== ผู้อนุมัติ: ใช้ "จำนวนผู้อนุมัติสูงสุด" แล้วอนุมานเป็นลำดับ 1..N ========== */}
+              {/* ========== ผู้อนุมัติ ========== */}
               <Divider orientation="left">ผู้อนุมัติ (กำหนดเพียงจำนวนสูงสุด)</Divider>
               <Row gutter={16}>
                 <Col xs={24} md={8}>
                   <Form.Item
-                    name="maxApprovers"
+                    name="number_approver"
                     label="จำนวนผู้อนุมัติสูงสุด"
                     rules={[{ required: true, message: 'กรุณาระบุจำนวนผู้อนุมัติ' }]}
                   >
@@ -265,30 +246,32 @@ export default function EditVacationLeavePage() {
                 </Col>
                 <Col xs={24} md={16}>
                   <Form.Item label="ลำดับผู้อนุมัติที่จะเกิดขึ้น">
-                    <Space wrap>
-                      {approverOrders.length === 0 ? (
-                        <Tag>ยังไม่กำหนด</Tag>
-                      ) : (
-                        approverOrders.map((n) => (
-                          <Tag key={n} color="blue">
-                            ลำดับที่ {n}
-                          </Tag>
-                        ))
-                      )}
-                    </Space>
+                    <div>
+                      <Space wrap>
+                        {approverOrders.length === 0 ? (
+                          <Tag>ยังไม่กำหนด</Tag>
+                        ) : (
+                          approverOrders.map((n) => (
+                            <Tag key={n} color="blue">
+                              ลำดับที่ {n}
+                            </Tag>
+                          ))
+                        )}
+                      </Space>
+                    </div>
                   </Form.Item>
                 </Col>
               </Row>
 
-              {/* -------- เอกสารแนบ (ตาราง) -------- */}
+              {/* -------- เอกสารแนบ -------- */}
               <Divider orientation="left">เอกสารแนบที่ต้องส่ง</Divider>
-              <Form.List name="documents">
+              <Form.List name="leave_type_document">
                 {(fields, { add, remove, move }) => {
                   const columns = [
                     {
                       title: 'ชื่อเอกสาร',
                       dataIndex: 'name',
-                      render: (_: any, __: any, idx: number) => (
+                      render: (_value: unknown, _record: columnRow, idx: number) => (
                         <Form.Item
                           name={[fields[idx].name, 'name']}
                           style={{ marginBottom: 0 }}
@@ -302,7 +285,7 @@ export default function EditVacationLeavePage() {
                       title: 'ชนิดไฟล์',
                       dataIndex: 'fileType',
                       width: 220,
-                      render: (_: any, __: any, idx: number) => (
+                      render: (_value: unknown, _record: columnRow, idx: number) => (
                         <Form.Item
                           name={[fields[idx].name, 'fileType']}
                           style={{ marginBottom: 0 }}
@@ -316,7 +299,7 @@ export default function EditVacationLeavePage() {
                       title: 'จำเป็น',
                       dataIndex: 'required',
                       width: 120,
-                      render: (_: any, __: any, idx: number) => (
+                      render: (_value: unknown, _record: columnRow, idx: number) => (
                         <Form.Item
                           name={[fields[idx].name, 'required']}
                           valuePropName="checked"
@@ -330,7 +313,7 @@ export default function EditVacationLeavePage() {
                       title: 'จัดการ',
                       dataIndex: 'actions',
                       width: 180,
-                      render: (_: any, __: any, idx: number) => (
+                      render: (_value: unknown, _record: columnRow, idx: number) => (
                         <Space>
                           <Button
                             size="small"
@@ -355,14 +338,14 @@ export default function EditVacationLeavePage() {
                       ),
                     },
                   ];
-                  const data = fields.map((f, i) => ({ key: f.key ?? i }));
+                  const data: columnRow[] = fields.map((f, i) => ({ key: i }));
 
                   return (
                     <Space direction="vertical" style={{ width: '100%' }}>
                       <Table
                         size="small"
                         pagination={false}
-                        columns={columns as any}
+                        columns={columns}
                         dataSource={data}
                         locale={{ emptyText: 'ยังไม่มีเอกสารแนบ' }}
                       />
@@ -376,16 +359,16 @@ export default function EditVacationLeavePage() {
 
               {/* =================== เงื่อนไขวันลาต่อปี =================== */}
               <Divider orientation="left">เงื่อนไขวันลาพักผ่อนต่อปี</Divider>
-              <Form.List name="vacationRules">
+              <Form.List name="vacation_rule">
                 {(fields, { add, remove, move }) => {
                   const dataSource = fields.map((f) => ({ key: f.key, nameIndex: f.name, field: f }));
                   const columns = [
                     {
                       title: 'อายุราชการมากกว่า (ปี)',
-                      key: 'minServiceYears',
-                      render: (_: any, record: any) => (
+                      key: 'service_year',
+                      render: (_value: unknown, record: VacationRuleRow) => (
                         <Form.Item
-                          name={[record.nameIndex, 'minServiceYears']}
+                          name={[record.nameIndex, 'service_year']}
                           rules={[{ required: true, message: 'กรุณาระบุอายุราชการ' }]}
                           style={{ margin: 0 }}
                         >
@@ -396,10 +379,10 @@ export default function EditVacationLeavePage() {
                     },
                     {
                       title: 'ได้รับวันลา (วัน/ปี)',
-                      key: 'daysPerYear',
-                      render: (_: any, record: any) => (
+                      key: 'annual_leave',
+                      render: (_value: unknown, record: VacationRuleRow) => (
                         <Form.Item
-                          name={[record.nameIndex, 'daysPerYear']}
+                          name={[record.nameIndex, 'annual_leave']}
                           rules={[{ required: true, message: 'กรุณาระบุจำนวนวันลา/ปี' }]}
                           style={{ margin: 0 }}
                         >
@@ -412,7 +395,7 @@ export default function EditVacationLeavePage() {
                       title: 'จัดการ',
                       key: 'actions',
                       align: 'right' as const,
-                      render: (_: any, record: any) => (
+                      render: (_value: unknown, record: VacationRuleRow) => (
                         <Space>
                           <Tooltip title="ย้ายขึ้น">
                             <Button
@@ -473,10 +456,10 @@ export default function EditVacationLeavePage() {
                   const columns = [
                     {
                       title: 'อายุราชการมากกว่า (ปี)',
-                      key: 'minServiceYears',
-                      render: (_: any, record: any) => (
+                      key: 'service_year',
+                      render: (_value: unknown, record: VacationRuleRow) => (
                         <Form.Item
-                          name={[record.nameIndex, 'minServiceYears']}
+                          name={[record.nameIndex, 'service_year']}
                           rules={[{ required: true, message: 'กรุณาระบุอายุราชการ' }]}
                           style={{ margin: 0 }}
                         >
@@ -487,10 +470,10 @@ export default function EditVacationLeavePage() {
                     },
                     {
                       title: 'สะสมวันลาได้สูงสุด (วัน)',
-                      key: 'carryOverDays',
-                      render: (_: any, record: any) => (
+                      key: 'max_day',
+                      render: (_value: unknown, record: VacationRuleRow) => (
                         <Form.Item
-                          name={[record.nameIndex, 'carryOverDays']}
+                          name={[record.nameIndex, 'max_day']}
                           rules={[{ required: true, message: 'กรุณาระบุจำนวนวันสะสม' }]}
                           style={{ margin: 0 }}
                         >
@@ -503,7 +486,7 @@ export default function EditVacationLeavePage() {
                       title: 'จัดการ',
                       key: 'actions',
                       align: 'right' as const,
-                      render: (_: any, record: any) => (
+                      render: (_value: unknown, record: VacationRuleRow) => (
                         <Space>
                           <Tooltip title="ย้ายขึ้น">
                             <Button
@@ -560,12 +543,17 @@ export default function EditVacationLeavePage() {
 
               <Row justify="space-between" style={{ marginTop: 12 }}>
                 <Col>
-                  <Button onClick={() => router.push('/private/admin/manage-leave')}>ยกเลิก</Button>
+                  <Popconfirm title="ยืนยันการลบ?" onConfirm={onDelete} okText="ลบ" cancelText="ยกเลิก">
+                    <Button danger>ลบประเภทนี้</Button>
+                  </Popconfirm>
                 </Col>
                 <Col>
-                  <Button type="primary" htmlType="submit">
-                    บันทึกการแก้ไข
-                  </Button>
+                  <Space>
+                    <Button onClick={() => history.back()}>ยกเลิก</Button>
+                    <Button type="primary" htmlType="submit">
+                      บันทึก
+                    </Button>
+                  </Space>
                 </Col>
               </Row>
             </Form>
