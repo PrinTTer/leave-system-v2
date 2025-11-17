@@ -6,7 +6,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   // มกราคม 2568
   {
     id: 'th-2568-0101',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันขึ้นปีใหม่',
     startDate: '2025-01-01',
     endDate: '2025-01-01',
@@ -18,7 +18,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   // กุมภาพันธ์ 2568
   {
     id: 'th-2568-0212',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันมาฆบูชา',
     startDate: '2025-02-12',
     endDate: '2025-02-12',
@@ -32,7 +32,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   // เมษายน 2568
   {
     id: 'th-2568-0406',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันจักรี',
     startDate: '2025-04-06',
     endDate: '2025-04-06',
@@ -42,7 +42,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-0407',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'ชดเชยวันจักรี',
     startDate: '2025-04-07',
     endDate: '2025-04-07',
@@ -52,7 +52,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-0413-16',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันสงกรานต์ และชดเชย',
     description: '13–16 เม.ย. 2568',
     startDate: '2025-04-13',
@@ -65,7 +65,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   // พฤษภาคม 2568
   {
     id: 'th-2568-0501',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันแรงงานแห่งชาติ',
     startDate: '2025-05-01',
     endDate: '2025-05-01',
@@ -75,7 +75,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-0504',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันฉัตรมงคล',
     startDate: '2025-05-04',
     endDate: '2025-05-04',
@@ -85,7 +85,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-0505',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'ชดเชยวันฉัตรมงคล',
     startDate: '2025-05-05',
     endDate: '2025-05-05',
@@ -95,7 +95,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-0511',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันวิสาขบูชา',
     startDate: '2025-05-11',
     endDate: '2025-05-11',
@@ -105,7 +105,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-0512',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'ชดเชยวันวิสาขบูชา',
     startDate: '2025-05-12',
     endDate: '2025-05-12',
@@ -117,7 +117,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   // มิถุนายน 2568
   {
     id: 'th-2568-0602',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันหยุดพิเศษ',
     startDate: '2025-06-02',
     endDate: '2025-06-02',
@@ -127,7 +127,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-0603',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันเฉลิมพระชนมพรรษา สมเด็จพระนางเจ้าสุทิดา',
     startDate: '2025-06-03',
     endDate: '2025-06-03',
@@ -139,7 +139,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   // กรกฎาคม 2568
   {
     id: 'th-2568-0710',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันอาสาฬหบูชา',
     startDate: '2025-07-10',
     endDate: '2025-07-10',
@@ -149,7 +149,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-0711',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันเข้าพรรษา',
     startDate: '2025-07-11',
     endDate: '2025-07-11',
@@ -159,7 +159,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-0728',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระเจ้าอยู่หัว',
     startDate: '2025-07-28',
     endDate: '2025-07-28',
@@ -171,7 +171,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   // สิงหาคม 2568
   {
     id: 'th-2568-0811',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันหยุดพิเศษ',
     startDate: '2025-08-11',
     endDate: '2025-08-11',
@@ -181,7 +181,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-0812',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันเฉลิมพระชนมพรรษา สมเด็จพระนางเจ้าสิริกิติ์ฯ และวันแม่แห่งชาติ',
     startDate: '2025-08-12',
     endDate: '2025-08-12',
@@ -195,7 +195,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   // ตุลาคม 2568
   {
     id: 'th-2568-1013',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันคล้ายวันสวรรคต ร.9',
     startDate: '2025-10-13',
     endDate: '2025-10-13',
@@ -205,7 +205,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-1023',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันปิยมหาราช',
     startDate: '2025-10-23',
     endDate: '2025-10-23',
@@ -219,7 +219,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   // ธันวาคม 2568
   {
     id: 'th-2568-1205',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันคล้ายวันพระบรมราชสมภพ ร.9 / วันชาติ / วันพ่อแห่งชาติ',
     startDate: '2025-12-05',
     endDate: '2025-12-05',
@@ -229,7 +229,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-1210',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันรัฐธรรมนูญ',
     startDate: '2025-12-10',
     endDate: '2025-12-10',
@@ -239,7 +239,7 @@ export const calendarSchedulesMock: CalendarSchedule[] = [
   },
   {
     id: 'th-2568-1231',
-    calendarType: 'standard',
+    calendarType: 'holiday',
     title: 'วันสิ้นปี',
     startDate: '2025-12-31',
     endDate: '2025-12-31',
