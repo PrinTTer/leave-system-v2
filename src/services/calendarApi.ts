@@ -1,4 +1,3 @@
-// src/services/calendarApi.ts
 import type {
   CalendarSchedule,
   CalendarType,
@@ -45,11 +44,13 @@ type CalendarApiItem = {
   holiday_category?: HolidayCategory | null;
 };
 
-// แปลง response จาก backend -> CalendarSchedule ของ frontend
 function mapCalendarItem(raw: CalendarApiItem): CalendarSchedule {
+  const rawCalendarType = (raw.calendarType ?? raw.calendar_type ?? 'holiday') as string;
+  const calendarType = rawCalendarType.toLowerCase() as CalendarType;
+
   return {
     id: String(raw.id ?? raw.calendar_id ?? ''),
-    calendarType: (raw.calendarType ?? raw.calendar_type ?? 'holiday') as CalendarType,
+    calendarType,
     title: raw.title,
     description: raw.description ?? undefined,
     startDate: raw.startDate ?? raw.start_date ?? '',

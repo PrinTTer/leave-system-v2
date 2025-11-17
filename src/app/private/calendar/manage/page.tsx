@@ -52,14 +52,13 @@ export default function ScheduleManagePage() {
 
   const [messageApi, contextHolder] = message.useMessage();
 
-  // 🔹 โหลดรายการปฏิทินจาก backend ครั้งแรก
+  // 🔹 โหลดข้อมูลจาก backend ครั้งแรก
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
         const rows = await fetchCalendarList();
-        // บังคับให้ id เป็น string ทั้งหมด
-        setData(rows.map((r) => ({ ...r, id: String(r.id) })));
+        setData(rows);
       } catch (err) {
         console.error(err);
         messageApi.error('โหลดข้อมูลปฏิทินไม่สำเร็จ');
@@ -67,17 +66,16 @@ export default function ScheduleManagePage() {
         setLoading(false);
       }
     };
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    load();
+  }, [messageApi]);
 
-  // 🔹 กดปุ่ม "แก้ไข" → ให้จำ record ที่จะแก้ แล้วเปิด modal
+  // 🔹 กด "แก้ไข" แถวใดแถวหนึ่ง
   const onEdit = useCallback((rec: CalendarSchedule) => {
     setEditing(rec);
     setOpen(true);
   }, []);
 
-  // 🔹 กดปุ่ม "ลบ"
+  // 🔹 ลบกำหนดการ
   const onDeleteClick = useCallback(
     async (id: string) => {
       try {
@@ -92,13 +90,18 @@ export default function ScheduleManagePage() {
     [messageApi],
   );
 
-  // 🔹 กดปุ่ม "เพิ่มกำหนดการ"
+  // 🔹 กด "เพิ่มกำหนดการใหม่"
   const onAdd = useCallback(() => {
     setEditing(null);
+    form.resetFields();
+    form.setFieldsValue({
+      calendarType: 'holiday',
+      dateMode: 'single',
+      isHoliday: true,
+    });
     setOpen(true);
-  }, []);
+  }, [form]);
 
-  // 🔹 คอลัมน์ของ Table
   const columns: ColumnsType<CalendarSchedule> = useMemo(
     () => [
       {
@@ -122,17 +125,10 @@ export default function ScheduleManagePage() {
         render: (t: CalendarType) => {
           const color = t === 'holiday' ? 'blue' : t === 'academic' ? 'purple' : 'geekblue';
           const label =
-            t === 'holiday'
-              ? 'วันหยุดราชการ'
-              : t === 'academic'
-              ? 'ปีการศึกษา'
-              : 'ปีงบประมาณ';
+            t === 'holiday' ? 'วันหยุดราชการ' : t === 'academic' ? 'ปีการศึกษา' : 'ปีงบประมาณ';
           return <Tag color={color}>{label}</Tag>;
         },
-        filters: CALENDAR_TYPE_OPTIONS.map((o) => ({
-          text: o.label,
-          value: o.value,
-        })),
+        filters: CALENDAR_TYPE_OPTIONS.map((o) => ({ text: o.label, value: o.value })),
         onFilter: (val, rec) => rec.calendarType === val,
       },
       {
@@ -146,9 +142,9 @@ export default function ScheduleManagePage() {
         ellipsis: true,
       },
       {
-        title: 'หมวดวันหยุด (เฉพาะวันหยุด)',
+        title: 'หมวดวันหยุด (เฉพาะปฏิทินวันหยุดราชการ)',
         dataIndex: 'holidayCategory',
-        width: 220,
+        width: 260,
         render: (hc?: HolidayCategory, rec?: CalendarSchedule) => {
           if (!(rec?.calendarType === 'holiday' && rec?.isHoliday)) return null;
           const text =
@@ -191,7 +187,7 @@ export default function ScheduleManagePage() {
     [onEdit, onDeleteClick],
   );
 
-  // 🔹 กดปุ่ม "บันทึก" ใน Modal (ทั้งเพิ่มใหม่ + แก้ไข)
+  // 🔹 กดปุ่ม "บันทึก" ใน modal (ใช้ทั้งเพิ่มใหม่ + แก้ไข)
   const handleOk = async () => {
     try {
       const v = await form.validateFields();
@@ -225,40 +221,40 @@ export default function ScheduleManagePage() {
 
       let result: CalendarSchedule;
 
-      if (v.id) {
-        // 🔁 กรณี "แก้ไข"
-        result = await updateCalendar(String(v.id), dto);
+      // ✅ ถ้ามี editing แสดงว่าเป็นโหมด "แก้ไข" → เรียก PUT
+      if (editing && editing.id) {
+        result = await updateCalendar(String(editing.id), dto);
 
-        const merged: CalendarSchedule = {
-          ...result,
-          id: String(result.id),
+        result = {
+          ...editing, // เก็บข้อมูลเดิม เช่น id, createdAt, updatedAt ถ้ามี
+          ...result,  // ทับด้วยข้อมูลที่ backend อัปเดตกลับมา
           dayCount,
           holidayCategory,
         };
 
-        setData((prev) => prev.map((i) => (i.id === merged.id ? merged : i)));
-
+        setData((prev) => prev.map((i) => (i.id === editing.id ? result : i)));
         messageApi.success('บันทึกการแก้ไขแล้ว');
       } else {
-        // ➕ กรณี "เพิ่มใหม่"
+        // ➕ โหมด "เพิ่มใหม่" → POST
         result = await createCalendar(dto);
 
-        const merged: CalendarSchedule = {
+        result = {
           ...result,
-          id: String(result.id),
           dayCount,
           holidayCategory,
         };
 
-        setData((prev) => [merged, ...prev]);
+        setData((prev) => [result, ...prev]);
         messageApi.success('เพิ่มกำหนดการแล้ว');
       }
 
       setOpen(false);
+      setEditing(null);
+      form.resetFields();
     } catch (err: unknown) {
       console.error(err);
 
-      // error จาก validateFields (เช่น ลืมกรอก) → แค่ให้ AntD ทำ highlight
+      // error จาก validateFields (ไม่ต้องโชว์ toast ซ้ำ)
       if (typeof err === 'object' && err !== null && 'errorFields' in err) {
         return;
       }
@@ -267,61 +263,47 @@ export default function ScheduleManagePage() {
     }
   };
 
-  const handleCancel = () => setOpen(false);
+  const handleCancel = () => {
+    setOpen(false);
+    setEditing(null);
+    form.resetFields();
+  };
 
-  // 🔹 watch ค่าที่เกี่ยวกับวันที่
+  // 🔍 ดูค่าจากฟอร์ม เพื่อ control UI วันที่ + checkbox
   const calendarType = Form.useWatch('calendarType', form) as CalendarType | undefined;
   const dateMode = Form.useWatch('dateMode', form) as DateMode | undefined;
   const singleDate = Form.useWatch('singleDate', form) as Dayjs | undefined;
   const rangeDate = Form.useWatch('rangeDate', form) as [Dayjs, Dayjs] | undefined;
 
-  // 🔹 เวลาเปลี่ยนวันที่ให้คำนวณ dayCount อัตโนมัติ
+  // 🔄 เวลาเปิด modal แก้ไข ให้ดึงค่าของ record นั้นมาใส่ในฟอร์ม
+  useEffect(() => {
+    if (!open || !editing) return;
+
+    const rec = editing;
+    const isSame = rec.startDate === rec.endDate;
+
+    form.resetFields();
+    form.setFieldsValue({
+      id: rec.id,
+      calendarType: rec.calendarType,
+      isHoliday: rec.calendarType === 'holiday' ? !!rec.isHoliday : false,
+      dateMode: isSame ? 'single' : 'range',
+      singleDate: isSame ? dayjs(rec.startDate) : undefined,
+      rangeDate: !isSame ? [dayjs(rec.startDate), dayjs(rec.endDate)] : undefined,
+      dayCount: rec.dayCount,
+      title: rec.title,
+      description: rec.description,
+    });
+  }, [open, editing, form]);
+
+  // 🔁 อัปเดต dayCount อัตโนมัติเมื่อผู้ใช้เปลี่ยนวันที่
   useEffect(() => {
     if (dateMode === 'single' && singleDate) {
       form.setFieldsValue({ dayCount: 1 });
     } else if (dateMode === 'range' && rangeDate?.[0] && rangeDate?.[1]) {
-      form.setFieldsValue({
-        dayCount: countInclusiveDays(rangeDate[0], rangeDate[1]),
-      });
+      form.setFieldsValue({ dayCount: countInclusiveDays(rangeDate[0], rangeDate[1]) });
     }
   }, [dateMode, singleDate, rangeDate, form]);
-
-  // 🔹 เวลาเปิด Modal ให้เติมค่าฟอร์มตามโหมด (เพิ่ม/แก้ไข)
-  useEffect(() => {
-    if (!open) return;
-
-    if (!editing) {
-      // โหมดเพิ่มใหม่
-      form.resetFields();
-      form.setFieldsValue({
-        calendarType: 'holiday',
-        dateMode: 'single',
-        isHoliday: false,
-        singleDate: undefined,
-        rangeDate: undefined,
-        dayCount: undefined,
-        title: '',
-        description: '',
-      });
-      return;
-    }
-
-    // โหมดแก้ไข
-    const isSame = editing.startDate === editing.endDate;
-
-    form.resetFields();
-    form.setFieldsValue({
-      id: editing.id,
-      calendarType: editing.calendarType,
-      isHoliday: !!editing.isHoliday,
-      dateMode: isSame ? 'single' : 'range',
-      singleDate: isSame ? dayjs(editing.startDate) : undefined,
-      rangeDate: !isSame ? [dayjs(editing.startDate), dayjs(editing.endDate)] : undefined,
-      dayCount: editing.dayCount,
-      title: editing.title,
-      description: editing.description,
-    });
-  }, [open, editing, form]);
 
   return (
     <div style={{ padding: 24 }}>
@@ -330,10 +312,7 @@ export default function ScheduleManagePage() {
       <Space direction="vertical" style={{ width: '100%' }} size={10}>
         <Row>
           <Col span={12}>
-            <Typography.Title
-              level={4}
-              style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}
-            >
+            <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}>
               จัดการปฏิทิน
             </Typography.Title>
           </Col>
@@ -356,13 +335,7 @@ export default function ScheduleManagePage() {
         />
 
         <div className="chemds-container">
-          <Space
-            style={{
-              marginBottom: 12,
-              display: 'flex',
-              justifyContent: 'right',
-            }}
-          >
+          <Space style={{ marginBottom: 12, display: 'flex', justifyContent: 'right' }}>
             <Button type="primary" onClick={onAdd}>
               เพิ่มกำหนดการ
             </Button>
@@ -384,10 +357,10 @@ export default function ScheduleManagePage() {
           onCancel={handleCancel}
           okText="บันทึก"
           cancelText="ยกเลิก"
-          destroyOnClose
+          destroyOnHidden={true}
         >
           <Form form={form} layout="vertical" preserve={false}>
-            {/* ซ่อน id ไว้ใช้ตอน update */}
+            {/* hidden id ไว้เผื่อใช้เพิ่มเติม (ไม่จำเป็นต้องใช้เช็คใน handleOk แล้ว) */}
             <Form.Item name="id" hidden>
               <Input />
             </Form.Item>
