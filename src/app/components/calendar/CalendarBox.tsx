@@ -49,7 +49,7 @@ const users: UserRef[] = [
 const monthsShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const CAL_TYPE_LABEL: Record<CalendarType, string> = {
-  standard: 'ปฏิทินวันหยุดราชการ',
+  holiday: 'ปฏิทินวันหยุดราชการ',
   academic: 'ปฏิทินการศึกษา',
   fiscal:   'ปฏิทินปีงบประมาณ',
 };
@@ -59,7 +59,7 @@ const CALENDAR_TYPE_STYLES: Record<
   CalendarType,
   { bg: string; border: string; text: string }
 > = {
-  standard: { bg: '#E6F7FF', border: '#91D5FF', text: '#003A8C' },
+  holiday: { bg: '#E6F7FF', border: '#91D5FF', text: '#003A8C' },
   academic: { bg: '#F9F0FF', border: '#D3ADF7', text: '#391085' },
   fiscal:   { bg: '#F6FFED', border: '#B7EB8F', text: '#135200' },
 };
@@ -124,7 +124,7 @@ const getBarPosition = (value: Dayjs, s: CalendarSchedule): BarPosition => {
 
 
 export default function CalendarBox({ viewMode }: CalendarBoxProps) {
-  const [selectedCalendars, setSelectedCalendars] = useState<string[]>(['standard', 'academic', 'fiscal']);
+  const [selectedCalendars, setSelectedCalendars] = useState<string[]>(['holiday', 'academic', 'fiscal']);
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());
   const [showApprovedLeaves, setShowApprovedLeaves] = useState(true);
 
@@ -157,23 +157,23 @@ export default function CalendarBox({ viewMode }: CalendarBoxProps) {
   }, []);
 
   // กำหนดการ/วันหยุดของวัน
-const getSchedulesForDay = useCallback((value: Dayjs): CalendarSchedule[] => {
-  const orderType: Record<CalendarType, number> = { academic: 0, standard: 1, fiscal: 2 };
-  return calendarSchedulesMock
-    .filter((s) => selectedCalendars.includes(s.calendarType))
-    .filter((s) =>
-      value.isBetween(dayjs(s.startDate), dayjs(s.endDate), null, '[]')
-    )
-    .sort((a, b) => {
-      const lenA = dayjs(a.endDate).diff(dayjs(a.startDate), 'day');
-      const lenB = dayjs(b.endDate).diff(dayjs(b.startDate), 'day');
-      if (lenA !== lenB) return lenB - lenA;
-      if (orderType[a.calendarType] !== orderType[b.calendarType]) {
-        return orderType[a.calendarType] - orderType[b.calendarType];
-      }
-      return a.id.localeCompare(b.id);
-    });
-}, [selectedCalendars]);
+  const getSchedulesForDay = (value: Dayjs): CalendarSchedule[] => {
+    const orderType: Record<CalendarType, number> = { academic: 0, holiday: 1, fiscal: 2 };
+    return calendarSchedulesMock
+      .filter((s) => selectedCalendars.includes(s.calendarType))
+      .filter((s) =>
+        value.isBetween(dayjs(s.startDate), dayjs(s.endDate), null, '[]')
+      )
+      .sort((a, b) => {
+        const lenA = dayjs(a.endDate).diff(dayjs(a.startDate), 'day');
+        const lenB = dayjs(b.endDate).diff(dayjs(b.startDate), 'day');
+        if (lenA !== lenB) return lenB - lenA;                             // ช่วงยาวมาก่อน
+        if (orderType[a.calendarType] !== orderType[b.calendarType]) {
+          return orderType[a.calendarType] - orderType[b.calendarType];    // academic → holiday → fiscal
+        }
+        return a.id.localeCompare(b.id);
+      });
+  };
 
   // ลาที่อนุมัติของวัน
 const getLeavesForDay = useCallback((value: Dayjs): LeaveItem[] => {
@@ -351,7 +351,7 @@ const renderQuarterView = () => {
   // ===== Legend =====
   const Legend = () => (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-      {(['standard','academic','fiscal'] as const).map((t) => {
+      {(['holiday','academic','fiscal'] as const).map((t) => {
         const st = CALENDAR_TYPE_STYLES[t];
         const label = CAL_TYPE_LABEL[t];
         return (

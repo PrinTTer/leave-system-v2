@@ -1,25 +1,42 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-  Button, Table, Tag, Modal, Form, Input, DatePicker, Select, Checkbox, Space, Popconfirm, message,
+  Button,
+  Table,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  DatePicker,
+  Select,
+  Checkbox,
+  Space,
+  Popconfirm,
+  message,
   Breadcrumb,
   Row,
   Col,
-  Typography
+  Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
 import type { CalendarSchedule, CalendarType, HolidayCategory } from '@/types/calendar';
-import { calendarSchedulesMock } from '@/mock/calendarSchedules';
 import { classifyPublicHoliday, countInclusiveDays } from '@/utils/calendar';
-import { mergeMockWithDiff, loadDiff, saveDiff, buildDiffFromData } from '@/utils/scheduleStorage';
 import router from 'next/router';
+
+import {
+  fetchCalendarList,
+  createCalendar,
+  updateCalendar,
+  deleteCalendar,
+  type CalendarDto,
+} from '@/services/calendarApi';
 
 const { RangePicker } = DatePicker;
 
 const CALENDAR_TYPE_OPTIONS = [
-  { label: 'ปฏิทินวันหยุดราชการ', value: 'standard' },
+  { label: 'ปฏิทินวันหยุดราชการ', value: 'holiday' },
   { label: 'ปฏิทินการศึกษา', value: 'academic' },
   { label: 'ปฏิทินปีงบประมาณ', value: 'fiscal' },
 ];
@@ -28,191 +45,300 @@ type DateMode = 'single' | 'range';
 
 export default function ScheduleManagePage() {
   const [data, setData] = useState<CalendarSchedule[]>([]);
+  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CalendarSchedule | null>(null);
   const [form] = Form.useForm();
 
+  const [messageApi, contextHolder] = message.useMessage();
+
+  // 🔹 โหลดรายการปฏิทินจาก backend ครั้งแรก
   useEffect(() => {
-    const diff = loadDiff();
-    const merged = mergeMockWithDiff(calendarSchedulesMock, diff);
-    setData(merged);
+    const load = async () => {
+      try {
+        setLoading(true);
+        const rows = await fetchCalendarList();
+        // บังคับให้ id เป็น string ทั้งหมด
+        setData(rows.map((r) => ({ ...r, id: String(r.id) })));
+      } catch (err) {
+        console.error(err);
+        messageApi.error('โหลดข้อมูลปฏิทินไม่สำเร็จ');
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!data || data.length === 0) return;
-    const diff = buildDiffFromData(data, calendarSchedulesMock);
-    saveDiff(diff);
-  }, [data]);
-
-  const onAdd = useCallback(() => {
-    setEditing(null);
-    form.resetFields();
-    form.setFieldsValue({ calendarType: 'standard', dateMode: 'single' });
-    setOpen(true);
-  }, [form]);
-
+  // 🔹 กดปุ่ม "แก้ไข" → ให้จำ record ที่จะแก้ แล้วเปิด modal
   const onEdit = useCallback((rec: CalendarSchedule) => {
     setEditing(rec);
-    form.resetFields();
-    const isSame = rec.startDate === rec.endDate;
-    form.setFieldsValue({
-      id: rec.id,
-      calendarType: rec.calendarType,
-      isHoliday: !!rec.isHoliday,
-      dateMode: isSame ? 'single' : 'range',
-      singleDate: isSame ? dayjs(rec.startDate) : undefined,
-      rangeDate: !isSame ? [dayjs(rec.startDate), dayjs(rec.endDate)] : undefined,
-      dayCount: rec.dayCount,
-      title: rec.title,
-      description: rec.description,
-    });
     setOpen(true);
-  }, [form]);
-
-  const onDelete = useCallback((id: string) => {
-    setData(prev => prev.filter(i => i.id !== id));
-    message.success('ลบแล้ว');
   }, []);
 
-  const columns: ColumnsType<CalendarSchedule> = useMemo(() => [
-    {
-      title: 'วันที่',
-      dataIndex: 'startDate',
-      render: (_, rec) => {
-        const s = dayjs(rec.startDate).format('DD MMM YYYY');
-        const e = dayjs(rec.endDate).format('DD MMM YYYY');
-        return s === e ? s : `${s} - ${e}`;
-      },
-    },
-    {
-      title: 'จำนวนวัน',
-      dataIndex: 'dayCount',
-      width: 120,
-    },
-    {
-      title: 'ชนิดปฏิทิน',
-      dataIndex: 'calendarType',
-      width: 160,
-      render: (t: CalendarType) => {
-        const color = t === 'standard' ? 'blue' : t === 'academic' ? 'purple' : 'geekblue';
-        const label = t === 'standard' ? 'ธรรมดา' : t === 'academic' ? 'ปีการศึกษา' : 'ปีงบประมาณ';
-        return <Tag color={color}>{label}</Tag>;
-      },
-      filters: CALENDAR_TYPE_OPTIONS.map(o => ({ text: o.label, value: o.value })),
-      onFilter: (val, rec) => rec.calendarType === val,
-    },
-    {
-      title: 'ชื่อกิจกรรม',
-      dataIndex: 'title',
-      ellipsis: true,
-    },
-    {
-      title: 'รายละเอียด',
-      dataIndex: 'description',
-      ellipsis: true,
-    },
-    {
-      title: 'หมวดวันหยุด (เฉพาะธรรมดา)',
-      dataIndex: 'holidayCategory',
-      width: 220,
-      render: (hc?: HolidayCategory, rec?: CalendarSchedule) => {
-        if (!(rec?.calendarType === 'standard' && rec?.isHoliday)) return null;
-        const text = hc === 'public_contiguous' ? 'นักขัตฤกษ์ (ต่อเนื่องกับ ส.-อา.)' : 'นักขัตฤกษ์ (ไม่ต่อเนื่อง)';
-        const color = hc === 'public_contiguous' ? 'green' : 'gold';
-        return <Tag color={color}>{text}</Tag>;
-      },
-      filters: [
-        { text: 'นักขัตฯ ต่อเนื่อง', value: 'public_contiguous' },
-        { text: 'นักขัตฯ ไม่ต่อเนื่อง', value: 'public_non_contiguous' },
-      ],
-      onFilter: (val, rec) => rec.holidayCategory === val,
-    },
-    {
-      title: 'การทำงาน',
-      key: 'actions',
-      fixed: 'right',
-      width: 160,
-      render: (_, rec) => (
-        <Space>
-          <Button size="small" onClick={() => onEdit(rec)}>แก้ไข</Button>
-          <Popconfirm title="ลบกำหนดการนี้?" onConfirm={() => onDelete(rec.id)}>
-            <Button size="small" danger>ลบ</Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ], [onEdit, onDelete]);
-
-  const handleOk = async () => {
-    const v = await form.validateFields();
-
-    let start: Dayjs;
-    let end: Dayjs;
-    if (v.dateMode === 'single') {
-      start = v.singleDate.startOf('day');
-      end = v.singleDate.startOf('day');
-    } else {
-      start = v.rangeDate[0].startOf('day');
-      end = v.rangeDate[1].startOf('day');
-    }
-
-    const dayCount = countInclusiveDays(start, end);
-
-    let holidayCategory: HolidayCategory | undefined = undefined;
-    if (v.calendarType === 'standard' && v.isHoliday) {
-      holidayCategory = classifyPublicHoliday(start, end);
-    }
-
-    const payload: CalendarSchedule = {
-      id: v.id ?? `ev-${Math.random().toString(36).slice(2, 8)}`,
-      calendarType: v.calendarType,
-      title: v.title,
-      description: v.description || '',
-      startDate: start.format('YYYY-MM-DD'),
-      endDate: end.format('YYYY-MM-DD'),
-      dayCount,
-      isHoliday: v.calendarType === 'standard' ? !!v.isHoliday : undefined,
-      holidayCategory,
-    };
-
-    setData(prev => {
-      const idx = prev.findIndex(i => i.id === payload.id);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = payload;
-        return next;
+  // 🔹 กดปุ่ม "ลบ"
+  const onDeleteClick = useCallback(
+    async (id: string) => {
+      try {
+        await deleteCalendar(id);
+        setData((prev) => prev.filter((i) => i.id !== id));
+        messageApi.success('ลบแล้ว');
+      } catch (err) {
+        console.error(err);
+        messageApi.error('ลบกำหนดการไม่สำเร็จ');
       }
-      return [payload, ...prev];
-    });
+    },
+    [messageApi],
+  );
 
-    message.success(editing ? 'บันทึกการแก้ไขแล้ว' : 'เพิ่มกำหนดการแล้ว');
-    setOpen(false);
+  // 🔹 กดปุ่ม "เพิ่มกำหนดการ"
+  const onAdd = useCallback(() => {
+    setEditing(null);
+    setOpen(true);
+  }, []);
+
+  // 🔹 คอลัมน์ของ Table
+  const columns: ColumnsType<CalendarSchedule> = useMemo(
+    () => [
+      {
+        title: 'วันที่',
+        dataIndex: 'startDate',
+        render: (_, rec) => {
+          const s = dayjs(rec.startDate).format('DD MMM YYYY');
+          const e = dayjs(rec.endDate).format('DD MMM YYYY');
+          return s === e ? s : `${s} - ${e}`;
+        },
+      },
+      {
+        title: 'จำนวนวัน',
+        dataIndex: 'dayCount',
+        width: 120,
+      },
+      {
+        title: 'ชนิดปฏิทิน',
+        dataIndex: 'calendarType',
+        width: 160,
+        render: (t: CalendarType) => {
+          const color = t === 'holiday' ? 'blue' : t === 'academic' ? 'purple' : 'geekblue';
+          const label =
+            t === 'holiday'
+              ? 'วันหยุดราชการ'
+              : t === 'academic'
+              ? 'ปีการศึกษา'
+              : 'ปีงบประมาณ';
+          return <Tag color={color}>{label}</Tag>;
+        },
+        filters: CALENDAR_TYPE_OPTIONS.map((o) => ({
+          text: o.label,
+          value: o.value,
+        })),
+        onFilter: (val, rec) => rec.calendarType === val,
+      },
+      {
+        title: 'ชื่อกิจกรรม',
+        dataIndex: 'title',
+        ellipsis: true,
+      },
+      {
+        title: 'รายละเอียด',
+        dataIndex: 'description',
+        ellipsis: true,
+      },
+      {
+        title: 'หมวดวันหยุด (เฉพาะวันหยุด)',
+        dataIndex: 'holidayCategory',
+        width: 220,
+        render: (hc?: HolidayCategory, rec?: CalendarSchedule) => {
+          if (!(rec?.calendarType === 'holiday' && rec?.isHoliday)) return null;
+          const text =
+            hc === 'public_contiguous'
+              ? 'นักขัตฤกษ์ (ต่อเนื่องกับ ส.-อา.)'
+              : 'นักขัตฤกษ์ (ไม่ต่อเนื่อง)';
+          const color = hc === 'public_contiguous' ? 'green' : 'gold';
+          return <Tag color={color}>{text}</Tag>;
+        },
+        filters: [
+          { text: 'นักขัตฯ ต่อเนื่อง', value: 'public_contiguous' },
+          { text: 'นักขัตฯ ไม่ต่อเนื่อง', value: 'public_non_contiguous' },
+        ],
+        onFilter: (val, rec) => rec.holidayCategory === val,
+      },
+      {
+        title: 'การทำงาน',
+        key: 'actions',
+        fixed: 'right',
+        width: 160,
+        render: (_, rec) => (
+          <Space>
+            <Button size="small" onClick={() => onEdit(rec)}>
+              แก้ไข
+            </Button>
+            <Popconfirm
+              title="ลบกำหนดการนี้?"
+              onConfirm={() => onDeleteClick(rec.id)}
+              okText="ใช่"
+              cancelText="ยกเลิก"
+            >
+              <Button size="small" danger>
+                ลบ
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [onEdit, onDeleteClick],
+  );
+
+  // 🔹 กดปุ่ม "บันทึก" ใน Modal (ทั้งเพิ่มใหม่ + แก้ไข)
+  const handleOk = async () => {
+    try {
+      const v = await form.validateFields();
+
+      let start: Dayjs;
+      let end: Dayjs;
+
+      if (v.dateMode === 'single') {
+        start = v.singleDate.startOf('day');
+        end = v.singleDate.startOf('day');
+      } else {
+        start = v.rangeDate[0].startOf('day');
+        end = v.rangeDate[1].startOf('day');
+      }
+
+      const dayCount = countInclusiveDays(start, end);
+
+      let holidayCategory: HolidayCategory | undefined = undefined;
+      if (v.calendarType === 'holiday' && v.isHoliday) {
+        holidayCategory = classifyPublicHoliday(start, end);
+      }
+
+      const dto: CalendarDto = {
+        calendarType: v.calendarType,
+        title: v.title,
+        description: v.description || '',
+        startDate: start.format('YYYY-MM-DD'),
+        endDate: end.format('YYYY-MM-DD'),
+        isHoliday: v.calendarType === 'holiday' ? !!v.isHoliday : false,
+      };
+
+      let result: CalendarSchedule;
+
+      if (v.id) {
+        // 🔁 กรณี "แก้ไข"
+        result = await updateCalendar(String(v.id), dto);
+
+        const merged: CalendarSchedule = {
+          ...result,
+          id: String(result.id),
+          dayCount,
+          holidayCategory,
+        };
+
+        setData((prev) => prev.map((i) => (i.id === merged.id ? merged : i)));
+
+        messageApi.success('บันทึกการแก้ไขแล้ว');
+      } else {
+        // ➕ กรณี "เพิ่มใหม่"
+        result = await createCalendar(dto);
+
+        const merged: CalendarSchedule = {
+          ...result,
+          id: String(result.id),
+          dayCount,
+          holidayCategory,
+        };
+
+        setData((prev) => [merged, ...prev]);
+        messageApi.success('เพิ่มกำหนดการแล้ว');
+      }
+
+      setOpen(false);
+    } catch (err: unknown) {
+      console.error(err);
+
+      // error จาก validateFields (เช่น ลืมกรอก) → แค่ให้ AntD ทำ highlight
+      if (typeof err === 'object' && err !== null && 'errorFields' in err) {
+        return;
+      }
+
+      messageApi.error('บันทึกกำหนดการไม่สำเร็จ');
+    }
   };
 
   const handleCancel = () => setOpen(false);
+
+  // 🔹 watch ค่าที่เกี่ยวกับวันที่
   const calendarType = Form.useWatch('calendarType', form) as CalendarType | undefined;
   const dateMode = Form.useWatch('dateMode', form) as DateMode | undefined;
   const singleDate = Form.useWatch('singleDate', form) as Dayjs | undefined;
   const rangeDate = Form.useWatch('rangeDate', form) as [Dayjs, Dayjs] | undefined;
 
+  // 🔹 เวลาเปลี่ยนวันที่ให้คำนวณ dayCount อัตโนมัติ
   useEffect(() => {
     if (dateMode === 'single' && singleDate) {
       form.setFieldsValue({ dayCount: 1 });
     } else if (dateMode === 'range' && rangeDate?.[0] && rangeDate?.[1]) {
-      form.setFieldsValue({ dayCount: countInclusiveDays(rangeDate[0], rangeDate[1]) });
+      form.setFieldsValue({
+        dayCount: countInclusiveDays(rangeDate[0], rangeDate[1]),
+      });
     }
   }, [dateMode, singleDate, rangeDate, form]);
 
+  // 🔹 เวลาเปิด Modal ให้เติมค่าฟอร์มตามโหมด (เพิ่ม/แก้ไข)
+  useEffect(() => {
+    if (!open) return;
+
+    if (!editing) {
+      // โหมดเพิ่มใหม่
+      form.resetFields();
+      form.setFieldsValue({
+        calendarType: 'holiday',
+        dateMode: 'single',
+        isHoliday: false,
+        singleDate: undefined,
+        rangeDate: undefined,
+        dayCount: undefined,
+        title: '',
+        description: '',
+      });
+      return;
+    }
+
+    // โหมดแก้ไข
+    const isSame = editing.startDate === editing.endDate;
+
+    form.resetFields();
+    form.setFieldsValue({
+      id: editing.id,
+      calendarType: editing.calendarType,
+      isHoliday: !!editing.isHoliday,
+      dateMode: isSame ? 'single' : 'range',
+      singleDate: isSame ? dayjs(editing.startDate) : undefined,
+      rangeDate: !isSame ? [dayjs(editing.startDate), dayjs(editing.endDate)] : undefined,
+      dayCount: editing.dayCount,
+      title: editing.title,
+      description: editing.description,
+    });
+  }, [open, editing, form]);
+
   return (
     <div style={{ padding: 24 }}>
-      <Space direction="vertical" style={{ width: "100%" }} size={10}>
+      {contextHolder}
+
+      <Space direction="vertical" style={{ width: '100%' }} size={10}>
         <Row>
           <Col span={12}>
-            <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}>
-              จัดกรปฏิทิน
+            <Typography.Title
+              level={4}
+              style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}
+            >
+              จัดการปฏิทิน
             </Typography.Title>
           </Col>
         </Row>
+
         <Breadcrumb
           items={[
             {
@@ -220,24 +346,33 @@ export default function ScheduleManagePage() {
                 <a
                   onClick={() => {
                     router.push(`/private/calendar/manage`);
-                  }}>
+                  }}
+                >
                   จัดการปฏิทิน
                 </a>
               ),
             },
-
           ]}
         />
 
-
         <div className="chemds-container">
-          <Space style={{ marginBottom: 12, display: "flex", justifyContent: "right" }}>
-            <Button type="primary" onClick={onAdd}>เพิ่มกำหนดการ</Button>
+          <Space
+            style={{
+              marginBottom: 12,
+              display: 'flex',
+              justifyContent: 'right',
+            }}
+          >
+            <Button type="primary" onClick={onAdd}>
+              เพิ่มกำหนดการ
+            </Button>
           </Space>
+
           <Table
             rowKey="id"
             columns={columns}
             dataSource={data}
+            loading={loading}
             scroll={{ x: 1000 }}
           />
         </div>
@@ -249,10 +384,13 @@ export default function ScheduleManagePage() {
           onCancel={handleCancel}
           okText="บันทึก"
           cancelText="ยกเลิก"
-          destroyOnHidden
+          destroyOnClose
         >
           <Form form={form} layout="vertical" preserve={false}>
-            <Form.Item name="id" hidden><Input /></Form.Item>
+            {/* ซ่อน id ไว้ใช้ตอน update */}
+            <Form.Item name="id" hidden>
+              <Input />
+            </Form.Item>
 
             <Form.Item
               label="ชนิดของปฏิทิน"
@@ -262,8 +400,7 @@ export default function ScheduleManagePage() {
               <Select options={CALENDAR_TYPE_OPTIONS} />
             </Form.Item>
 
-            {/* เฉพาะปฏิทินวันหยุดราชการ: flag วันหยุดนักขัตฤกษ์ (ใช้เพื่อจัดหมวดต่อเนื่อง/ไม่ต่อเนื่อง) */}
-            {calendarType === 'standard' && (
+            {calendarType === 'holiday' && (
               <Form.Item name="isHoliday" valuePropName="checked">
                 <Checkbox>วันหยุดนักขัตฤกษ์</Checkbox>
               </Form.Item>
