@@ -8,6 +8,7 @@ import {
   Row,
   Segmented,
   Space,
+  Spin,
   Typography,
 } from 'antd';
 import dynamic from 'next/dynamic';
@@ -125,13 +126,11 @@ export default function CalendarPage() {
           variant="borderless"
           style={{ margin: '16px auto 0' }}
         >
-          {/* ✅ ใช้ schedules จาก backend */}
-          <ScheduleTable
-            schedules={schedules}
-            viewMode={viewMode}
-            // ถ้า ScheduleTable รองรับ prop loading ก็ใส่ได้
-            // loading={loadingSchedules}
-          />
+          {loadingSchedules ? (
+            <Spin />
+          ) : (
+            <ScheduleTable schedules={schedules} viewMode={viewMode} />
+          )}
         </Card>
 
         <Card

@@ -357,9 +357,8 @@ export default function ScheduleManagePage() {
           onCancel={handleCancel}
           okText="บันทึก"
           cancelText="ยกเลิก"
-          destroyOnHidden={true}
         >
-          <Form form={form} layout="vertical" preserve={false}>
+          <Form form={form} layout="vertical">
             {/* hidden id ไว้เผื่อใช้เพิ่มเติม (ไม่จำเป็นต้องใช้เช็คใน handleOk แล้ว) */}
             <Form.Item name="id" hidden>
               <Input />
