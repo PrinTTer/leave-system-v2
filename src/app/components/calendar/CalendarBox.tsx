@@ -125,13 +125,16 @@ const pickLabelWeekForSchedule = (s: CalendarSchedule) => {
 };
 
 const getBarPosition = (value: Dayjs, s: CalendarSchedule): BarPosition => {
-  const sStart = dayjs(s.startDate);
-  const sEnd = dayjs(s.endDate);
+  const day   = value.startOf('day');
+  const sStart = dayjs(s.startDate).startOf('day');
+  const sEnd   = dayjs(s.endDate).startOf('day');
+
   if (sStart.isSame(sEnd, 'day')) return 'single';
-  if (value.isSame(sStart, 'day')) return 'start';
-  if (value.isSame(sEnd, 'day')) return 'end';
+  if (day.isSame(sStart, 'day'))  return 'start';
+  if (day.isSame(sEnd, 'day'))    return 'end';
   return 'middle';
 };
+
 // -------------------------------------------
 
 export default function CalendarBox({ viewMode, schedules }: CalendarBoxProps) {
@@ -182,35 +185,38 @@ export default function CalendarBox({ viewMode, schedules }: CalendarBoxProps) {
 
   // ====== ดึง schedules สำหรับแต่ละวันจาก props.schedules แทน mock ======
   const getSchedulesForDay = useCallback(
-    (value: Dayjs): CalendarSchedule[] => {
-      const orderType: Record<CalendarType, number> = {
-        academic: 0,
-        holiday: 1,
-        fiscal: 2,
-      };
+  (value: Dayjs): CalendarSchedule[] => {
+    const orderType: Record<CalendarType, number> = {
+      academic: 0,
+      holiday: 1,
+      fiscal: 2,
+    };
 
-      return schedules
-        .filter((s) => selectedCalendars.includes(s.calendarType))
-        .filter((s) =>
-          value.isBetween(
-            dayjs(s.startDate),
-            dayjs(s.endDate),
-            null,
-            '[]',
-          ),
-        )
-        .sort((a, b) => {
-          const lenA = dayjs(a.endDate).diff(dayjs(a.startDate), 'day');
-          const lenB = dayjs(b.endDate).diff(dayjs(b.startDate), 'day');
-          if (lenA !== lenB) return lenB - lenA; // ช่วงยาวมาก่อน
-          if (orderType[a.calendarType] !== orderType[b.calendarType]) {
-            return orderType[a.calendarType] - orderType[b.calendarType]; // academic → holiday → fiscal
-          }
-          return a.id.localeCompare(b.id);
-        });
-    },
-    [schedules, selectedCalendars],
-  );
+    const day = value.startOf('day');
+
+    return schedules
+      .filter((s) => selectedCalendars.includes(s.calendarType))
+      .filter((s) =>
+        day.isBetween(
+          dayjs(s.startDate).startOf('day'),
+          dayjs(s.endDate).startOf('day'),
+          'day',   // 👈 เทียบระดับ "วัน"
+          '[]',
+        ),
+      )
+      .sort((a, b) => {
+        const lenA = dayjs(a.endDate).diff(dayjs(a.startDate), 'day');
+        const lenB = dayjs(b.endDate).diff(dayjs(b.startDate), 'day');
+        if (lenA !== lenB) return lenB - lenA; // ช่วงยาวมาก่อน
+        if (orderType[a.calendarType] !== orderType[b.calendarType]) {
+          return orderType[a.calendarType] - orderType[b.calendarType];
+        }
+        return a.id.localeCompare(b.id);
+      });
+  },
+  [schedules, selectedCalendars],
+);
+
 
   // ✅ ทำให้ getLeavesForDay เป็น useCallback แล้วผูกกับ visibleUserIds
   const getLeavesForDay = useCallback(
@@ -287,51 +293,24 @@ export default function CalendarBox({ viewMode, schedules }: CalendarBoxProps) {
   );
 
   // ===== แถวล่าง: แถบกำหนดการ =====
-  const renderScheduleBars = useCallback(
-    (value: Dayjs) => {
-      const schedulesForDay = getSchedulesForDay(value);
-      const maxBars = 3;
-      const overflowCount = Math.max(0, schedulesForDay.length - maxBars);
+const renderScheduleBars = useCallback(
+  (value: Dayjs) => {
+    const schedulesForDay = getSchedulesForDay(value);
+    const maxBars = 3;
+    const overflowCount = Math.max(0, schedulesForDay.length - maxBars);
 
-      return (
-        <ul className="tt-sched-list">
-          {schedulesForDay.slice(0, maxBars).map((s, idx, arr) => {
-            const style = CALENDAR_TYPE_STYLES[s.calendarType];
-            const pos = getBarPosition(value, s);
+    return (
+      <ul className="tt-sched-list">
+        {schedulesForDay.slice(0, maxBars).map((s, idx, arr) => {
+          const style = CALENDAR_TYPE_STYLES[s.calendarType];
+          const pos = getBarPosition(value, s);
+          const isLastRow = idx === arr.length - 1;
 
-            const best = pickLabelWeekForSchedule(s);
-            const showLabel =
-              !!best &&
-              startOfWeek(value).isSame(best.weekStart, 'day') &&
-              value.isSame(best.labelDay, 'day');
+          // ✅ เช็คว่าเป็นกำหนดการวันเดียว
+          const isSingleDay = dayjs(s.startDate).isSame(dayjs(s.endDate), 'day');
 
-            const radius: string | number =
-              pos === 'single'
-                ? 6
-                : pos === 'start'
-                ? '6px 0 0 6px'
-                : pos === 'end'
-                ? '0 6px 6px 0'
-                : '0';
-
-            const bridgeStyle: CSSProperties = {
-              width: '100%',
-              height: '100%',
-            };
-            if (pos === 'start') {
-              bridgeStyle.marginRight = -BRIDGE_PX;
-              bridgeStyle.width = `calc(100% + ${BRIDGE_PX}px)`;
-            } else if (pos === 'middle') {
-              bridgeStyle.marginLeft = -BRIDGE_PX;
-              bridgeStyle.marginRight = -BRIDGE_PX;
-              bridgeStyle.width = `calc(100% + ${BRIDGE_PX * 2}px)`;
-            } else if (pos === 'end') {
-              bridgeStyle.marginLeft = -BRIDGE_PX;
-              bridgeStyle.width = `calc(100% + ${BRIDGE_PX}px)`;
-            }
-
-            const isLastRow = idx === arr.length - 1;
-
+          // ---------- เคส 1: event 1 วัน -> ให้ label โชว์เสมอ ----------
+          if (isSingleDay) {
             return (
               <li
                 key={`${s.id}-${value.format('YYYYMMDD')}`}
@@ -344,36 +323,98 @@ export default function CalendarBox({ viewMode, schedules }: CalendarBoxProps) {
                     background: style.bg,
                     border: `1px solid ${style.border}`,
                     color: style.text,
-                    borderRadius: radius,
+                    borderRadius: 6,
                     padding: '2px 6px',
                     fontSize: 12,
                     lineHeight: 1.25,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    textAlign: showLabel ? 'center' : 'left',
+                    textAlign: 'center',
                     boxSizing: 'border-box',
-                    position: 'relative',
-                    ...bridgeStyle,
+                    height: '100%',
                   }}
                 >
-                  {pos === 'single'
-                    ? shortLabel(s.title)
-                    : showLabel
-                    ? shortLabel(s.title)
-                    : '\u00A0'}
+                  {shortLabel(s.title)}
                   {isLastRow && overflowCount > 0 && (
                     <span className="tt-more">+{overflowCount}</span>
                   )}
                 </div>
               </li>
             );
-          })}
-        </ul>
-      );
-    },
-    [getSchedulesForDay],
-  );
+          }
+
+          // ---------- เคส 2: event หลายวัน (ใช้ logic เดิม) ----------
+          const best = pickLabelWeekForSchedule(s);
+          const showLabel =
+            !!best &&
+            startOfWeek(value).isSame(best.weekStart, 'day') &&
+            value.isSame(best.labelDay, 'day');
+
+          const radius: string | number =
+            pos === 'single'
+              ? 6
+              : pos === 'start'
+              ? '6px 0 0 6px'
+              : pos === 'end'
+              ? '0 6px 6px 0'
+              : '0';
+
+          const bridgeStyle: CSSProperties = {
+            width: '100%',
+            height: '100%',
+          };
+          if (pos === 'start') {
+            bridgeStyle.marginRight = -BRIDGE_PX;
+            bridgeStyle.width = `calc(100% + ${BRIDGE_PX}px)`;
+          } else if (pos === 'middle') {
+            bridgeStyle.marginLeft = -BRIDGE_PX;
+            bridgeStyle.marginRight = -BRIDGE_PX;
+            bridgeStyle.width = `calc(100% + ${BRIDGE_PX * 2}px)`;
+          } else if (pos === 'end') {
+            bridgeStyle.marginLeft = -BRIDGE_PX;
+            bridgeStyle.width = `calc(100% + ${BRIDGE_PX}px)`;
+          }
+
+          return (
+            <li
+              key={`${s.id}-${value.format('YYYYMMDD')}`}
+              className="tt-sched-item"
+            >
+              <div
+                className="tt-bar"
+                title={s.title}
+                style={{
+                  background: style.bg,
+                  border: `1px solid ${style.border}`,
+                  color: style.text,
+                  borderRadius: radius,
+                  padding: '2px 6px',
+                  fontSize: 12,
+                  lineHeight: 1.25,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  textAlign: showLabel ? 'center' : 'left',
+                  boxSizing: 'border-box',
+                  position: 'relative',
+                  ...bridgeStyle,
+                }}
+              >
+                {showLabel ? shortLabel(s.title) : '\u00A0'}
+                {isLastRow && overflowCount > 0 && (
+                  <span className="tt-more">+{overflowCount}</span>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  },
+  [getSchedulesForDay],
+);
+
 
   /** มุมมอง 4 เดือน (current + next 3) และล็อก 3 กล่องหลัง */
   const renderQuarterView = () => {
