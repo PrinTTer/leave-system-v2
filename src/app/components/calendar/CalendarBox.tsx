@@ -1,4 +1,5 @@
 'use client';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Calendar, Button, Avatar, Tooltip, Flex, Modal, Tag, Divider } from 'antd';
@@ -7,76 +8,30 @@ import dayjs, { Dayjs } from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 
 import CalendarMultiSelect from '../FormElements/CalendarMultiSelect';
-import { leavesMock } from '@/mock/leaves';
-import type {
-  LeaveItem,
-  UserRef,
-  CalendarSchedule,
-  CalendarType,
-} from '@/types/calendar';
+import type { LeaveItem, CalendarSchedule, CalendarType } from '@/types/calendar';
 
 dayjs.extend(isBetween);
 
-// ---------- เพิ่ม type props ตรงนี้ ----------
 type CalendarBoxProps = {
   viewMode: 'month' | 'quarter';
   schedules: CalendarSchedule[];
 };
-// ---------------------------------------------
-
-const users: UserRef[] = [
-  { id: '1', name: 'John Doe' },
-  { id: '2', name: 'Jane Smith' },
-  { id: '3', name: 'Alice Johnson' },
-  { id: '4', name: 'Bob Brown' },
-  { id: '5', name: 'Charlie Davis' },
-  { id: '6', name: 'Diana Evans' },
-  { id: '7', name: 'Frank Green' },
-  { id: '8', name: 'Grace Harris' },
-  { id: '9', name: 'Hank Irving' },
-  { id: '10', name: 'Axl Rose' },
-  { id: '11', name: 'Jack King' },
-  { id: '12', name: 'Kathy Lee' },
-  { id: '13', name: 'Larry Moore' },
-  { id: '14', name: 'Mona Nelson' },
-  { id: '15', name: 'Nina Owens' },
-  { id: '16', name: 'Oscar Perez' },
-  { id: '17', name: 'Paula Quinn' },
-  { id: '18', name: 'Quincy Roberts' },
-  { id: '19', name: 'Rachel Scott' },
-  { id: '20', name: 'Steve Turner' },
-  { id: '21', name: 'Tina Underwood' },
-  { id: '22', name: 'Uma Vargas' },
-  { id: '23', name: 'Victor White' },
-  { id: '24', name: 'Wendy Xu' },
-  { id: '25', name: 'Xander Young' },
-  { id: '26', name: 'Yara Zimmerman' },
-  { id: '27', name: 'Zack Allen' },
-  { id: '28', name: 'Amy Baker' },
-  { id: '29', name: 'Brian Carter' },
-  { id: '30', name: 'Cathy Diaz' },
-];
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const monthsShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const CAL_TYPE_LABEL: Record<CalendarType, string> = {
   holiday: 'ปฏิทินวันหยุดราชการ',
   academic: 'ปฏิทินการศึกษา',
-  fiscal:   'ปฏิทินปีงบประมาณ',
+  fiscal: 'ปฏิทินปีงบประมาณ',
 };
 
-// สีพื้นหลัง/กรอบ/ตัวอักษร แยกตามชนิดปฏิทิน
 const CALENDAR_TYPE_STYLES: Record<
   CalendarType,
   { bg: string; border: string; text: string }
 > = {
   holiday: { bg: '#E6F7FF', border: '#91D5FF', text: '#003A8C' },
   academic: { bg: '#F9F0FF', border: '#D3ADF7', text: '#391085' },
-  fiscal:   { bg: '#F6FFED', border: '#B7EB8F', text: '#135200' },
+  fiscal: { bg: '#F6FFED', border: '#B7EB8F', text: '#135200' },
 };
 
-// ----------------- Helpers -----------------
 type BarPosition = 'single' | 'start' | 'middle' | 'end';
 
 const shortLabel = (title: string) => {
@@ -88,7 +43,7 @@ const shortLabel = (title: string) => {
 };
 
 const BRIDGE_PX = 8;
-const startOfWeek = (d: Dayjs) => d.startOf('week'); // อาทิตย์-เสาร์
+const startOfWeek = (d: Dayjs) => d.startOf('week');
 const endOfWeek = (d: Dayjs) => d.endOf('week');
 
 const weekSegmentOf = (date: Dayjs, s: CalendarSchedule) => {
@@ -108,7 +63,11 @@ const pickLabelWeekForSchedule = (s: CalendarSchedule) => {
   const sEnd = dayjs(s.endDate).startOf('day');
   let bestWeekStart: Dayjs | null = null;
   let bestLen = -1;
-  for (let w = startOfWeek(sStart); !w.isAfter(endOfWeek(sEnd), 'day'); w = w.add(1, 'week')) {
+  for (
+    let w = startOfWeek(sStart);
+    !w.isAfter(endOfWeek(sEnd), 'day');
+    w = w.add(1, 'week')
+  ) {
     const seg = weekSegmentOf(w, s);
     if (seg.valid && seg.len > bestLen) {
       bestLen = seg.len;
@@ -125,15 +84,158 @@ const pickLabelWeekForSchedule = (s: CalendarSchedule) => {
 };
 
 const getBarPosition = (value: Dayjs, s: CalendarSchedule): BarPosition => {
-  const day   = value.startOf('day');
+  const day = value.startOf('day');
   const sStart = dayjs(s.startDate).startOf('day');
-  const sEnd   = dayjs(s.endDate).startOf('day');
+  const sEnd = dayjs(s.endDate).startOf('day');
 
   if (sStart.isSame(sEnd, 'day')) return 'single';
-  if (day.isSame(sStart, 'day'))  return 'start';
-  if (day.isSame(sEnd, 'day'))    return 'end';
+  if (day.isSame(sStart, 'day')) return 'start';
+  if (day.isSame(sEnd, 'day')) return 'end';
   return 'middle';
 };
+
+// ---------- extra type & mocks ----------
+type LeaveItemWithReason = LeaveItem & {
+  reason?: string;
+};
+
+/**
+ * ✅ mock getUserList แบบง่าย ๆ ในไฟล์นี้ไปก่อน
+ * ใช้ type UserList ที่ประกาศ global ใน src/types/user.d.ts
+ * (ไม่ต้อง import UserList)
+ */
+async function getUserList(params: {
+  page: number;
+  limit: number;
+}): Promise<UserList> {
+  const mock: UserList = {
+    data: [
+      {
+        id: 1,
+        uid: 'mock-1',
+        nontriAccount: 'mock.nontri1',
+        name: 'วรัญญา',
+        surname: 'อรรถเสนา',
+        kuMail: 'mock1@ku.th',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      },
+      {
+        id: 2,
+        uid: 'mock-2',
+        nontriAccount: 'mock.nontri2',
+        name: 'สมชาย',
+        surname: 'ใจดี',
+        kuMail: 'mock2@ku.th',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      },
+      {
+        id: 3,
+        uid: 'mock-3',
+        nontriAccount: 'mock.nontri3',
+        name: 'สมหญิง',
+        surname: 'แสนดี',
+        kuMail: 'mock3@ku.th',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      },
+      {
+        id: 4,
+        uid: 'mock-4',
+        nontriAccount: 'mock.nontri4',
+        name: 'จิรภัทร',
+        surname: 'วงศ์ทอง',
+        kuMail: 'mock4@ku.th',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      },
+    ],
+    page: 1,
+    totalPage: 1,
+    limit: params.limit,
+    totalCount: 4,
+  };
+
+  return mock;
+}
+
+/**
+ * ✅ mock รายการการลาแบบง่าย ๆ สำหรับ user 1–4
+ */
+const leaveCalendarMock: LeaveItemWithReason[] = [
+  {
+    id: '1',
+    userId: '1',
+    startDate: '2025-11-03',
+    endDate: '2025-11-05',
+    type: 'vacation',
+    status: 'approved',
+    reason: 'ไปต่างจังหวัด',
+  },
+  {
+    id: '2',
+    userId: '2',
+    startDate: '2025-11-07',
+    endDate: '2025-11-07',
+    type: 'sick',
+    status: 'approved',
+    reason: 'เป็นไข้',
+  },
+  {
+    id: '3',
+    userId: '3',
+    startDate: '2025-11-10',
+    endDate: '2025-11-12',
+    type: 'personal',
+    status: 'pending',
+    reason: 'ธุระส่วนตัว',
+  },
+  {
+    id: '4',
+    userId: '4',
+    startDate: '2025-11-15',
+    endDate: '2025-11-16',
+    type: 'training',
+    status: 'approved',
+    reason: 'อบรมพัฒนาบุคลากร',
+  },
+  {
+    id: '5',
+    userId: '1',
+    startDate: '2025-11-20',
+    endDate: '2025-11-20',
+    type: 'sick',
+    status: 'rejected',
+    reason: 'ส่งเอกสารไม่ครบ',
+  },
+];
+
+/**
+ * ✅ mock ฟังก์ชัน getLeavesForCalendar แทน service จริง
+ * - viewerUserId = 1 → เห็น userId: '1','2','3','4'
+ * - filter เฉพาะช่วงวันที่ที่ overlap กับ monthStart / monthEnd
+ */
+async function getLeavesForCalendar(
+  viewerUserId: number,
+  startDate: string,
+  endDate: string,
+): Promise<LeaveItemWithReason[]> {
+  const visibleUserIds: string[] =
+    viewerUserId === 1 ? ['1', '2', '3', '4'] : [String(viewerUserId)];
+
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
+
+  return leaveCalendarMock.filter((leave) => {
+    if (!visibleUserIds.includes(leave.userId)) return false;
+
+    const s = dayjs(leave.startDate);
+    const e = dayjs(leave.endDate);
+
+    return s.isBefore(end.add(1, 'day')) && e.isAfter(start.subtract(1, 'day'));
+  });
+}
 
 // -------------------------------------------
 
@@ -150,10 +252,26 @@ export default function CalendarBox({ viewMode, schedules }: CalendarBoxProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailDate, setDetailDate] = useState<Dayjs | null>(null);
 
-  const userMap = useMemo(
-    () => new Map(users.map((u) => [u.id, u.name])),
-    [],
+  // map userId → ชื่อ (จาก mock getUserList)
+  const [userMap, setUserMap] = useState<Map<string, string>>(
+    () => new Map<string, string>(),
   );
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const res = await getUserList({ page: 1, limit: 100 });
+        const map = new Map<string, string>();
+        res.data.forEach((u) => {
+          map.set(String(u.id), `${u.name} ${u.surname}`);
+        });
+        setUserMap(map);
+      } catch (e) {
+        console.error('load users error', e);
+      }
+    };
+    loadUsers();
+  }, []);
 
   const getFiscalYear = (date: Dayjs) => {
     const year = date.year();
@@ -165,76 +283,94 @@ export default function CalendarBox({ viewMode, schedules }: CalendarBoxProps) {
     return `ปีงบประมาณที่ ${fiscalYear + 543} เดือนที่ ${fiscalMonth}`;
   };
 
-  // การตั้งค่าการมองเห็นผู้ใช้
-  const STORAGE_KEY = 'leaveVisibilitySelectedUserIds';
-  const [visibleUserIds, setVisibleUserIds] = useState<string[]>([]);
-  useEffect(() => {
-    const raw =
-      typeof window !== 'undefined'
-        ? localStorage.getItem(STORAGE_KEY)
-        : null;
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setVisibleUserIds(parsed.map(String));
-      } catch {
-        // ignore
-      }
-    }
-  }, []);
+  // state การลา ที่ดึงมาจาก getLeavesForCalendar
+  const [leaves, setLeaves] = useState<LeaveItem[]>([]);
+  const [, setLoadingLeaves] = useState(false); // ถ้าอยากใช้ spinner เพิ่มได้ภายหลัง
 
-  // ====== ดึง schedules สำหรับแต่ละวันจาก props.schedules แทน mock ======
-  const getSchedulesForDay = useCallback(
-  (value: Dayjs): CalendarSchedule[] => {
-    const orderType: Record<CalendarType, number> = {
-      academic: 0,
-      holiday: 1,
-      fiscal: 2,
+  useEffect(() => {
+    // ตอนนี้ fix viewerUserId = 1 ไปก่อน (แทน usermock)
+    const viewerUserId = 1;
+
+    const loadLeaves = async () => {
+      try {
+        setLoadingLeaves(true);
+
+        let rangeStart: Dayjs;
+        let rangeEnd: Dayjs;
+
+        if (viewMode === 'month') {
+          rangeStart = selectedDate.startOf('month');
+          rangeEnd = selectedDate.endOf('month');
+        } else {
+          const base = selectedDate.startOf('month');
+          rangeStart = base;
+          rangeEnd = base.add(3, 'month').endOf('month');
+        }
+
+        const data = await getLeavesForCalendar(
+          viewerUserId,
+          rangeStart.format('YYYY-MM-DD'),
+          rangeEnd.format('YYYY-MM-DD'),
+        );
+
+        setLeaves(data as LeaveItem[]);
+      } catch (e) {
+        console.error('load leaves error', e);
+      } finally {
+        setLoadingLeaves(false);
+      }
     };
 
-    const day = value.startOf('day');
+    loadLeaves();
+  }, [selectedDate, viewMode]);
 
-    return schedules
-      .filter((s) => selectedCalendars.includes(s.calendarType))
-      .filter((s) =>
-        day.isBetween(
-          dayjs(s.startDate).startOf('day'),
-          dayjs(s.endDate).startOf('day'),
-          'day',   // 👈 เทียบระดับ "วัน"
-          '[]',
-        ),
-      )
-      .sort((a, b) => {
-        const lenA = dayjs(a.endDate).diff(dayjs(a.startDate), 'day');
-        const lenB = dayjs(b.endDate).diff(dayjs(b.startDate), 'day');
-        if (lenA !== lenB) return lenB - lenA; // ช่วงยาวมาก่อน
-        if (orderType[a.calendarType] !== orderType[b.calendarType]) {
-          return orderType[a.calendarType] - orderType[b.calendarType];
-        }
-        return a.id.localeCompare(b.id);
-      });
-  },
-  [schedules, selectedCalendars],
-);
+  // ====== ดึง schedules สำหรับแต่ละวันจาก props.schedules ======
+  const getSchedulesForDay = useCallback(
+    (value: Dayjs): CalendarSchedule[] => {
+      const orderType: Record<CalendarType, number> = {
+        academic: 0,
+        holiday: 1,
+        fiscal: 2,
+      };
 
+      const day = value.startOf('day');
 
-  // ✅ ทำให้ getLeavesForDay เป็น useCallback แล้วผูกกับ visibleUserIds
+      return schedules
+        .filter((s) => selectedCalendars.includes(s.calendarType))
+        .filter((s) =>
+          day.isBetween(
+            dayjs(s.startDate).startOf('day'),
+            dayjs(s.endDate).startOf('day'),
+            'day',
+            '[]',
+          ),
+        )
+        .sort((a, b) => {
+          const lenA = dayjs(a.endDate).diff(dayjs(a.startDate), 'day');
+          const lenB = dayjs(b.endDate).diff(dayjs(b.startDate), 'day');
+          if (lenA !== lenB) return lenB - lenA; // ช่วงยาวมาก่อน
+          if (orderType[a.calendarType] !== orderType[b.calendarType]) {
+            return orderType[a.calendarType] - orderType[b.calendarType];
+          }
+          return a.id.localeCompare(b.id);
+        });
+    },
+    [schedules, selectedCalendars],
+  );
+
+  // ใช้ leaves จาก state ที่มาจาก getLeavesForCalendar
   const getLeavesForDay = useCallback(
     (value: Dayjs): LeaveItem[] =>
-      leavesMock.filter(
+      leaves.filter(
         (l) =>
           value.isBetween(
             dayjs(l.startDate),
             dayjs(l.endDate),
             null,
             '[]',
-          ) &&
-          l.status === 'approved' &&
-          (visibleUserIds.length
-            ? visibleUserIds.includes(l.userId)
-            : true),
+          ) && l.status === 'approved',
       ),
-    [visibleUserIds],
+    [leaves],
   );
 
   const openDetail = useCallback((date: Dayjs) => {
@@ -242,10 +378,11 @@ export default function CalendarBox({ viewMode, schedules }: CalendarBoxProps) {
     setDetailOpen(true);
   }, []);
 
-  // ===== แถวกลาง: โปรไฟล์ลา (จำกัด 1 + bubble จำนวนที่เหลือ) =====
+  // ===== แถวกลาง: โปรไฟล์ลา =====
   const renderLeaveRow = useCallback(
     (value: Dayjs) => {
       if (!showApprovedLeaves) return <div className="tt-leave-row" />;
+
       const leaves = getLeavesForDay(value);
       if (!leaves.length) return <div className="tt-leave-row" />;
 
@@ -258,14 +395,12 @@ export default function CalendarBox({ viewMode, schedules }: CalendarBoxProps) {
           .join('')
           .toUpperCase();
 
+      const name = userMap.get(first.userId) ?? `User ${first.userId}`;
+
       return (
         <div className="tt-leave-row">
-          <Tooltip
-            title={`${userMap.get(first.userId) ?? 'User'} (${first.type})`}
-          >
-            <Avatar size={20}>
-              {getInitials(userMap.get(first.userId) ?? 'U')}
-            </Avatar>
+          <Tooltip title={`${name} (${first.type})`}>
+            <Avatar size={20}>{getInitials(name)}</Avatar>
           </Tooltip>
           {others > 0 && (
             <div
@@ -293,24 +428,86 @@ export default function CalendarBox({ viewMode, schedules }: CalendarBoxProps) {
   );
 
   // ===== แถวล่าง: แถบกำหนดการ =====
-const renderScheduleBars = useCallback(
-  (value: Dayjs) => {
-    const schedulesForDay = getSchedulesForDay(value);
-    const maxBars = 3;
-    const overflowCount = Math.max(0, schedulesForDay.length - maxBars);
+  const renderScheduleBars = useCallback(
+    (value: Dayjs) => {
+      const schedulesForDay = getSchedulesForDay(value);
+      const maxBars = 3;
+      const overflowCount = Math.max(0, schedulesForDay.length - maxBars);
 
-    return (
-      <ul className="tt-sched-list">
-        {schedulesForDay.slice(0, maxBars).map((s, idx, arr) => {
-          const style = CALENDAR_TYPE_STYLES[s.calendarType];
-          const pos = getBarPosition(value, s);
-          const isLastRow = idx === arr.length - 1;
+      return (
+        <ul className="tt-sched-list">
+          {schedulesForDay.slice(0, maxBars).map((s, idx, arr) => {
+            const style = CALENDAR_TYPE_STYLES[s.calendarType];
+            const pos = getBarPosition(value, s);
+            const isLastRow = idx === arr.length - 1;
 
-          // ✅ เช็คว่าเป็นกำหนดการวันเดียว
-          const isSingleDay = dayjs(s.startDate).isSame(dayjs(s.endDate), 'day');
+            const isSingleDay = dayjs(s.startDate).isSame(dayjs(s.endDate), 'day');
 
-          // ---------- เคส 1: event 1 วัน -> ให้ label โชว์เสมอ ----------
-          if (isSingleDay) {
+            if (isSingleDay) {
+              return (
+                <li
+                  key={`${s.id}-${value.format('YYYYMMDD')}`}
+                  className="tt-sched-item"
+                >
+                  <div
+                    className="tt-bar"
+                    title={s.title}
+                    style={{
+                      background: style.bg,
+                      border: `1px solid ${style.border}`,
+                      color: style.text,
+                      borderRadius: 6,
+                      padding: '2px 6px',
+                      fontSize: 12,
+                      lineHeight: 1.25,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      textAlign: 'center',
+                      boxSizing: 'border-box',
+                      height: '100%',
+                    }}
+                  >
+                    {shortLabel(s.title)}
+                    {isLastRow && overflowCount > 0 && (
+                      <span className="tt-more">+{overflowCount}</span>
+                    )}
+                  </div>
+                </li>
+              );
+            }
+
+            const best = pickLabelWeekForSchedule(s);
+            const showLabel =
+              !!best &&
+              startOfWeek(value).isSame(best.weekStart, 'day') &&
+              value.isSame(best.labelDay, 'day');
+
+            const radius: string | number =
+              pos === 'single'
+                ? 6
+                : pos === 'start'
+                ? '6px 0 0 6px'
+                : pos === 'end'
+                ? '0 6px 6px 0'
+                : '0';
+
+            const bridgeStyle: CSSProperties = {
+              width: '100%',
+              height: '100%',
+            };
+            if (pos === 'start') {
+              bridgeStyle.marginRight = -BRIDGE_PX;
+              bridgeStyle.width = `calc(100% + ${BRIDGE_PX}px)`;
+            } else if (pos === 'middle') {
+              bridgeStyle.marginLeft = -BRIDGE_PX;
+              bridgeStyle.marginRight = -BRIDGE_PX;
+              bridgeStyle.width = `calc(100% + ${BRIDGE_PX * 2}px)`;
+            } else if (pos === 'end') {
+              bridgeStyle.marginLeft = -BRIDGE_PX;
+              bridgeStyle.width = `calc(100% + ${BRIDGE_PX}px)`;
+            }
+
             return (
               <li
                 key={`${s.id}-${value.format('YYYYMMDD')}`}
@@ -323,105 +520,38 @@ const renderScheduleBars = useCallback(
                     background: style.bg,
                     border: `1px solid ${style.border}`,
                     color: style.text,
-                    borderRadius: 6,
+                    borderRadius: radius,
                     padding: '2px 6px',
                     fontSize: 12,
                     lineHeight: 1.25,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    textAlign: 'center',
+                    textAlign: showLabel ? 'center' : 'left',
                     boxSizing: 'border-box',
-                    height: '100%',
+                    position: 'relative',
+                    ...bridgeStyle,
                   }}
                 >
-                  {shortLabel(s.title)}
+                  {showLabel ? shortLabel(s.title) : '\u00A0'}
                   {isLastRow && overflowCount > 0 && (
                     <span className="tt-more">+{overflowCount}</span>
                   )}
                 </div>
               </li>
             );
-          }
+          })}
+        </ul>
+      );
+    },
+    [getSchedulesForDay],
+  );
 
-          // ---------- เคส 2: event หลายวัน (ใช้ logic เดิม) ----------
-          const best = pickLabelWeekForSchedule(s);
-          const showLabel =
-            !!best &&
-            startOfWeek(value).isSame(best.weekStart, 'day') &&
-            value.isSame(best.labelDay, 'day');
-
-          const radius: string | number =
-            pos === 'single'
-              ? 6
-              : pos === 'start'
-              ? '6px 0 0 6px'
-              : pos === 'end'
-              ? '0 6px 6px 0'
-              : '0';
-
-          const bridgeStyle: CSSProperties = {
-            width: '100%',
-            height: '100%',
-          };
-          if (pos === 'start') {
-            bridgeStyle.marginRight = -BRIDGE_PX;
-            bridgeStyle.width = `calc(100% + ${BRIDGE_PX}px)`;
-          } else if (pos === 'middle') {
-            bridgeStyle.marginLeft = -BRIDGE_PX;
-            bridgeStyle.marginRight = -BRIDGE_PX;
-            bridgeStyle.width = `calc(100% + ${BRIDGE_PX * 2}px)`;
-          } else if (pos === 'end') {
-            bridgeStyle.marginLeft = -BRIDGE_PX;
-            bridgeStyle.width = `calc(100% + ${BRIDGE_PX}px)`;
-          }
-
-          return (
-            <li
-              key={`${s.id}-${value.format('YYYYMMDD')}`}
-              className="tt-sched-item"
-            >
-              <div
-                className="tt-bar"
-                title={s.title}
-                style={{
-                  background: style.bg,
-                  border: `1px solid ${style.border}`,
-                  color: style.text,
-                  borderRadius: radius,
-                  padding: '2px 6px',
-                  fontSize: 12,
-                  lineHeight: 1.25,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  textAlign: showLabel ? 'center' : 'left',
-                  boxSizing: 'border-box',
-                  position: 'relative',
-                  ...bridgeStyle,
-                }}
-              >
-                {showLabel ? shortLabel(s.title) : '\u00A0'}
-                {isLastRow && overflowCount > 0 && (
-                  <span className="tt-more">+{overflowCount}</span>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    );
-  },
-  [getSchedulesForDay],
-);
-
-
-  /** มุมมอง 4 เดือน (current + next 3) และล็อก 3 กล่องหลัง */
+  /** มุมมอง 4 เดือน (current + next 3) */
   const renderQuarterView = () => {
     const base = selectedDate.startOf('month');
     const months = Array.from({ length: 4 }, (_, i) => base.add(i, 'month'));
 
-    // header แบบอ่านอย่างเดียว (ไม่มีปุ่ม/ตัวเลือกเดือนปี)
     const ReadonlyHeader = ({ label }: { label: string }) => (
       <div
         style={{
@@ -454,11 +584,9 @@ const renderScheduleBars = useCallback(
               value={m}
               fullscreen={false}
               headerRender={
-                idx === 0
-                  ? undefined
-                  : () => (
-                      <ReadonlyHeader label={m.format('MMMM YYYY')} />
-                    )
+                idx === 0 ? undefined : () => (
+                  <ReadonlyHeader label={m.format('MMMM YYYY')} />
+                )
               }
               onPanelChange={(val) => {
                 if (idx === 0) {
@@ -468,10 +596,7 @@ const renderScheduleBars = useCallback(
               fullCellRender={(current, info) => {
                 if (info.type !== 'date') return info.originNode;
                 return (
-                  <div
-                    className="tt-cell"
-                    onClick={() => openDetail(current)}
-                  >
+                  <div className="tt-cell" onClick={() => openDetail(current)}>
                     <div className="tt-day">{current.date()}</div>
                     {renderLeaveRow(current)}
                     {renderScheduleBars(current)}
@@ -500,10 +625,7 @@ const renderScheduleBars = useCallback(
         const st = CALENDAR_TYPE_STYLES[t];
         const label = CAL_TYPE_LABEL[t];
         return (
-          <div
-            key={t}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
+          <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span
               style={{
                 display: 'inline-block',
@@ -521,7 +643,6 @@ const renderScheduleBars = useCallback(
     </div>
   );
 
-  // ===== Data ใน Modal =====
   const detailSchedules = useMemo(() => {
     if (!detailDate) return [];
     return getSchedulesForDay(detailDate);
@@ -540,9 +661,7 @@ const renderScheduleBars = useCallback(
         justify="space-between"
         style={{ marginBottom: 12, gap: 12, flexWrap: 'wrap' }}
       >
-        <div style={{ fontWeight: 700 }}>
-          {getFiscalYear(selectedDate)}
-        </div>
+        <div style={{ fontWeight: 700 }}>{getFiscalYear(selectedDate)}</div>
 
         <div
           style={{
@@ -560,11 +679,7 @@ const renderScheduleBars = useCallback(
         <Flex gap={8}>
           <Button
             icon={
-              showApprovedLeaves ? (
-                <EyeOutlined />
-              ) : (
-                <EyeInvisibleOutlined />
-              )
+              showApprovedLeaves ? <EyeOutlined /> : <EyeInvisibleOutlined />
             }
             onClick={() => setShowApprovedLeaves((s) => !s)}
           />
@@ -590,14 +705,9 @@ const renderScheduleBars = useCallback(
             fullCellRender={(current, info) => {
               if (info.type !== 'date') return info.originNode;
               return (
-                <div
-                  className="tt-cell"
-                  onDoubleClick={() => openDetail(current)}
-                >
+                <div className="tt-cell" onDoubleClick={() => openDetail(current)}>
                   <div className="tt-day">{current.date()}</div>
-                  {/* แถวโปรไฟล์ลา (1 โปรไฟล์ + bubble +n) */}
                   {renderLeaveRow(current)}
-                  {/* แถบกำหนดการ สูงสุด 3 แถวย่อย + ต่อเนื่องข้ามวัน */}
                   {renderScheduleBars(current)}
                 </div>
               );
@@ -669,46 +779,47 @@ const renderScheduleBars = useCallback(
         </div>
         {detailLeaves.length ? (
           <ul style={{ paddingLeft: 16, marginTop: 0 }}>
-            {detailLeaves.map((l) => (
-              <li
-                key={l.id}
-                style={{
-                  marginBottom: 6,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <Avatar size={24}>
-                  {(userMap.get(l.userId) ?? 'U')
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .toUpperCase()}
-                </Avatar>
-                <div>
-                  {userMap.get(l.userId) ?? l.userId}{' '}
-                  <span style={{ color: '#999' }}>({l.type})</span>
-                </div>
-              </li>
-            ))}
+            {detailLeaves.map((l) => {
+              const name = userMap.get(l.userId) ?? `User ${l.userId}`;
+              const initials = name
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .toUpperCase();
+              return (
+                <li
+                  key={l.id}
+                  style={{
+                    marginBottom: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <Avatar size={24}>{initials}</Avatar>
+                  <div>
+                    {name}{' '}
+                    <span style={{ color: '#999' }}>({l.type})</span>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <div style={{ color: '#999' }}>ไม่มีคนลาในวันนี้</div>
         )}
       </Modal>
 
-      {/* ---- Global styles เฉพาะในกล่องนี้ เพื่อ “ตรึงความสูงเซลล์ + layout 2 แถว” ---- */}
+      {/* ---- Global styles ---- */}
       <style jsx global>{`
         .ttleave-cal {
           --cell-pad-y: 8px;
-          --daynum-h: 22px; /* แถว 1: เลขวัน */
-          --leave-row-h: 26px; /* แถว 2: โปรไฟล์ลา */
-          --sched-row-h: 24px; /* ความสูง 1 แถวย่อยของกำหนดการ */
+          --daynum-h: 22px;
+          --leave-row-h: 26px;
+          --sched-row-h: 24px;
           --row-gap: 4px;
-          --sched-rows: 3; /* แถวย่อยของกำหนดการสูงสุด = 3 */
+          --sched-rows: 3;
 
-          /* รวมเป็น 5 แถว (1 + 1 + 3) */
           --sched-rows-h: calc(
             var(--sched-rows) * var(--sched-row-h) +
               (var(--sched-rows) - 1) * var(--row-gap)
@@ -719,39 +830,35 @@ const renderScheduleBars = useCallback(
           );
         }
 
-        /* โครงร่าง 3 แถวยักษ์: วัน / ลา / ลิสต์กำหนดการ */
         .ttleave-cal .tt-cell {
           height: var(--cell-h);
-          padding: var(--cell-pad-y) 0; /* เอา padding X ออก เพื่อให้แถบชนขอบซ้าย-ขวา */
+          padding: var(--cell-pad-y) 0;
           display: grid;
           grid-template-rows: var(--daynum-h) var(--leave-row-h)
             var(--sched-rows-h);
           box-sizing: border-box;
-          position: relative; /* ให้ .tt-more อ้างอิงตำแหน่งในกล่องนี้ */
-          overflow-y: hidden; /* ไม่ให้ดันลงสัปดาห์ถัดไป */
-          overflow-x: visible; /* ให้แถบคาบข้ามวันได้ */
+          position: relative;
+          overflow-y: hidden;
+          overflow-x: visible;
         }
 
-        /* แถวเลขวัน: จัดให้เรียงแนวเดียวกันทุกเซลล์ */
         .ttleave-cal .tt-day {
           height: var(--daynum-h);
           line-height: var(--daynum-h);
           font-weight: 600;
           text-align: left;
-          padding: 0 8px; /* padding กลับเฉพาะบรรทัดนี้ */
+          padding: 0 8px;
         }
 
-        /* แถวโปรไฟล์ลา */
         .ttleave-cal .tt-leave-row {
           height: var(--leave-row-h);
           display: flex;
           align-items: center;
           gap: 6px;
           overflow: hidden;
-          padding: 0 8px; /* padding กลับเฉพาะบรรทัดนี้ */
+          padding: 0 8px;
         }
 
-        /* รายการแถบกำหนดการ (สูงเท่าพื้นที่ 3 แถวย่อยพอดี) */
         .ttleave-cal .tt-sched-list {
           height: var(--sched-rows-h);
           display: flex;
@@ -760,22 +867,19 @@ const renderScheduleBars = useCallback(
           margin: 0;
           padding: 0;
           list-style: none;
-          overflow: hidden; /* ถ้าเกิน 3 แถบจะถูกซ่อน */
+          overflow: hidden;
         }
 
-        /* 1 รายการ = 1 แถวย่อย สูงตายตัว */
         .ttleave-cal .tt-sched-item {
           height: var(--sched-row-h);
           display: block;
         }
 
-        /* ตัวแถบเองกินเต็มแถว */
         .ttleave-cal .tt-bar {
           height: 100%;
           display: block;
         }
 
-        /* ป้าย +more โชว์บนแถบสุดท้ายถ้า overflow */
         .ttleave-cal .tt-more {
           position: absolute;
           right: 4px;
@@ -785,7 +889,6 @@ const renderScheduleBars = useCallback(
           pointer-events: none;
         }
 
-        /* เอา padding โครงสร้างภายใน AntD ออก ไม่งั้นแถบจะไม่ชนขอบ */
         .ttleave-cal .ant-picker-cell-inner {
           padding: 0 !important;
         }
