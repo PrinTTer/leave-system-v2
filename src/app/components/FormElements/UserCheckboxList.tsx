@@ -9,8 +9,6 @@ import {
   Divider,
   Tooltip,
   Card,
-  Row,
-  Col,
   Tag,
   Avatar,
   Typography,
@@ -32,9 +30,8 @@ interface UserCheckboxListProps {
   maxHeight?: number;
   showSelectAllActions?: boolean;
   title?: React.ReactNode;
-  gridCols?: { xs?: number; sm?: number; md?: number; lg?: number; xl?: number; xxl?: number };
   onSave?: () => void;
-  showSaveButton?: boolean;      
+  showSaveButton?: boolean;
 }
 
 const { Text } = Typography;
@@ -73,7 +70,6 @@ const UserCheckboxList: React.FC<UserCheckboxListProps> = ({
   maxHeight = 480,
   showSelectAllActions = true,
   title = 'การตั้งค่าการมองเห็นวันลา',
-  gridCols = { xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 6 },
   onSave,
   showSaveButton = true,
 }) => {
@@ -114,7 +110,6 @@ const UserCheckboxList: React.FC<UserCheckboxListProps> = ({
 
   return (
     <Card
-      bordered
       className="rounded-xl shadow-sm"
       title={<span className="font-semibold">{title}</span>}
       styles={{
@@ -179,63 +174,68 @@ const UserCheckboxList: React.FC<UserCheckboxListProps> = ({
 
       <Divider className="my-3" />
 
-      {/* Grid list */}
-      <div style={{ maxHeight, overflowY: 'auto' }}>
+            {/* List = card แนวยาว แถวเดียวต่อคน */}
+      <div style={{ maxHeight, overflowY: 'auto', width: '100%' }}>
         {filteredOptions.length === 0 ? (
           <div className="py-10">
             <Empty description="ไม่พบผู้ใช้" />
           </div>
         ) : (
-          <Checkbox.Group value={selectedUsers} onChange={valueChange} className="w-full block">
-            <Row gutter={[16, 16]}>
+          <Checkbox.Group
+            value={selectedUsers}
+            onChange={valueChange}
+            style={{ width: '100%', display: 'block' }}
+          >
+            {/* ระยะห่างระหว่างการ์ด */}
+            <div className="flex flex-col gap-4 w-full mt-1">
               {filteredOptions.map((opt) => {
                 const userName = String(opt.label);
                 const userId = String(opt.value);
                 const checked = selectedUsers.includes(userId);
 
                 return (
-                  <Col
+                  <label
                     key={userId}
-                    xs={24 / (gridCols.xs ?? 1)}
-                    sm={24 / (gridCols.sm ?? 2)}
-                    md={24 / (gridCols.md ?? 3)}
-                    lg={24 / (gridCols.lg ?? 4)}
-                    xl={24 / (gridCols.xl ?? 4)}
-                    xxl={24 / (gridCols.xxl ?? 6)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '12px 24px', // padding รอบการ์ด
+                      gap: 24,              // 👈 ช่องว่างระหว่าง Checkbox / Avatar / Text
+                    }}
+                    className={`
+                      rounded-xl border bg-white cursor-pointer
+                      transition hover:shadow-md hover:bg-gray-50
+                      ${checked ? 'border-blue-400 bg-blue-50' : 'border-gray-200'}
+                    `}
                   >
-                    {/* ใช้ div เรียบๆ แทน Card ซ้อน เพื่อลดปัญหา layout/overflow */}
-                    <div
-                      className={`rounded-lg border p-3 transition hover:shadow-sm ${
-                        checked ? 'border-blue-500' : 'border-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Avatar className="shrink-0">{getInitials(userName)}</Avatar>
-                          <div className="min-w-0">
-                            <div className="truncate font-medium">{highlight(userName, search)}</div>
-                            <div className="text-xs text-gray-500">ID: {userId}</div>
-                          </div>
-                        </div>
-                        <Checkbox value={userId}>
-                          <span className="text-xs text-gray-600">เลือก</span>
-                        </Checkbox>
-                      </div>
-                      <p className="mt-2 text-xs text-gray-500">
-                        เลือกเพื่อแสดงวันลาของผู้ใช้นี้ในปฏิทิน
-                      </p>
+                    {/* ทุก element อยู่แถวเดียวกัน */}
+                    <Checkbox value={userId} className="shrink-0" />
+
+                    <Avatar className="shrink-0">
+                      {getInitials(userName)}
+                    </Avatar>
+
+                    <div className="flex-1 min-w-0">
+                      <span className="truncate whitespace-nowrap font-medium">
+                        {highlight(userName, search)}{' '}
+                        <span className="text-xs text-gray-500 ml-6">
+                          ID: {userId}
+                        </span>
+                      </span>
                     </div>
-                  </Col>
+                  </label>
                 );
               })}
-            </Row>
+            </div>
           </Checkbox.Group>
         )}
       </div>
 
+
       <Divider className="my-4" />
 
-      {/* Footer inside the same big card */}
+      {/* Footer */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-gray-600">
           ทั้งหมด {users.length} ผู้ใช้ • ตรงกับค้นหา {filteredOptions.length}
@@ -243,7 +243,6 @@ const UserCheckboxList: React.FC<UserCheckboxListProps> = ({
         <span className="font-medium">เลือกแล้ว {selectedUsers.length}</span>
       </div>
 
-      {/* ---- ปุ่มบันทึกอยู่ในการ์ดใหญ่, แสดงต่อเมื่อส่ง onSave มาด้วย ---- */}
       {showSaveButton && onSave && (
         <div className="mt-3 text-right">
           <Button type="primary" onClick={onSave}>
