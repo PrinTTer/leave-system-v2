@@ -1,127 +1,110 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { TableProps } from "antd";
-import { Table, Row, Col, Card, Button, Breadcrumb, Typography, Space } from "antd";
+import {
+  Table,
+  Row,
+  Col,
+  Card,
+  Button,
+  Breadcrumb,
+  Typography,
+  Space,
+} from "antd";
 import PlusOutlined from "@ant-design/icons/lib/icons/PlusOutlined";
 import Link from "next/link";
 import { formatThaiDate } from "../utils/utils";
 import router from "next/router";
+import { User } from "@/types/user";
+import { calculateServiceYear } from "../utils/calculate";
+import { FactCreditLeaveInfo } from "@/types/factCreditLeave";
+import { getAllFactLeaveCreditByUser } from "@/services/factCreditLeaveApi";
 
-interface User {
-  pronoun: string;
-  firstName: string;
-  lastName: string;
-  position: string;
-  department: string;
-  dateOfBirth: string;
-  employmentDate: string;
-  level: string;
-}
+type ColumnTypes = Exclude<
+  TableProps<FactCreditLeaveInfo>["columns"],
+  undefined
+>;
 
-interface LeaveStatistics {
-  key: React.Key;
-  type: string;
-  totalLeave: number;
-  usedLeave: number;
-  leftLeave?: number;
-}
-
-type ColumnTypes = Exclude<TableProps<LeaveStatistics>["columns"], undefined>;
+const users: User = {
+  nontri_account: "fengptu",
+  other_prefix: "ผศ.ดร.",
+  prefix: "นางสาว",
+  fullname: "วรัญญา อรรถเสนา",
+  gender: "female",
+  position: "",
+  faculty: "วิศวกรรมศาสตร์",
+  department: "วิศวกรรมคอมพิวเตอร์",
+  employment_start_date: "2025-11-09",
+};
 
 const HomePage: React.FC = () => {
-  const user: User = {
-    pronoun: "นางสาว",
-    firstName: "วรัญญา",
-    lastName: "ประวันโน",
-    position: "เจ้าหน้าที่ธุรการ",
-    department: "ฝ่ายบุคคล",
-    dateOfBirth: "2003-03-15",
-    employmentDate: "2024-01-01",
-    level: "",
-  };
+  const [user, setUser] = useState<User>({} as User);
+  const [factCreditLeave, setFactCreditLeave] = useState<FactCreditLeaveInfo[]>(
+    []
+  );
 
-  const [dataSource] = useState<LeaveStatistics[]>([
-    { key: "0", type: "ลาป่วย", totalLeave: 90, usedLeave: 0, leftLeave: 90 },
-    {
-      key: "1",
-      type: "ลากิจส่วนตัว",
-      totalLeave: 45,
-      usedLeave: 0,
-      leftLeave: 45,
-    },
-    {
-      key: "2",
-      type: "ลาไปช่วยเหลือภริยาที่คลอดบุตร",
-      totalLeave: 15,
-      usedLeave: 0,
-      leftLeave: 15,
-    },
-    {
-      key: "3",
-      type: "ลาพักผ่อนประจำปี",
-      totalLeave: 10,
-      usedLeave: 0,
-      leftLeave: 10,
-    },
-    {
-      key: "4",
-      type: "ลาอุปสมบท",
-      totalLeave: 120,
-      usedLeave: 0,
-      leftLeave: 120,
-    },
-    {
-      key: "5",
-      type: "ลาไปพิธีฮัจย์",
-      totalLeave: 120,
-      usedLeave: 0,
-      leftLeave: 120,
-    },
-    {
-      key: "6",
-      type: "ลาเข้ารับการเตรียมพล",
-      totalLeave: 0,
-      usedLeave: 0,
-      leftLeave: 0,
-    },
-    {
-      key: "7",
-      type: "รวมทั้งหมด",
-      totalLeave: 400,
-      usedLeave: 0,
-      leftLeave: 400,
-    },
-  ]);
+  useEffect(() => {
+    const [firstName, lastName] = users.fullname.split(" ");
+
+    setUser({
+      ...users,
+      firstName,
+      lastName,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!user.nontri_account) return;
+
+    const fetchFactCreditLeave = async () => {
+      const data = await getAllFactLeaveCreditByUser(user.nontri_account);
+      setFactCreditLeave(data);
+    };
+    fetchFactCreditLeave();
+  }, [user.nontri_account]);
+
+  console.log(factCreditLeave);
 
   const defaultColumns: (ColumnTypes[number] & {
     editable?: boolean;
     dataIndex: string;
   })[] = [
-      { title: "ประเภทการลา", dataIndex: "type", width: "30%" },
-      {
-        title: "สิทธิ์ทั้งหมด (วัน)",
-        dataIndex: "totalLeave",
-        sorter: (a, b) => a.totalLeave - b.totalLeave,
-      },
-      {
-        title: "ใช้ไปแล้ว (วัน)",
-        dataIndex: "usedLeave",
-        sorter: (a, b) => a.usedLeave - b.usedLeave,
-      },
-      {
-        title: "คงเหลือ (วัน)",
-        dataIndex: "leftLeave",
-        sorter: (a, b) => (a.leftLeave ?? 0) - (b.leftLeave ?? 0),
-      },
-    ];
+    {
+      title: "ประเภทการลา",
+      dataIndex: "name",
+      width: "30%",
+      render: (_, record) => record.leave_type?.name || "",
+    },
+    {
+      title: "สิทธิ์ทั้งหมด  (วัน)",
+      dataIndex: "max_leave",
+      render: (_, record) => record.leave_type?.max_leave ?? 0,
+      sorter: (a, b) =>
+        (a.leave_type?.max_leave ?? 0) - (b.leave_type?.max_leave ?? 0),
+    },
+
+    {
+      title: "ใช้ไปแล้ว (วัน)",
+      dataIndex: "used_leave",
+      sorter: (a, b) => a.used_leave - b.used_leave,
+    },
+    {
+      title: "คงเหลือ (วัน)",
+      dataIndex: "left_leave",
+      sorter: (a, b) => (a.left_leave ?? 0) - (b.left_leave ?? 0),
+    },
+  ];
 
   return (
     <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: "100%" }} size={10}>
         <Row>
           <Col span={12}>
-            <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}>
+            <Typography.Title
+              level={4}
+              style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}
+            >
               ข้อมูลการลา
             </Typography.Title>
           </Col>
@@ -135,7 +118,8 @@ const HomePage: React.FC = () => {
                     <a
                       onClick={() => {
                         router.push(`/private`);
-                      }}>
+                      }}
+                    >
                       ข้อมูลการลา
                     </a>
                   ),
@@ -148,7 +132,7 @@ const HomePage: React.FC = () => {
         <Card title="ข้อมูลส่วนบุคคล" style={{ marginBottom: 24 }}>
           <Row gutter={[16, 16]}>
             <Col span={8}>
-              <b>คำนำหน้า:</b> {user.pronoun}
+              <b>คำนำหน้า:</b> {user.prefix}
             </Col>
             <Col span={8}>
               <b>ชื่อ:</b> {user.firstName}
@@ -163,13 +147,13 @@ const HomePage: React.FC = () => {
             <Col span={8}>
               <b>หน่วยงาน:</b> {user.department}
             </Col>
-            {/* <Col span={8}><b>วันเกิด:</b> {user.dateOfBirth}</Col> */}
-
             <Col span={8}>
-              <b>วันที่บรรจุ:</b> {formatThaiDate(user.employmentDate)}(1 ปี)
+              <b>วันที่บรรจุ:</b> {formatThaiDate(user.employment_start_date)} (
+              {calculateServiceYear(user.employment_start_date)}
+              ปี)
             </Col>
             <Col span={8}>
-              <b>ระดับ:</b> {user.level}
+              <b>ระดับ:</b> {user.other_prefix}
             </Col>
           </Row>
         </Card>
@@ -185,11 +169,12 @@ const HomePage: React.FC = () => {
           }
           variant="outlined"
         >
-          <Table<LeaveStatistics>
+          <Table<FactCreditLeaveInfo>
             bordered
-            dataSource={dataSource}
+            dataSource={factCreditLeave}
             columns={defaultColumns as ColumnTypes}
             pagination={false}
+            rowKey="leave_type_id"
           />
         </Card>
       </Space>
