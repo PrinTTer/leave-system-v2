@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   Form,
   DatePicker,
@@ -17,61 +17,100 @@ import type { UploadFile } from "antd/es/upload/interface";
 import { UploadOutlined } from "@ant-design/icons";
 import { Dayjs } from "dayjs";
 import Link from "next/link";
+import { FactFormInput, LeaveTimeType, Status } from "@/types/factForm";
+import { User } from "@/types/user";
+import { getAllFactLeaveCreditLeftByUser } from "@/services/factCreditLeaveApi";
+import { FactCreditLeaveInfo } from "@/types/factCreditLeave";
+import { Attachment } from "@/types/common";
+import { convertFileToBase64 } from "@/app/utils/file";
+import { createFactform } from "@/services/factFormApi";
+import { calculateLeaveDays } from "@/app/utils/calculate";
 
 const { Text } = Typography;
 
-// helper แปลงค่า
-const mapToValue = (val: string): number => {
-  if (val === "full") return 1;
-  if (val === "am" || val === "pm") return 0.5;
-  return 0;
-};
-
-const GeneralLeaveForm: React.FC = () => {
+interface GeneralLeaveFormProps {
+  user: User;
+}
+const GeneralLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [leaveType, setLeaveType] = useState<string>("");
+  const [attachment, setAttachment] = useState<Attachment>({} as Attachment);
+
+  const [selectedleaveType, setSelectedLeaveType] = useState<number>();
 
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
 
-  const [startType, setStartType] = useState<string>("full");
-  const [endType, setEndType] = useState<string>("full");
+  const [startType, setStartType] = useState<LeaveTimeType>("full");
+  const [endType, setEndType] = useState<LeaveTimeType>("full");
+  const [leaveDays, setLeaveDays] = useState<number>(0);
 
-  const totalLeaveDays = 10;
+  const [factCreditLeave, setFactCreditLeave] = useState<FactCreditLeaveInfo[]>(
+    []
+  );
 
-  const handleChange = (info: { fileList: UploadFile[] }) => {
+  useEffect(() => {
+    if (!user.nontri_account) return;
+
+    const fetchFactCreditLeave = async () => {
+      const data = await getAllFactLeaveCreditLeftByUser(user.nontri_account);
+      setFactCreditLeave(data);
+    };
+    fetchFactCreditLeave();
+  }, [user.nontri_account]);
+
+  const selectedleaveTypeObj = factCreditLeave.find(
+    (leave) => leave.leave_type_id === selectedleaveType
+  );
+
+  console.log(selectedleaveType, selectedleaveTypeObj);
+
+  const handleChange = async (info: { fileList: UploadFile[] }) => {
     setFileList(info.fileList);
+
+    if (info.fileList.length > 0) {
+      const file = info.fileList[0].originFileObj as File;
+      const base64 = await convertFileToBase64(file);
+      setAttachment({
+        fileName: file.name,
+        fileType: file.type,
+        data: base64,
+      });
+    } else {
+      setAttachment({} as Attachment);
+    }
   };
 
-const calculateLeaveDays = useCallback((): number => {
-  if (!startDate || !endDate) return 0;
-  const diff = endDate.diff(startDate, "day");
-  if (diff < 0) return 0;
+  const totalLeaveDays = selectedleaveTypeObj?.left_leave || 0;
 
-  if (diff === 0) {
-    return mapToValue(startType);
-  }
+  useEffect(() => {
+    const calc = async () => {
+      if (!startDate || !endDate) {
+        setLeaveDays(0);
+        return;
+      }
 
-  const days = diff - 1;
-  return days + mapToValue(startType) + mapToValue(endType);
-}, [startDate, endDate, startType, endType]);
+      const days = await calculateLeaveDays(
+        startDate,
+        endDate,
+        startType,
+        endType
+      );
+      setLeaveDays(days);
+    };
 
-const leaveDays = useMemo(() => calculateLeaveDays(), [calculateLeaveDays]);
+    calc();
+  }, [startDate, endDate, startType, endType]);
+
+  console.log(leaveDays);
 
   const remainingLeaveDays = totalLeaveDays - leaveDays;
 
   const summaryData = [
     {
       key: "1",
-      leaveType:
-        leaveType === "sick"
-          ? "ลาป่วย"
-          : leaveType === "business"
-            ? "ลากิจ"
-            : leaveType === "4"
-              ? "ลาคลอดบุตร"
-              : "ลาพักร้อน",
-      countries: "ต่างประเทศ",
+      leaveType: selectedleaveTypeObj?.leave_type?.name || "",
+
+      countries: "ในประเทศ",
       leaveDays: leaveDays,
       remaining: remainingLeaveDays,
     },
@@ -89,6 +128,26 @@ const leaveDays = useMemo(() => calculateLeaveDays(), [calculateLeaveDays]);
     },
   ];
 
+  const handleSubmit = async (status: string) => {
+    const payload: FactFormInput = {
+      nontri_account: user.nontri_account,
+      leave_type_id: selectedleaveTypeObj?.leave_type_id || 1,
+      start_date: startDate ? startDate.toDate() : new Date(),
+      start_type: startType,
+      end_date: endDate ? endDate.toDate() : new Date(),
+      end_type: endType,
+      total_day: leaveDays,
+      reason: "",
+      status: status as Status,
+      fiscal_year: new Date().getFullYear() + 543,
+      attachment: attachment,
+      leave_aboard: "ในประเทศ",
+    };
+    console.log("payload", payload);
+
+    await createFactform(payload);
+  };
+
   return (
     <div>
       <Form
@@ -102,13 +161,14 @@ const leaveDays = useMemo(() => calculateLeaveDays(), [calculateLeaveDays]);
           rules={[{ required: true, message: "กรุณาเลือกประเภทการลา" }]}
         >
           <Radio.Group
-            value={leaveType}
-            onChange={(e) => setLeaveType(e.target.value)}
+            value={selectedleaveType}
+            onChange={(e) => setSelectedLeaveType(e.target.value)}
           >
-            <Radio value="sick">ลาป่วย</Radio>
-            <Radio value="business">ลากิจ</Radio>
-            <Radio value="vacation">ลาพักร้อน</Radio>
-            <Radio value="4">ลาคลอดบุตร</Radio>
+            {factCreditLeave.map((leave) => (
+              <Radio key={leave.leave_type_id} value={leave.leave_type_id}>
+                {leave.leave_type.name}
+              </Radio>
+            ))}
           </Radio.Group>
         </Form.Item>
 
@@ -183,7 +243,7 @@ const leaveDays = useMemo(() => calculateLeaveDays(), [calculateLeaveDays]);
         </Row>
 
         {/* แนบเอกสาร - เฉพาะลาป่วย */}
-        {leaveType === "sick" && (
+        {selectedleaveTypeObj?.leave_type?.name === "ลาป่วย" && (
           <Form.Item
             label="แนบเอกสารเพิ่มเติม"
             name="attachments"
@@ -236,6 +296,9 @@ const leaveDays = useMemo(() => calculateLeaveDays(), [calculateLeaveDays]);
                   border: "none",
                 }}
                 disabled={remainingLeaveDays < 0}
+                onClick={() => {
+                  handleSubmit(Status.Draft);
+                }}
               >
                 บันทึกฉบับร่าง
               </Button>
@@ -247,6 +310,9 @@ const leaveDays = useMemo(() => calculateLeaveDays(), [calculateLeaveDays]);
                 type="primary"
                 style={{ border: "none" }}
                 disabled={remainingLeaveDays < 0}
+                onClick={() => {
+                  handleSubmit(Status.Pending);
+                }}
               >
                 ส่งใบลา
               </Button>
