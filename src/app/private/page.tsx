@@ -20,6 +20,7 @@ import { User } from "@/types/user";
 import { calculateServiceYear } from "../utils/calculate";
 import { FactCreditLeaveInfo } from "@/types/factCreditLeave";
 import { getAllFactLeaveCreditByUser } from "@/services/factCreditLeaveApi";
+import { LeaveCategory } from "@/types/leaveType";
 
 type ColumnTypes = Exclude<
   TableProps<FactCreditLeaveInfo>["columns"],
@@ -92,6 +93,10 @@ const HomePage: React.FC = () => {
     {
       title: "คงเหลือ (วัน)",
       dataIndex: "left_leave",
+      render: (_, record) =>
+        record.leave_type.category === LeaveCategory.OFFICIALDUTY
+          ? "-"
+          : record.left_leave,
       sorter: (a, b) => (a.left_leave ?? 0) - (b.left_leave ?? 0),
     },
   ];

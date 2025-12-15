@@ -1,4 +1,4 @@
-import { fetchCalendarList } from "@/services/calendarApi";
+import { fetchHolidaysByYear } from "@/services/calendarApi";
 import { CalendarSchedule } from "@/types/calendar";
 import { LeaveTimeType } from "@/types/factForm";
 import dayjs, { Dayjs } from "dayjs";
@@ -31,9 +31,9 @@ export const calculateLeaveDays = async (
   startDate: Dayjs | null,
   endDate: Dayjs | null,
   startType: LeaveTimeType,
-  endType: LeaveTimeType
+  endType: LeaveTimeType,
+  holiday: CalendarSchedule[]
 ): Promise<number> => {
-  const holiday = await fetchCalendarList();
   const holidaySet = buildHolidaySet(holiday);
 
   if (!startDate || !endDate) return 0;

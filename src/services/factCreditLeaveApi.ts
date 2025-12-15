@@ -20,7 +20,17 @@ export const getAllFactLeaveCreditByUser = async (nontri_account: string) => {
     const response = await axios.get(
       `${API_BASE}/fact-leave-credit/${nontri_account}`
     );
-    console.log(response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Can not get all fact-leave-credit", error);
+  }
+};
+
+export const getPersonalAndVacationLeave = async (nontri_account: string) => {
+  try {
+    const response = await axios.get(
+      `${API_BASE}/fact-leave-credit/${nontri_account}/personal-vacation-left`
+    );
 
     return response.data;
   } catch (error) {

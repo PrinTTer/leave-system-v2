@@ -12,26 +12,119 @@ import {
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import { CloseOutlined } from "@ant-design/icons";
+import { LeaveType } from "@/types/leaveType";
+import { calculateLeaveDays } from "@/app/utils/calculate";
 
-type LeaveDay = {
+/* ==========================
+   TYPES (ของเดิม)
+========================== */
+export type LeaveDay = {
   date: string;
-  type: string;
+  leave_type_id: number;
 };
 
-type LeaveTypes = Record<
-  string,
-  {
-    label: string;
-    color: string;
-  }
->;
-
-interface LeaveCalendarProps {
-  leaveTypes: LeaveTypes;
-  onChange?: (days: LeaveDay[]) => void;
+export interface LeaveTypeLabel extends LeaveType {
+  label: string;
+  color: string;
+  leave_type?: LeaveType;
+  left_leave?: number;
 }
 
-const LeaveCalendar = ({ leaveTypes, onChange }: LeaveCalendarProps) => {
+/* ==========================
+   SUMMARY TYPES (เพิ่ม)
+========================== */
+export type LeaveSummaryItem = {
+  leave_type_id: number;
+  category?: string;
+  total_days: number;
+  days: string[];
+  start_date: string;
+  end_date: string;
+};
+
+export type LeaveSummaryResult = {
+  summary: LeaveSummaryItem[];
+};
+
+/* ==========================
+   SUMMARY BUILDER (เพิ่ม)
+========================== */
+
+const isCountVacation = (leaveType?: LeaveTypeLabel): boolean => {
+  if (!leaveType) return false;
+
+  return (
+    leaveType.is_count_vacation ??
+    leaveType.leave_type?.is_count_vacation ??
+    false
+  );
+};
+
+export const buildLeaveSummary = async (
+  leaveDays: LeaveDay[],
+  leaveTypes: LeaveTypeLabel[]
+): Promise<LeaveSummaryResult> => {
+  const map = new Map<number, string[]>();
+
+  // รวมวันลาตาม leave_type_id
+  for (const d of leaveDays) {
+    const list = map.get(d.leave_type_id) ?? [];
+    list.push(d.date);
+    map.set(d.leave_type_id, list);
+  }
+
+  const summary: LeaveSummaryItem[] = [];
+
+  for (const [leave_type_id, dates] of map.entries()) {
+    const sortedDays = [...dates].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+
+    const leaveType = leaveTypes.find(
+      (lt) => lt.leave_type_id === leave_type_id
+    );
+
+    console.log(leaveType);
+
+    let total_days = 0;
+    if (isCountVacation(leaveType)) {
+      total_days = sortedDays.length;
+    } else {
+      for (const d of sortedDays) {
+        const day = dayjs(d);
+
+        const days = await calculateLeaveDays(day, day, "full", "full", []);
+
+        total_days += days;
+      }
+    }
+
+    summary.push({
+      leave_type_id,
+      category: leaveType?.category,
+      total_days,
+      days: sortedDays,
+      start_date: sortedDays[0],
+      end_date: sortedDays[sortedDays.length - 1],
+    });
+  }
+
+  summary.sort((a, b) => a.leave_type_id - b.leave_type_id);
+
+  return { summary };
+};
+
+/* ==========================
+   PROPS (เพิ่ม onSummaryChange)
+========================== */
+interface LeaveCalendarProps {
+  leaveTypes: LeaveTypeLabel[];
+  onChange?: (days: LeaveDay[]) => void;
+  onSummaryChange?: (summary: LeaveSummaryResult) => void;
+}
+
+/* ==========================
+   COMPONENT
+========================== */
+const LeaveCalendar = ({ leaveTypes, onSummaryChange }: LeaveCalendarProps) => {
   const [leaveDays, setLeaveDays] = useState<LeaveDay[]>([]);
 
   const [range, setRange] = useState<{
@@ -39,21 +132,18 @@ const LeaveCalendar = ({ leaveTypes, onChange }: LeaveCalendarProps) => {
     end: Dayjs | null;
   }>({ start: null, end: null });
 
-  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // ==========================
-  // เมื่อคลิกวันที่ในปฏิทิน
-  // ==========================
   const handleSelect = (date: Dayjs) => {
     setRange({ start: date, end: date });
     setIsModalOpen(true);
   };
 
-  // ==========================
-  // ฟังก์ชันบันทึกการลา
-  // ==========================
-  const handleOk = () => {
+  /* ==========================
+     ADD / UPDATE LEAVE
+  ========================== */
+  const handleOk = async () => {
     if (!range.start || !range.end || !selectedType) return;
 
     const newDays: LeaveDay[] = [];
@@ -62,22 +152,21 @@ const LeaveCalendar = ({ leaveTypes, onChange }: LeaveCalendarProps) => {
     while (current.isSameOrBefore(range.end, "day")) {
       newDays.push({
         date: current.format("YYYY-MM-DD"),
-        type: selectedType,
+        leave_type_id: selectedType,
       });
       current = current.add(1, "day");
     }
 
-    setLeaveDays((prev) => {
-      const filtered = prev.filter(
-        (d) =>
-          !dayjs(d.date).isSameOrAfter(range.start!, "day") ||
-          !dayjs(d.date).isSameOrBefore(range.end!, "day")
-      );
+    const filtered = leaveDays.filter(
+      (d) =>
+        !dayjs(d.date).isSameOrAfter(range.start!, "day") ||
+        !dayjs(d.date).isSameOrBefore(range.end!, "day")
+    );
 
-      const result = [...filtered, ...newDays];
-      onChange?.(result);
-      return result;
-    });
+    const result = [...filtered, ...newDays];
+
+    setLeaveDays(result);
+    onSummaryChange?.(await buildLeaveSummary(result, leaveTypes));
 
     setSelectedType(null);
     setIsModalOpen(false);
@@ -87,28 +176,32 @@ const LeaveCalendar = ({ leaveTypes, onChange }: LeaveCalendarProps) => {
     setIsModalOpen(false);
   };
 
-  // ==========================
-  // ลบวันลา
-  // ==========================
-  const handleRemoveLeave = (date: string) => {
+  /* ==========================
+     REMOVE SINGLE DAY
+  ========================== */
+  const handleRemoveLeave = async (date: string) => {
     const newList = leaveDays.filter((d) => d.date !== date);
     setLeaveDays(newList);
-    onChange?.(newList);
+    onSummaryChange?.(await buildLeaveSummary(newList, leaveTypes));
   };
 
-  // ==========================
-  // Render Tags ในปฏิทิน
-  // ==========================
+  /* ==========================
+     CALENDAR CELL RENDER
+  ========================== */
   const dateCellRender = (date: Dayjs) => {
     const leave = leaveDays.find((d) => d.date === date.format("YYYY-MM-DD"));
     if (!leave) return null;
 
-    const { label, color } = leaveTypes[leave.type];
+    const leaveType = leaveTypes.find(
+      (lt) => lt.leave_type_id === leave.leave_type_id
+    );
+
+    if (!leaveType) return null;
 
     return (
       <div style={{ position: "relative", display: "inline-block" }}>
-        <Tag color={color} style={{ paddingRight: 20 }}>
-          {label}
+        <Tag color={leaveType.color} style={{ paddingRight: 20 }}>
+          {leaveType.label}
         </Tag>
 
         <CloseOutlined
@@ -135,20 +228,19 @@ const LeaveCalendar = ({ leaveTypes, onChange }: LeaveCalendarProps) => {
   return (
     <div>
       {/* ==========================
-          ฟอร์มด้านบน
+          FORM
       ========================== */}
       <Row gutter={24}>
         <Col span={6}>
-          <Form.Item label="เลือกประเภทการลา" name="leavetype">
+          <Form.Item label="เลือกประเภทการลา">
             <Select
-              style={{ width: "100%" }}
               placeholder="เลือกประเภทการลา"
-              value={selectedType || undefined}
-              onChange={(val) => setSelectedType(val)}
+              value={selectedType ?? undefined}
+              onChange={(val) => setSelectedType(Number(val))}
             >
-              {Object.entries(leaveTypes).map(([key, { label }]) => (
-                <Select.Option key={key} value={key}>
-                  {label}
+              {leaveTypes.map((lt) => (
+                <Select.Option key={lt.leave_type_id} value={lt.leave_type_id}>
+                  {lt.label}
                 </Select.Option>
               ))}
             </Select>
@@ -156,7 +248,7 @@ const LeaveCalendar = ({ leaveTypes, onChange }: LeaveCalendarProps) => {
         </Col>
 
         <Col span={6}>
-          <Form.Item label="มีกำหนดตั้งแต่วันที่ ถึง วันที่" name="leaveRange">
+          <Form.Item label="มีกำหนดตั้งแต่วันที่ ถึง วันที่">
             <DatePicker.RangePicker
               onChange={(dates) =>
                 setRange({
@@ -169,31 +261,26 @@ const LeaveCalendar = ({ leaveTypes, onChange }: LeaveCalendarProps) => {
         </Col>
 
         <Col span={6}>
-          <Form.Item label={null}>
-            <Button type="primary" onClick={handleOk} style={{ marginTop: 30 }}>
-              เพิ่มการลา
-            </Button>
-          </Form.Item>
+          <Button type="primary" onClick={handleOk} style={{ marginTop: 30 }}>
+            เพิ่มการลา
+          </Button>
         </Col>
 
-        <Col span={6} style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Form.Item label={null}>
-            <Button
-              type="default"
-              onClick={() => {
-                setLeaveDays([]);
-                onChange?.([]);
-              }}
-              style={{ marginTop: 30 }}
-            >
-              ยกเลิกทั้งหมด
-            </Button>
-          </Form.Item>
+        <Col span={6} style={{ textAlign: "right" }}>
+          <Button
+            style={{ marginTop: 30 }}
+            onClick={() => {
+              setLeaveDays([]);
+              onSummaryChange?.({ summary: [] });
+            }}
+          >
+            ยกเลิกทั้งหมด
+          </Button>
         </Col>
       </Row>
 
       {/* ==========================
-          ปฏิทิน
+          CALENDAR
       ========================== */}
       <Calendar
         fullscreen={false}
@@ -202,7 +289,7 @@ const LeaveCalendar = ({ leaveTypes, onChange }: LeaveCalendarProps) => {
       />
 
       {/* ==========================
-          Modal (เมื่อกดเลือกวันที่)
+          MODAL
       ========================== */}
       <Modal
         title="เพิ่มการลา"
@@ -214,14 +301,13 @@ const LeaveCalendar = ({ leaveTypes, onChange }: LeaveCalendarProps) => {
       >
         <Form.Item label="ประเภทการลา">
           <Select
-            style={{ width: "100%" }}
             placeholder="เลือกประเภท"
-            value={selectedType || undefined}
-            onChange={(v) => setSelectedType(v)}
+            value={selectedType ?? undefined}
+            onChange={(val) => setSelectedType(Number(val))}
           >
-            {Object.entries(leaveTypes).map(([key, { label }]) => (
-              <Select.Option key={key} value={key}>
-                {label}
+            {leaveTypes.map((lt) => (
+              <Select.Option key={lt.leave_type_id} value={lt.leave_type_id}>
+                {lt.label}
               </Select.Option>
             ))}
           </Select>

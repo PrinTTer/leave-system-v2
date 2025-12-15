@@ -16,20 +16,25 @@ export interface OtherExpenses {
   expense: number;
 }
 
+export interface PositionExpenses {
+  amount_per_person: number;
+  total_person: number;
+}
+
 export interface Expenses {
-  rs_allowance?: number;
-  asst_allowance?: number;
+  rs_allowance?: PositionExpenses;
+  asst_allowance?: PositionExpenses;
   driver?: number;
   accommodation?: number;
   vehicle?: OtherExpenses;
-  other?: OtherExpenses;
+  other?: OtherExpenses[];
   expenses_type?: string;
   attachment?: string;
 }
 
 export interface TravelDetails {
-  car_brand: string;
-  license: string;
+  car_brand?: string;
+  license?: string;
   driver?: string;
 }
 
@@ -43,7 +48,30 @@ export enum Status {
 
 export interface FactFormInput {
   nontri_account: string;
-  leave_type_id: number;
+  leave_type_id?: number;
+  start_date: Date | Dayjs;
+  start_type: string;
+  end_type?: string;
+  end_date: Date | Dayjs;
+  total_day: number;
+  fiscal_year: number;
+  status?: Status;
+  note?: string;
+  countries?: string[];
+  provinces?: string[];
+  reason?: string;
+  attachment?: Attachment;
+  leave_aboard?: string;
+}
+
+export enum ExpensesType {
+  PERSONAL_FUND = "ทุนส่วนตัว",
+  DEPARTMENT_FUND = "ทุนภาควิชา",
+  FACULTY_FUND = "ทุนคณะ",
+}
+
+export interface OfficialdutyFactFormInput {
+  nontri_account: string;
   start_date: Date | Dayjs;
   start_type: string;
   end_type?: string;
@@ -61,6 +89,7 @@ export interface FactFormInput {
   travel_details?: TravelDetails;
   attachment?: Attachment;
   leave_aboard?: string;
+  expenses_type?: ExpensesType;
 }
 
 export type LeaveTimeType = "full" | "am" | "pm" | "";

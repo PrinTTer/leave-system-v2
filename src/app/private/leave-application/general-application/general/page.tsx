@@ -25,12 +25,15 @@ import { Attachment } from "@/types/common";
 import { convertFileToBase64 } from "@/app/utils/file";
 import { createFactform } from "@/services/factFormApi";
 import { calculateLeaveDays } from "@/app/utils/calculate";
+import { CalendarSchedule } from "@/types/calendar";
+import { fetchHolidaysByYear } from "@/services/calendarApi";
 
 const { Text } = Typography;
 
 interface GeneralLeaveFormProps {
   user: User;
 }
+
 const GeneralLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [attachment, setAttachment] = useState<Attachment>({} as Attachment);
@@ -43,10 +46,21 @@ const GeneralLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
   const [startType, setStartType] = useState<LeaveTimeType>("full");
   const [endType, setEndType] = useState<LeaveTimeType>("full");
   const [leaveDays, setLeaveDays] = useState<number>(0);
+  const [holiday, setHoliday] = useState<CalendarSchedule[]>([]);
 
   const [factCreditLeave, setFactCreditLeave] = useState<FactCreditLeaveInfo[]>(
     []
   );
+
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      const holiday = await fetchHolidaysByYear(
+        startDate ? startDate.year() : new Date().getFullYear()
+      );
+      setHoliday(holiday);
+    };
+    fetchHolidays();
+  }, [startDate]);
 
   useEffect(() => {
     if (!user.nontri_account) return;
@@ -93,15 +107,14 @@ const GeneralLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
         startDate,
         endDate,
         startType,
-        endType
+        endType,
+        holiday
       );
       setLeaveDays(days);
     };
 
     calc();
   }, [startDate, endDate, startType, endType]);
-
-  console.log(leaveDays);
 
   const remainingLeaveDays = totalLeaveDays - leaveDays;
 

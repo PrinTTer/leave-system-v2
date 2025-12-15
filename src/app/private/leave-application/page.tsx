@@ -113,13 +113,13 @@ const LeaveSelectionPage: React.FC = () => {
             </Card>
 
             {selectedType === "3" ? (
-              <FormalApplicationForm />
+              <FormalApplicationForm user={user} />
             ) : selectedType == "1" ? (
               <GeneralLeaveForm user={user} />
             ) : selectedType == "2" ? (
               <InternationalLeaveForm user={user} />
             ) : selectedType == "4" ? (
-              <InternationalFormalLeaveForm />
+              <InternationalFormalLeaveForm user={user} />
             ) : null}
           </>
         ) : null}

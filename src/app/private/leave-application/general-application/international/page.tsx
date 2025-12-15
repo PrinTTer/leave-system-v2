@@ -26,17 +26,11 @@ import { getAllFactLeaveCreditLeftByUser } from "@/services/factCreditLeaveApi";
 import { FactCreditLeaveInfo } from "@/types/factCreditLeave";
 import { createFactform } from "@/services/factFormApi";
 import { convertFileToBase64 } from "@/app/utils/file";
+import { countries } from "@/mock/countries";
+import { CalendarSchedule } from "@/types/calendar";
+import { fetchHolidaysByYear } from "@/services/calendarApi";
 
 const { Text } = Typography;
-
-const countries = [
-  { label: "ญี่ปุ่น", value: "Japan" },
-  { label: "เกาหลีใต้", value: "South Korea" },
-  { label: "สหรัฐอเมริกา", value: "USA" },
-  { label: "อังกฤษ", value: "UK" },
-  { label: "ฝรั่งเศส", value: "France" },
-  { label: "สิงคโปร์", value: "Singapore" },
-];
 
 interface GeneralLeaveFormProps {
   user: User;
@@ -54,9 +48,21 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
   const [startType, setStartType] = useState<LeaveTimeType>("full");
   const [endType, setEndType] = useState<LeaveTimeType>("full");
 
+  const [leaveDays, setLeaveDays] = useState<number>(0);
   const [factCreditLeave, setFactCreditLeave] = useState<FactCreditLeaveInfo[]>(
     []
   );
+  const [holiday, setHoliday] = useState<CalendarSchedule[]>([]);
+
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      const holiday = await fetchHolidaysByYear(
+        startDate ? startDate.year() : new Date().getFullYear()
+      );
+      setHoliday(holiday);
+    };
+    fetchHolidays();
+  }, [startDate]);
 
   useEffect(() => {
     if (!user.nontri_account) return;
@@ -89,7 +95,26 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
   };
 
   const totalLeaveDays = selectedleaveTypeObj?.left_leave || 0;
-  const leaveDays = calculateLeaveDays(startDate, endDate, startType, endType);
+
+  useEffect(() => {
+    const calc = async () => {
+      if (!startDate || !endDate) {
+        setLeaveDays(0);
+        return;
+      }
+
+      const days = await calculateLeaveDays(
+        startDate,
+        endDate,
+        startType,
+        endType,
+        holiday
+      );
+      setLeaveDays(days);
+    };
+
+    calc();
+  }, [startDate, endDate, startType, endType, holiday]);
 
   const remainingLeaveDays = totalLeaveDays - leaveDays;
 
