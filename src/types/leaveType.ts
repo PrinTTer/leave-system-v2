@@ -7,6 +7,7 @@ export enum Gender {
 export enum LeaveCategory {
   GENERAL = "general",
   VACATION = "vacation",
+  OFFICIALDUTY = "officialduty",
 }
 
 export interface LeaveType {

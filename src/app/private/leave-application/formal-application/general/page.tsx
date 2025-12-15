@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Form,
   Select,
@@ -17,8 +17,22 @@ import type { CheckboxProps } from "antd";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-import LeaveCalendar from "@/app/components/leave-application/LeaveCalendar";
+import LeaveCalendar, {
+  LeaveTypeLabel,
+} from "@/app/components/leave-application/LeaveCalendar";
 import { provinces } from "@/mock/provinces";
+import {
+  OfficialdutyFactFormInput,
+  OtherExpenses,
+  Status,
+} from "@/types/factForm";
+import { User } from "@/types/user";
+import { getPersonalAndVacationLeave } from "@/services/factCreditLeaveApi";
+import { LeaveCategory } from "@/types/leaveType";
+import { FactCreditLeaveInfo } from "@/types/factCreditLeave";
+import { createOfficialdutyFactform } from "@/services/factFormApi";
+import Link from "next/link";
+import Swal from "sweetalert2";
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
@@ -26,94 +40,169 @@ dayjs.extend(isSameOrBefore);
 type CheckboxValueType = string | number | CheckboxProps["checked"];
 const { Text } = Typography;
 
-const leaveTypes: Record<string, { label: string; color: string }> = {
-  personal: { label: "ลากิจส่วนตัว", color: "orange" },
-  vacation: { label: "ลาพักผ่อน", color: "green" },
-  business: { label: "ไปราชการ", color: "blue" },
-};
-
-interface LeaveDay {
-  date: string;
-  type: string;
+interface FormProps {
+  user: User;
 }
 
-const FormalApplicationForm: React.FC = () => {
-  // จำนวนวันลา (mock สมมติ)
-  const totalBusinessLeave = 10;
-  const totalPersonalLeave = 5;
-  const totalVacationLeave = 5;
+const assistantList = [
+  { nontri_account: "1", name: "สมชาย ใจดี" },
+  { nontri_account: "2", name: "วรัญญา ประวันโน" },
+  { nontri_account: "3", name: "กิตติพงษ์ รัตนชัย" },
+  { nontri_account: "4", name: "สุภาพร ศรีสุข" },
+  { nontri_account: "5", name: "ณัฐพล อินทร์ทอง" },
+];
 
-  // state
-  const [leaveDays, setLeaveDays] = useState<LeaveDay[]>([]);
-
-  const [assistants, setAssistants] = useState<string[]>([]);
-
+const FormalApplicationForm: React.FC<FormProps> = ({ user }) => {
+  const [inputs, setInputs] = useState<OfficialdutyFactFormInput>(
+    {} as OfficialdutyFactFormInput
+  );
   const [selectedExpenses, setSelectedExpenses] = useState<CheckboxValueType[]>(
     []
   );
+
+  const [otherExpenses, setOtherExpenses] = useState<OtherExpenses[]>([]);
+
+  const [leaveTypes, setLeaveTypes] = useState<LeaveTypeLabel[]>([]);
+
+  const [leaveSummary, setLeaveSummary] = useState<{
+    summary: {
+      leave_type_id: number;
+      category?: string;
+      total_days: number;
+      days: string[];
+      start_date: string;
+      end_date: string;
+    }[];
+  }>({ summary: [] });
 
   const handleExpensesChange = (checkedValues: CheckboxValueType[]) => {
     setSelectedExpenses(checkedValues);
   };
 
-  const summaryData = [
-    {
-      key: "1",
-      type: "ลาราชการ",
-      dates: leaveDays.filter((d) => d.type === "business").map((d) => d.date),
-      days: leaveDays.filter((d) => d.type === "business").length,
+  console.log("inputs", inputs);
+
+  useEffect(() => {
+    if (!user || !user.nontri_account) return;
+
+    const fetchLeaveType = async () => {
+      const data = await getPersonalAndVacationLeave(user.nontri_account);
+
+      const mapped = data.fact_credit.map((leave: FactCreditLeaveInfo) => ({
+        ...leave,
+        label: leave.leave_type.name,
+        color:
+          leave.leave_type.category === LeaveCategory.VACATION
+            ? "green"
+            : "yellow",
+      }));
+
+      setLeaveTypes([
+        ...mapped,
+        {
+          ...data.officialduty,
+          label: data.officialduty.name,
+          color: "blue",
+        },
+      ]);
+    };
+
+    fetchLeaveType();
+  }, [user]);
+
+  const summaryData = leaveTypes.map((lt) => {
+    const found = leaveSummary.summary.find(
+      (s) => s.leave_type_id === lt.leave_type_id
+    );
+
+    return {
+      key: lt.leave_type_id,
+      type: lt.label,
+      dates: found?.days ?? [],
+      days: found?.total_days ?? 0,
       remaining:
-        totalBusinessLeave -
-        leaveDays.filter((d) => d.type === "business").length,
-    },
-    {
-      key: "2",
-      type: "ลากิจ",
-      dates: leaveDays.filter((d) => d.type === "personal").map((d) => d.date),
-      days: leaveDays.filter((d) => d.type === "personal").length,
-      remaining:
-        totalPersonalLeave -
-        leaveDays.filter((d) => d.type === "personal").length,
-    },
-    {
-      key: "3",
-      type: "ลาพักร้อน",
-      dates: leaveDays.filter((d) => d.type === "vacation").map((d) => d.date),
-      days: leaveDays.filter((d) => d.type === "vacation").length,
-      remaining:
-        totalVacationLeave -
-        leaveDays.filter((d) => d.type === "vacation").length,
-    },
-  ];
+        lt.left_leave !== undefined
+          ? lt.left_leave - (found?.total_days ?? 0)
+          : "-",
+    };
+  });
 
   const summaryColumns = [
-    { title: "ประเภทการลา", dataIndex: "type", key: "type" },
+    { title: "ประเภทการลา", dataIndex: "type" },
     {
       title: "วันที่ลา",
       dataIndex: "dates",
-      key: "dates",
       render: (dates: string[]) => (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
           {dates.map((date) => (
-            <Tag key={date} color="blue" style={{ marginBottom: 4 }}>
+            <Tag key={date} color="blue">
               {date}
             </Tag>
           ))}
         </div>
       ),
     },
-    { title: "จำนวนวันลา", dataIndex: "days", key: "days" },
+    { title: "จำนวนวันลา", dataIndex: "days" },
     {
       title: "วันคงเหลือ",
       dataIndex: "remaining",
-      key: "remaining",
       render: (val: number) => (
         <Text type={val < 0 ? "danger" : undefined}>{val}</Text>
       ),
     },
   ];
 
-  const isOverLimit = summaryData.some((item) => item.remaining < 0);
+  const isOverLimit = summaryData.some(
+    (item) => typeof item.remaining === "number" && item.remaining < 0
+  );
+
+  console.log("leaveSummary", leaveSummary);
+
+  const handleSubmit = async (status: Status) => {
+    const officialDuty = leaveSummary.summary.find(
+      (s) => s.category === LeaveCategory.OFFICIALDUTY
+    );
+
+    if (!officialDuty) {
+      await Swal.fire({
+        icon: "warning",
+        title: "ไม่ใช่การขออนุมัติเดินทางไปราชการ",
+        text: "กรุณาเลือกปรระเภทการลาอีกครั้ว",
+        confirmButtonText: "ตกลง",
+      });
+      return;
+    }
+
+    const expense_leaves = leaveSummary.summary.filter(
+      (s) => s.category !== LeaveCategory.OFFICIALDUTY
+    );
+
+    const expense_leaves_payload = expense_leaves.map((leave) => ({
+      leave_type_id: leave.leave_type_id,
+      leave_dates: leave.days.map((date) => new Date(date)),
+      total_days: leave.total_days,
+    }));
+
+    const payload: OfficialdutyFactFormInput = {
+      nontri_account: user.nontri_account,
+      total_day: officialDuty?.total_days ?? 0,
+      reason: inputs.reason ?? "",
+      status,
+      fiscal_year: new Date().getFullYear() + 543,
+      leave_aboard: "ในประเทศ",
+      start_date: new Date(officialDuty?.start_date || ""),
+      start_type: "full",
+      end_type: "full",
+      end_date: new Date(officialDuty?.end_date || ""),
+      extend_leaves: expense_leaves_payload,
+      provinces: inputs.provinces || [],
+      assistants: inputs.assistants || [],
+      travel_details: inputs.travel_details,
+      expenses: inputs.expenses,
+    };
+
+    console.log("payload", payload);
+    await createOfficialdutyFactform(payload);
+  };
 
   return (
     <div>
@@ -133,6 +222,13 @@ const FormalApplicationForm: React.FC = () => {
                   value: province.name_th,
                   label: province.name_th,
                 }))}
+                value={inputs.provinces}
+                onChange={(value) =>
+                  setInputs((prev) => ({
+                    ...prev,
+                    provinces: value,
+                  }))
+                }
               />
             </Form.Item>
           </Col>
@@ -143,14 +239,22 @@ const FormalApplicationForm: React.FC = () => {
           name="reason"
           rules={[{ required: true, message: "กรุณากรอกเหตุผลการลา" }]}
         >
-          <Input.TextArea rows={3} placeholder="..." />
+          <Input.TextArea
+            rows={3}
+            placeholder="..."
+            value={inputs.reason || "-"}
+            onChange={(e) =>
+              setInputs({
+                ...inputs,
+                reason: e.target.value,
+              })
+            }
+          />
         </Form.Item>
 
         <LeaveCalendar
           leaveTypes={leaveTypes}
-          onChange={(days) => {
-            setLeaveDays(days);
-          }}
+          onSummaryChange={setLeaveSummary}
         />
 
         <Form.Item label="ผู้ติดตาม" name="assistants">
@@ -159,33 +263,73 @@ const FormalApplicationForm: React.FC = () => {
             showSearch
             placeholder="-- ผู้ติดตาม --"
             optionFilterProp="label"
-            value={assistants}
-            onChange={(value) => setAssistants(value)}
-            options={[
-              { value: "1", label: "สมชาย ใจดี" },
-              { value: "2", label: "วรัญญา ประวันโน" },
-              { value: "3", label: "กิตติพงษ์ รัตนชัย" },
-              { value: "4", label: "สุภาพร ศรีสุข" },
-              { value: "5", label: "ณัฐพล อินทร์ทอง" },
-            ]}
+            value={inputs.assistants?.map((a) => a.nontri_account) || []}
+            onChange={(value) =>
+              setInputs((prev) => ({
+                ...prev,
+                assistants: value.map((nontri_account) => ({
+                  nontri_account,
+                })),
+              }))
+            }
+            options={assistantList.map((a) => ({
+              value: a.nontri_account,
+              label: a.name,
+            }))}
           />
         </Form.Item>
         <Form.Item label="รายละเอียดการเดินทาง">
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item label="ยี่ห้อรถ">
-                <Input placeholder="เช่น TOYOTA" />
+                <Input
+                  placeholder="เช่น TOYOTA"
+                  value={inputs.travel_details?.car_brand || ""}
+                  onChange={(e) =>
+                    setInputs({
+                      ...inputs,
+                      travel_details: {
+                        ...inputs.travel_details,
+                        car_brand: e.target.value,
+                      },
+                    })
+                  }
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item label="ป้ายทะเบียน">
-                <Input placeholder="เช่น กข 1234" />
+                <Input
+                  placeholder="เช่น กข 1234"
+                  value={inputs.travel_details?.license || ""}
+                  onChange={(e) =>
+                    setInputs({
+                      ...inputs,
+                      travel_details: {
+                        ...inputs.travel_details,
+                        license: e.target.value,
+                      },
+                    })
+                  }
+                />
               </Form.Item>
             </Col>
           </Row>
 
           <Form.Item label="พนักงานขับรถ">
-            <Input placeholder="ชื่อพนักงาน (ถ้ามี)" />
+            <Input
+              placeholder="ชื่อพนักงาน (ถ้ามี)"
+              value={inputs.travel_details?.driver || ""}
+              onChange={(e) =>
+                setInputs({
+                  ...inputs,
+                  travel_details: {
+                    ...inputs.travel_details,
+                    driver: e.target.value,
+                  },
+                })
+              }
+            />
           </Form.Item>
         </Form.Item>
         {/* ค่าใช้จ่าย */}
@@ -197,15 +341,86 @@ const FormalApplicationForm: React.FC = () => {
             <Checkbox value="rs">ค่าเบี้ยเลี้ยงเดินทาง (รศ)</Checkbox>
             {selectedExpenses.includes("rs") && (
               <div className="ml-6 mt-1 flex gap-2">
-                <InputNumber min={0} placeholder="จำนวนเงินต่อคน" />
-                <InputNumber min={1} placeholder="จำนวนคน" />
+                <InputNumber
+                  min={0}
+                  placeholder="จำนวนเงินต่อคน"
+                  value={inputs.expenses?.rs_allowance?.amount_per_person || 0}
+                  onChange={(value) =>
+                    setInputs((prev) => ({
+                      ...prev,
+                      expenses: {
+                        ...prev.expenses,
+                        rs_allowance: {
+                          amount_per_person: value ?? 0,
+                          total_person:
+                            prev.expenses?.rs_allowance?.total_person ?? 1,
+                        },
+                      },
+                    }))
+                  }
+                />
+                <InputNumber
+                  min={1}
+                  placeholder="จำนวนคน"
+                  value={inputs.expenses?.rs_allowance?.total_person || 0}
+                  onChange={(value) =>
+                    setInputs((prev) => ({
+                      ...prev,
+                      expenses: {
+                        ...prev.expenses,
+                        rs_allowance: {
+                          amount_per_person:
+                            prev.expenses?.rs_allowance?.amount_per_person ?? 0,
+                          total_person: value ?? 1,
+                        },
+                      },
+                    }))
+                  }
+                />
               </div>
             )}
             <Checkbox value="asst">ค่าเบี้ยเลี้ยงเดินทาง (ผศ ลงมา)</Checkbox>
             {selectedExpenses.includes("asst") && (
               <div className="ml-6 mt-1 flex gap-2">
-                <InputNumber min={0} placeholder="จำนวนเงินต่อคน" />
-                <InputNumber min={1} placeholder="จำนวนคน" />
+                <InputNumber
+                  min={0}
+                  placeholder="จำนวนเงินต่อคน"
+                  value={
+                    inputs.expenses?.asst_allowance?.amount_per_person || 0
+                  }
+                  onChange={(value) =>
+                    setInputs((prev) => ({
+                      ...prev,
+                      expenses: {
+                        ...prev.expenses,
+                        asst_allowance: {
+                          amount_per_person: value ?? 0,
+                          total_person:
+                            prev.expenses?.asst_allowance?.total_person ?? 1,
+                        },
+                      },
+                    }))
+                  }
+                />
+                <InputNumber
+                  min={1}
+                  placeholder="จำนวนคน"
+                  value={inputs.expenses?.asst_allowance?.total_person || 0}
+                  onChange={(value) =>
+                    setInputs((prev) => ({
+                      ...prev,
+                      expenses: {
+                        ...prev.expenses,
+                        asst_allowance: {
+                          amount_per_person:
+                            prev.expenses?.asst_allowance?.amount_per_person ??
+                            0,
+                          total_person: value ?? 1,
+                        },
+                      },
+                    }))
+                  }
+                />
               </div>
             )}
             <Checkbox value="driver">ค่าตอบแทนพนักงานขับรถ</Checkbox>
@@ -214,6 +429,16 @@ const FormalApplicationForm: React.FC = () => {
                 min={0}
                 placeholder="จำนวนเงิน"
                 className="ml-6 mt-1"
+                value={inputs.expenses?.driver}
+                onChange={(value) =>
+                  setInputs((prev) => ({
+                    ...prev,
+                    expenses: {
+                      ...prev.expenses,
+                      driver: value ?? 0,
+                    },
+                  }))
+                }
               />
             )}
             <Checkbox value="accommodation">ค่าเช่าที่พัก</Checkbox>
@@ -222,6 +447,16 @@ const FormalApplicationForm: React.FC = () => {
                 min={0}
                 placeholder="จำนวนเงิน"
                 className="ml-6 mt-1"
+                value={inputs.expenses?.accommodation}
+                onChange={(value) =>
+                  setInputs((prev) => ({
+                    ...prev,
+                    expenses: {
+                      ...prev.expenses,
+                      accommodation: value ?? 0,
+                    },
+                  }))
+                }
               />
             )}
             <Checkbox value="vehicle">ค่ายานพาหนะ</Checkbox>
@@ -230,15 +465,95 @@ const FormalApplicationForm: React.FC = () => {
                 <Input
                   placeholder="เช่น เหมารถตู้ 1 คัน"
                   style={{ width: "50%" }}
+                  value={inputs.expenses?.vehicle?.reason || ""}
+                  onChange={(value) =>
+                    setInputs((prev) => ({
+                      ...prev,
+                      expenses: {
+                        ...prev.expenses,
+                        vehicle: {
+                          expense: prev.expenses?.vehicle?.expense || 0,
+                          reason: value.target.value,
+                        },
+                      },
+                    }))
+                  }
                 />
-                <InputNumber min={0} placeholder="จำนวนเงิน" />
+                <InputNumber
+                  min={0}
+                  placeholder="จำนวนเงิน"
+                  value={inputs.expenses?.vehicle?.expense || ""}
+                  onChange={(value) =>
+                    setInputs((prev) => ({
+                      ...prev,
+                      expenses: {
+                        ...prev.expenses,
+                        vehicle: {
+                          expense: Number(value) || 0,
+                          reason: prev.expenses?.vehicle?.reason || "",
+                        },
+                      },
+                    }))
+                  }
+                />
               </div>
             )}
             <Checkbox value="other">ค่าใช้จ่ายอื่นๆ</Checkbox>
+
             {selectedExpenses.includes("other") && (
-              <div className="ml-6 mt-1 flex gap-2">
-                <Input placeholder="ระบุรายละเอียด" style={{ width: "50%" }} />
-                <InputNumber min={0} placeholder="จำนวนเงิน" />
+              <div className="ml-6 mt-2 flex flex-col gap-3">
+                {otherExpenses.map((item, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      placeholder="ระบุรายละเอียด"
+                      style={{ width: "50%" }}
+                      value={item.reason}
+                      onChange={(e) =>
+                        setOtherExpenses((prev) => {
+                          const copy = [...prev];
+                          copy[index].reason = e.target.value;
+                          return copy;
+                        })
+                      }
+                    />
+
+                    <InputNumber
+                      min={0}
+                      placeholder="จำนวนเงิน"
+                      value={item.expense}
+                      onChange={(value) =>
+                        setOtherExpenses((prev) => {
+                          const copy = [...prev];
+                          copy[index].expense = value ?? 0;
+                          return copy;
+                        })
+                      }
+                    />
+
+                    <Button
+                      danger
+                      onClick={() =>
+                        setOtherExpenses((prev) =>
+                          prev.filter((_, i) => i !== index)
+                        )
+                      }
+                    >
+                      ลบ
+                    </Button>
+                  </div>
+                ))}
+
+                <Button
+                  type="dashed"
+                  onClick={() =>
+                    setOtherExpenses((prev) => [
+                      ...prev,
+                      { reason: "", expense: 0 },
+                    ])
+                  }
+                >
+                  + เพิ่มค่าใช้จ่ายอื่นๆ
+                </Button>
               </div>
             )}
           </Checkbox.Group>
@@ -252,28 +567,21 @@ const FormalApplicationForm: React.FC = () => {
             columns={summaryColumns}
           />
         </div>
-        {/* ปุ่มส่ง */}
-        <Form.Item
-          style={{
-            marginTop: 24,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "12px",
-          }}
-        >
-          <div style={{ display: "flex", gap: "12px" }}>
+
+        <div style={{ display: "flex", gap: "12px" }}>
+          <Link href="/private">
             <Button
               style={{
                 backgroundColor: "#8c8c8c",
                 color: "#fff",
                 border: "none",
               }}
-              disabled={isOverLimit}
             >
               ย้อนกลับ
             </Button>
+          </Link>
 
+          <Link href="/private">
             <Button
               style={{
                 backgroundColor: "#52c41a",
@@ -281,27 +589,28 @@ const FormalApplicationForm: React.FC = () => {
                 border: "none",
               }}
               disabled={isOverLimit}
+              onClick={() => {
+                handleSubmit(Status.Draft);
+              }}
             >
               บันทึกฉบับร่าง
             </Button>
+          </Link>
 
+          <Link href="/private">
+            {" "}
             <Button
               type="primary"
               style={{ border: "none" }}
               disabled={isOverLimit}
+              onClick={() => {
+                handleSubmit(Status.Pending);
+              }}
             >
               ส่งใบลา
             </Button>
-          </div>
-
-          {isOverLimit && (
-            <div style={{ width: "100%", textAlign: "center", marginTop: 8 }}>
-              <Text type="danger" style={{ fontWeight: 500 }}>
-                ระยะเวลาการลาเกินกว่าที่กำหนด
-              </Text>
-            </div>
-          )}
-        </Form.Item>
+          </Link>
+        </div>
       </Form>
     </div>
   );
