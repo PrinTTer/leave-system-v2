@@ -33,51 +33,38 @@ export default function PersonnelAdminLayout({
 }>) {
     const { Title } = Typography;
     const router = useRouter();
-    const { setUserRole } = useUser();
-
+        const { setAppRole, user, logout } = useUser();
     const items: MenuProps["items"] = [
-        {
-            key: "1",
-            label: "ผู้ดูแลระบบ",
-            disabled: true,
-        },
-        {
-            type: "divider",
-        },
-        {
-            key: "2",
-            label: "บัญชีของฉัน",
-            icon: <Icons.UserRound />,
-        },
-
-        {
-            key: "4",
-            label: "บทบาท",
-            disabled: true,
-        },
-        {
-            type: "divider",
-        },
-        {
-            key: "5",
+        { key: "user-info", label: user?.fullname || "ผู้ใช้งาน", disabled: true },
+        { type: "divider" },
+        { key: "profile", label: "บัญชีของฉัน", icon: <Icons.UserRound /> },
+        { key: "role-header", label: "เปลี่ยนบทบาท", disabled: true },
+        
+        // เช็คจากข้อมูล Mock/Session ว่าเขามีสิทธิ์อะไรบ้าง แล้วแสดงปุ่มสลับตามนั้น
+        ...(user?.role?.some(r => r.thai_name === 'ผู้ดูแลระบบ') ? [{
+            key: "role-admin",
             label: "ผู้ดูแลระบบ",
             icon: <Icons.UserCog2 />,
-            onClick: () => setUserRole("admin"),
-        },
-        {
-            key: "6",
+            
+            onClick: () => { setAppRole("admin"); router.push("/private/calendar"); }
+        }] : []),
+
+        ...(user?.role?.some(r => r.thai_name.startsWith('ผู้อนุมัติ')) ? [{
+            key: "role-approver",
             label: "อาจารย์/บุคลากร",
             icon: <Icons.UsersRound />,
-            onClick: () => setUserRole("approver"),
-        },
-        {
-            type: "divider",
-        },
-        {
-            key: "3",
-            label: "ออกจากระบบ",
-            icon: <Icons.LogOut />,
-        },
+            onClick: () => { setAppRole("approver"); router.push("/private"); }
+        }] : []),
+
+        ...(!user?.role?.some(r => r.thai_name === 'ผู้ดูแลระบบ' || r.thai_name.startsWith('ผู้อนุมัติ')) ? [{
+        key: "role-user",
+        label: "อาจารย์/บุคลากร",
+        icon: <Icons.User />,
+        onClick: () => { setAppRole("user"); router.push("/private"); }
+    }] : []),
+        
+        { type: "divider" },
+        { key: "logout", label: "ออกจากระบบ", icon: <Icons.LogOut />, onClick: logout },
     ];
 
     useEffect(() => { }, []);
