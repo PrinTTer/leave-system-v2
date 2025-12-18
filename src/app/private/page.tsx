@@ -11,95 +11,80 @@ import {
   Breadcrumb,
   Typography,
   Space,
+  Spin,
 } from "antd";
 import PlusOutlined from "@ant-design/icons/lib/icons/PlusOutlined";
 import Link from "next/link";
 import { formatThaiDate } from "../utils/utils";
-import router from "next/router";
-import { User } from "@/types/user";
 import { calculateServiceYear } from "../utils/calculate";
 import { FactCreditLeaveInfo } from "@/types/factCreditLeave";
 import { getAllFactLeaveCreditByUser } from "@/services/factCreditLeaveApi";
 import { LeaveCategory } from "@/types/leaveType";
+import { useUser } from "../contexts/userContext";
+import { useRouter } from "next/navigation";
 
 type ColumnTypes = Exclude<
   TableProps<FactCreditLeaveInfo>["columns"],
   undefined
 >;
 
-const users: User = {
-  nontri_account: "fengptu",
-  other_prefix: "ผศ.ดร.",
-  prefix: "นางสาว",
-  fullname: "วรัญญา อรรถเสนา",
-  gender: "female",
-  position: "",
-  faculty: "วิศวกรรมศาสตร์",
-  department: "วิศวกรรมคอมพิวเตอร์",
-  employment_start_date: "2025-11-09",
-};
-
 const HomePage: React.FC = () => {
-  const [user, setUser] = useState<User>({} as User);
+  const router = useRouter();
+  const { user } = useUser();
   const [factCreditLeave, setFactCreditLeave] = useState<FactCreditLeaveInfo[]>(
     []
   );
 
   useEffect(() => {
-    const [firstName, lastName] = users.fullname.split(" ");
-
-    setUser({
-      ...users,
-      firstName,
-      lastName,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!user.nontri_account) return;
+    if (!user?.nontri_account) return;
 
     const fetchFactCreditLeave = async () => {
       const data = await getAllFactLeaveCreditByUser(user.nontri_account);
       setFactCreditLeave(data);
     };
     fetchFactCreditLeave();
-  }, [user.nontri_account]);
+  }, [user?.nontri_account]);
 
   console.log(factCreditLeave);
+
+  if (!user) return
+  <div style={{ textAlign: 'center', padding: 16 }}>
+    <Spin />
+  </div>;
 
   const defaultColumns: (ColumnTypes[number] & {
     editable?: boolean;
     dataIndex: string;
   })[] = [
-    {
-      title: "ประเภทการลา",
-      dataIndex: "name",
-      width: "30%",
-      render: (_, record) => record.leave_type?.name || "",
-    },
-    {
-      title: "สิทธิ์ทั้งหมด  (วัน)",
-      dataIndex: "max_leave",
-      render: (_, record) => record.leave_type?.max_leave ?? 0,
-      sorter: (a, b) =>
-        (a.leave_type?.max_leave ?? 0) - (b.leave_type?.max_leave ?? 0),
-    },
+      {
+        title: "ประเภทการลา",
+        dataIndex: "name",
+        width: "30%",
+        render: (_, record) => record.leave_type?.name || "",
+      },
+      {
+        title: "สิทธิ์ทั้งหมด  (วัน)",
+        dataIndex: "max_leave",
+        render: (_, record) => record.leave_type?.max_leave ?? 0,
+        sorter: (a, b) =>
+          (a.leave_type?.max_leave ?? 0) - (b.leave_type?.max_leave ?? 0),
+      },
 
-    {
-      title: "ใช้ไปแล้ว (วัน)",
-      dataIndex: "used_leave",
-      sorter: (a, b) => a.used_leave - b.used_leave,
-    },
-    {
-      title: "คงเหลือ (วัน)",
-      dataIndex: "left_leave",
-      render: (_, record) =>
-        record.leave_type.category === LeaveCategory.OFFICIALDUTY
-          ? "-"
-          : record.left_leave,
-      sorter: (a, b) => (a.left_leave ?? 0) - (b.left_leave ?? 0),
-    },
-  ];
+      {
+        title: "ใช้ไปแล้ว (วัน)",
+        dataIndex: "used_leave",
+        sorter: (a, b) => a.used_leave - b.used_leave,
+      },
+      {
+        title: "คงเหลือ (วัน)",
+        dataIndex: "left_leave",
+        render: (_, record) =>
+          record.leave_type.category === LeaveCategory.OFFICIALDUTY
+            ? "-"
+            : record.left_leave,
+        sorter: (a, b) => (a.left_leave ?? 0) - (b.left_leave ?? 0),
+      },
+    ];
 
   return (
     <div style={{ padding: 24 }}>
@@ -140,10 +125,10 @@ const HomePage: React.FC = () => {
               <b>คำนำหน้า:</b> {user.prefix}
             </Col>
             <Col span={8}>
-              <b>ชื่อ:</b> {user.firstName}
+              <b>ชื่อ:</b> {user.thai_name}
             </Col>
             <Col span={8}>
-              <b>นามสกุล:</b> {user.lastName}
+              <b>นามสกุล:</b> {user.thai_surname}
             </Col>
 
             <Col span={8}>

@@ -1,79 +1,68 @@
+// src/app/contexts/userContext.tsx
 "use client";
-import {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-  FC,
-  useEffect,
-} from "react";
+import { createContext, useContext, useState, ReactNode, FC, useEffect } from "react";
+import { User } from "@/types/user"; // ใช้ User type ตัวหลักที่เรามี
+import { getSession } from "@/session";
 
-export type Role = "admin" | "approver" | "user" | null;
-
-interface User {
-  firstname: string;
-  lastname: string;
-  email: string;
-  role: Role;
-}
+// ปรับ Type Role ให้สอดคล้องกับ Logic ของคุณ
+export type AppRole = "admin" | "approver" | "user" | null;
 
 interface UserContextType {
   user: User | null;
+  appRole: AppRole; // Role ที่เลือกอยู่ปัจจุบัน
   setUserDetails: (user: User) => void;
-  setUserRole: (role: Role) => void;
+  setAppRole: (role: AppRole) => void; // เพิ่มฟังก์ชันนี้เพื่อสลับ Role
   logout: () => void;
 }
 
-
-const defaultUserContext: UserContextType = {
+const UserContext = createContext<UserContextType>({
   user: null,
+  appRole: null,
   setUserDetails: () => {},
-  setUserRole: () => {},
+  setAppRole: () => {},
   logout: () => {},
-};
-
-
-const UserContext = createContext<UserContextType>(defaultUserContext);
+});
 
 export const UserProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>({
-    firstname: "Test User",
-    lastname: "Lastname",
-    email: "test@gmail.com",
-    role: "user",
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [activeRole, setActiveRole] = useState<AppRole>(null);
+
+// ฟังก์ชันคำนวณ Role เริ่มต้น (คนที่มีหลาย Role จะได้ Role สูงสุดก่อน)
+  const getDefaultRole = (u: User): AppRole => {
+    const names = u.role?.map(r => r.thai_name) || [];
+    if (names.includes('ผู้ดูแลระบบ')) return "admin";
+    if (names.some(n => n.startsWith('ผู้อนุมัติ'))) return "approver";
+    return "user";
+  };
 
   const setUserDetails = (userDetails: User) => {
     setUser(userDetails);
-    localStorage.setItem("user", JSON.stringify(userDetails));
   };
-
-  const setUserRole = (role: Role) => {
-  if (!user) return;
-  const updatedUser = { ...user, role };
-  setUser(updatedUser);
-  localStorage.setItem("user", JSON.stringify(updatedUser));
-};
-
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("user");
+    localStorage.removeItem("main_system_session"); // ล้างข้อมูลจริงถ้ามี
   };
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+useEffect(() => {
+    const sessionUser = getSession();
+    if (sessionUser) {
+      setUser(sessionUser);
+      setActiveRole(getDefaultRole(sessionUser)); // ตั้งค่าเริ่มต้น
     }
   }, []);
 
   return (
-  <UserContext.Provider value={{ user, setUserDetails, setUserRole, logout }}>
-    {children}
-  </UserContext.Provider>
-);
-
+    <UserContext.Provider value={{ 
+      user, 
+      appRole: activeRole, // ส่ง Role ที่คำนวณแล้วออกไป
+      setUserDetails, 
+      setAppRole: (r) => setActiveRole(r),
+      logout 
+    }}>
+      {children}
+    </UserContext.Provider>
+  );
 };
 
 export const useUser = () => useContext(UserContext);

@@ -6,19 +6,20 @@ import PersonnelApproverLayout from "@/app/components/sidebar/sidebar-approver";
 import PersonnelUserLayout from "@/app/components/sidebar/sidebar-user";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import UserLayout from "../components/sidebar/sidebar";
 
 export default function PrivateLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useUser();
+  const { user, appRole } = useUser();
   const router = useRouter();
 
   useEffect(() => {
     if (!user) return;
 
-    switch (user.role) {
+    switch (appRole) {
       case "admin":
         router.push("/private/calendar");
         break;
@@ -27,12 +28,12 @@ export default function PrivateLayout({
         router.push("/private");
         break;
       default:
-        router.push("/");
+        router.push("/private/calendar");
     }
-  }, [user, router]);
+  }, [user, appRole, router]);
 
   let Sidebar;
-  switch (user?.role) {
+  switch (appRole) {
     case "admin":
       Sidebar = <PersonnelAdminLayout>{children}</PersonnelAdminLayout>;
       break;
@@ -43,7 +44,7 @@ export default function PrivateLayout({
       Sidebar = <PersonnelUserLayout>{children}</PersonnelUserLayout>;
       break;
     default:
-      Sidebar = null;
+      Sidebar = <UserLayout>{children}</UserLayout>;
   }
 
   return (

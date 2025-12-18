@@ -15,16 +15,3 @@ declare type UserList = {
   totalCount: number;
 };
 
-export interface User {
-  nontri_account: string;
-  other_prefix: string;
-  prefix: string;
-  fullname: string;
-  firstName?: string;
-  lastName?: string;
-  gender: string;
-  position: string;
-  faculty: string;
-  department: string;
-  employment_start_date: string;
-}
