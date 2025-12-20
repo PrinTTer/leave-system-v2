@@ -1,9 +1,10 @@
+import { ApproversRaw } from "@/types/approve";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
 
 
-export async function getApproverList(): Promise<Approver[]> {
+export async function getApproverList(): Promise<ApproversRaw[]> {
   const res = await fetch(`${API_BASE_URL}/approvers`, {
     cache: "no-store", // กัน cache ฝั่ง client ของ Next
   });
@@ -14,6 +15,6 @@ export async function getApproverList(): Promise<Approver[]> {
     );
   }
 
-  const data: Approver[] = await res.json();
+  const data: ApproversRaw[] = await res.json();
   return data;
 }

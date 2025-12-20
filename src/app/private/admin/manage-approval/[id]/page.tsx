@@ -1,335 +1,154 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
-  Table,
-  Button,
-  Select,
-  Space,
-  Tooltip,
-  Input,
-  Row,
-  Col,
-  Typography,
-  Form,
-  Breadcrumb,
+  Table, Button, Select, Space, Tooltip, Input, Row, Col,
+  Typography, Form, Breadcrumb, message, Spin
 } from "antd";
 import { useRouter, useParams } from "next/navigation";
 import type { ColumnsType } from "antd/es/table";
 import * as Icons from "lucide-react";
 
+// นำเข้า API Services และ Types
+import { getRequesterByUser } from "@/services/requesterApi";
+import { getApproverList } from "@/services/approverApi";
+import { Approver, RequesterDetail, ApproversRaw } from "@/types/approve";
+
 const { Title } = Typography;
 
-/** === Types === */
-interface Approver {
-  id: number;
-  academicPosition?: string | null;
-  pronuon?: string | null;
-  thaiName: string;
-  englishName?: string;
-  department?: string;
-  position?: string;
-  positionApprover?: string;
-  updatedAt?: string;
-  createdAt?: string;
-  level: number[]; // levels this approver belongs to
-}
-
-interface User {
-  id: number;
-  academicPosition?: string | null;
-  pronuon?: string | null;
-  thaiName: string;
-  englishName?: string;
-  department?: string;
-  position?: string;
-  approver: Approver[];
-  updatedAt?: string;
-  createdAt?: string;
-}
-
-/** === Mock data (kept same shape, but typed) === */
-const allApprovers: Approver[] = [
-  {
-    id: 1,
-    academicPosition: "ผศ.ดร.",
-    pronuon: "นางสาว",
-    thaiName: "วรัญญา ศรีสุข",
-    englishName: "Waranya Srisuk",
-    department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-    position: "หัวหน้าภาควิชา",
-    positionApprover: "หัวหน้าภาควิชาคอมพิวเตอร์",
-    updatedAt: "2025-07-03T10:15:23Z",
-    createdAt: "2025-07-03T10:15:23Z",
-    level: [1],
-  },
-  // ... (เหลืออันเดิมทั้งหมด — เก็บไว้ตามเดิม)
-  {
-    id: 2,
-    academicPosition: "อ.ร้อยตรี",
-    pronuon: "นาย",
-    thaiName: "อนุมัติ กลางเมือง",
-    englishName: "Anumat Klangmuang",
-    department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-    position: "รองหัวหน้าภาควิชา",
-    positionApprover: "รักษาการแทนหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
-    updatedAt: "2025-07-03T10:17:45Z",
-    createdAt: "2025-07-03T10:15:23Z",
-    level: [1],
-  },
-  {
-    id: 3,
-    academicPosition: null,
-    pronuon: "นางสาว",
-    thaiName: "บัวบาน ศรีสุข",
-    englishName: "buaban Srisuk",
-    department: "คณะวิศวกรรมศาสตร์",
-    position: "เลขานุการ",
-    positionApprover: "รักษาการแทนคณบดี",
-    updatedAt: "2025-07-03T10:18:12Z",
-    createdAt: "2025-07-03T10:15:23Z",
-    level: [1],
-  },
-  {
-    id: 4,
-    academicPosition: "ดร.",
-    pronuon: "นางสาว",
-    thaiName: "กนกพร ปราบนที",
-    englishName: "Kanokporn Prabnatee",
-    department: "คณะวิศวกรรมศาสตร์",
-    position: "อธิการบดี",
-    positionApprover: "อธิการบดี",
-    updatedAt: "2025-07-03T10:20:08Z",
-    createdAt: "2025-07-03T10:15:23Z",
-    level: [1, 2],
-  },
-  {
-    id: 5,
-    academicPosition: "ศ.ดร.",
-    pronuon: "นาย",
-    thaiName: "สมชาย ดอนเมือง",
-    englishName: "Somchai Donmuang",
-    department: "คณะวิศวกรรมศาสตร์",
-    position: "คณบดี",
-    positionApprover: "คณบดี",
-    updatedAt: "2025-07-03T10:20:08Z",
-    createdAt: "2025-07-03T10:15:23Z",
-    level: [1, 2],
-  },
-  {
-    id: 6,
-    academicPosition: "ผศ.ดร.",
-    pronuon: "นาย",
-    thaiName: "กันตพงษ์ กลางเมือง",
-    englishName: "Kanthapong Klangmuang",
-    department: "ภาควิชาวิศวกรรมเครื่องกล",
-    position: "หัวหน้าภาควิชา",
-    positionApprover: "หัวหน้าภาควิชาวิศวกรรมเครื่องกล",
-    updatedAt: "2025-07-03T10:17:45Z",
-    createdAt: "2025-07-03T10:15:23Z",
-    level: [1],
-  },
-  {
-    id: 7,
-    academicPosition: "อ.ร้อยตรี",
-    pronuon: "นาย",
-    thaiName: "อนุมัติ กลางเมือง",
-    englishName: "Anumat Klangmuang",
-    department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-    position: "รองหัวหน้าภาควิชา",
-    positionApprover: "รองหัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์",
-    updatedAt: "2025-07-03T10:17:45Z",
-    createdAt: "2025-07-03T10:15:23Z",
-    level: [1],
-  },
-];
-
-const mockUserData: { data: User[]; page: number; totalPage: number; limit: number; totalCount: number } = {
-  data: [
-    {
-      id: 1,
-      academicPosition: "ผศ.ดร.",
-      pronuon: "นางสาว",
-      thaiName: "วรัญญา ศรีสุข",
-      englishName: "Waranya Srisuk",
-      department: "ภาควิชาวิศวกรรมคอมพิวเตอร์",
-      position: "หัวหน้าภาควิชา",
-      approver: [
-        {
-          id: 5,
-          academicPosition: "ศ.ดร.",
-          pronuon: "นาย",
-          thaiName: "สมชาย ดอนเมือง",
-          englishName: "Somchai Donmuang",
-          department: "คณะวิศวกรรมศาสตร์",
-          position: "คณบดี",
-          positionApprover: "คณบดี",
-          updatedAt: "2025-07-03T10:20:08Z",
-          createdAt: "2025-07-03T10:15:23Z",
-          level: [1, 2],
-        },
-        {
-          id: 4,
-          academicPosition: "ดร.",
-          pronuon: "นางสาว",
-          thaiName: "กนกพร ปราบนที",
-          englishName: "Kanokporn Prabnatee",
-          department: "คณะวิศวกรรมศาสตร์",
-          position: "อธิการบดี",
-          positionApprover: "อธิการบดี",
-          updatedAt: "2025-07-03T10:20:08Z",
-          createdAt: "2025-07-03T10:15:23Z",
-          level: [1, 2],
-        },
-        {
-          id: 3,
-          academicPosition: null,
-          pronuon: "นางสาว",
-          thaiName: "บัวบาน ศรีสุข",
-          englishName: "buaban Srisuk",
-          department: "คณะวิศวกรรมศาสตร์",
-          position: "เลขานุการ",
-          positionApprover: "รักษาการแทนคณบดี",
-          updatedAt: "2025-07-03T10:18:12Z",
-          createdAt: "2025-07-03T10:15:23Z",
-          level: [1],
-        },
-      ],
-      updatedAt: "2025-07-03T10:15:23Z",
-      createdAt: "2025-07-03T10:15:23Z",
-    },
-    // ... (ไฟล์ยังคง mock entries อื่น ๆ ตามเดิม)
-  ],
-  page: 1,
-  totalPage: 1,
-  limit: 10,
-  totalCount: 10,
-};
-
-/** === Component === */
 export default function ManageApproverPage() {
-  const [userData, setUserData] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [levels, setLevels] = useState<Record<number, Approver[]>>({
-    1: [],
-    2: [],
-    3: [],
-    4: [],
+    1: [], 2: [], 3: [], 4: [],
   });
+  const [allPotentialApprovers, setAllPotentialApprovers] = useState<Approver[]>([]);
   const [form] = Form.useForm();
   const router = useRouter();
   const params = useParams();
 
-  useEffect(() => {
-    // params.id มาจาก URL — ถ้าไม่มี คืนค่าเป็น undefined
-    const userId = Number(params?.id);
-    if (Number.isNaN(userId)) return;
+  const fetchData = useCallback(async () => {
+    const account = params?.id as string;
+    if (!account) return;
 
-    const user = mockUserData.data.find((u) => u.id === userId);
-    if (!user) return;
+    setLoading(true);
+    try {
+      // 1. ดึงข้อมูลรายละเอียดของผู้ขอ (API คืนค่าเป็น Array)
+      const response = await getRequesterByUser(account);
+      
+      // *** แก้ไขจุดสำคัญ: ตรวจสอบข้อมูลและเข้าถึง index ที่ 0 ***
+      if (!response || response.length === 0) {
+          throw new Error("ไม่พบข้อมูลผู้ใช้");
+      }
+      const data: RequesterDetail = response[0];
 
-    setUserData(user);
-    form.setFieldsValue({
-      fullName: `${user.academicPosition ? user.academicPosition + " " : ""}${user.thaiName}`,
-      position: user.position,
-      department: user.department,
-    });
+      // 2. ดึงรายชื่อผู้อนุมัติทั้งหมดและ Map ข้อมูล
+      const fullRawList: ApproversRaw[] = await getApproverList();
+      const mappedList: Approver[] = fullRawList.map((item) => ({
+        nontri_account: item.nontri_account,
+        other_prefix: item.academic_position || "",
+        fullname: item.thai_name,
+        position: item.position || "",
+        approve_position: item.position_approver || "",
+        department: item.department || "",
+      }));
+      setAllPotentialApprovers(mappedList);
 
-    const grouped: Record<number, Approver[]> = { 1: [], 2: [], 3: [], 4: [] };
-    user.approver.forEach((a) => {
-      a.level.forEach((lv) => {
-        if (!grouped[lv]) grouped[lv] = [];
-        grouped[lv].push(a);
+      // Map ข้อมูลผู้ขอลง Form (ตรวจสอบว่ามี data.user ก่อนเข้าถึง)
+      if (data.user) {
+        form.setFieldsValue({
+          fullName: `${data.user.other_prefix || ""}${data.user.fullname || ""}`,
+          position: data.user.position,
+          department: data.user.department,
+        });
+      }
+
+      // จัดกลุ่มผู้อนุมัติที่มีอยู่เดิมลำดับ 1-4
+      setLevels({
+        1: data.approver_order1 || [],
+        2: data.approver_order2 || [],
+        3: data.approver_order3 || [],
+        4: data.approver_order4 || [],
       });
-    });
-    setLevels(grouped);
-    // เพิ่ม dependencies form และ params.id ตามคำเตือนของ ESLint
-  }, [form, params?.id]);
 
-  const handleDelete = (level: number, id: number) => {
+    } catch (error) {
+      console.error("Fetch Error:", error);
+      // แนะนำให้ใช้ notification หรือ App component สำหรับ UI message
+      message.error("ไม่สามารถโหลดข้อมูลได้");
+    } finally {
+      setLoading(false);
+    }
+  }, [params?.id, form]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // handleAdd และ handleDelete คงเดิมตามที่คุณส่งมา
+  const handleAdd = (level: number, account: string | null) => {
+    if (!account) return;
+    const approver = allPotentialApprovers.find((a) => a.nontri_account === account);
+    if (!approver) return;
+    if (levels[level].some((a) => a.nontri_account === account)) {
+      message.warning("รายชื่อนี้มีอยู่ในลำดับนี้แล้ว");
+      return;
+    }
     setLevels((prev) => ({
       ...prev,
-      [level]: prev[level].filter((item) => item.id !== id),
+      [level]: [...prev[level], approver],
     }));
   };
 
-  const handleAdd = (level: number, approverId: number) => {
-    const approver = allApprovers.find((a) => a.id === approverId);
-    if (!approver) return;
-
-    if (levels[level].some((a) => a.id === approver.id)) return;
-
+  const handleDelete = (level: number, account: string) => {
     setLevels((prev) => ({
       ...prev,
-      [level]: [...prev[level], { ...approver, level: [level] }],
+      [level]: prev[level].filter((item) => item.nontri_account !== account),
     }));
   };
 
   const columns = (level: number): ColumnsType<Approver> => [
     {
       title: "ตำแหน่งอนุมัติ",
-      dataIndex: "positionApprover",
-      key: "positionApprover",
+      dataIndex: "approve_position",
+      key: "approve_position",
+      render: (text, record) => text || record.position,
     },
     {
-      title: "ชื่อ",
-      key: "thaiName",
-      render: (_: unknown, record: Approver) =>
-        `${record.academicPosition ? record.academicPosition + " " : ""}${record.thaiName}`,
+      title: "ชื่อ-นามสกุล",
+      key: "fullname",
+      render: (_, record) => `${record.other_prefix}${record.fullname}`,
     },
     {
       title: "การจัดการ",
       key: "actions",
-      align: "center" as const,
-      render: (_: unknown, record: Approver) => (
+      align: "center",
+      render: (_, record) => (
         <Tooltip title="ลบ">
           <Icons.Trash2
             size={18}
             style={{ cursor: "pointer", color: "red" }}
-            onClick={() => handleDelete(level, record.id)}
+            onClick={() => handleDelete(level, record.nontri_account)}
           />
         </Tooltip>
       ),
     },
   ];
 
-  if (!userData) return <div>Loading...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
 
   return (
     <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: "100%" }} size={10}>
-        <Row>
-          <Col span={12}>
-            <Title style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}>
-              {"แก้ไขผู้อนุมัติ"}
-            </Title>
-          </Col>
-        </Row>
-
-        <Breadcrumb
-          items={[
-            {
-              title: (
-                <a
-                  onClick={() => {
-                    router.push(`/private/admin/manage-approval`);
-                  }}
-                >
-                  ผู้ขออนุมัติ
-                </a>
-              ),
-            },
-            { title: "แก้ไข" },
-          ]}
-        />
+        <Title style={{ margin: 0, fontSize: 18 }}>แก้ไขผู้อนุมัติ</Title>
+        <Breadcrumb items={[
+          { title: <a onClick={() => router.push(`/private/admin/manage-approval`)}>ผู้ขออนุมัติ</a> },
+          { title: "แก้ไข" },
+        ]} />
 
         <div className="chemds-container">
-          <h3>ผู้ขออนุมัติ</h3>
-
+          <h3 style={{ marginBottom: 20 }}>ข้อมูลผู้ขออนุมัติ</h3>
           <Form form={form} layout="vertical">
-
-            <Form.Item label="ชื่อ:" name="fullName">
+            <Form.Item label="ชื่อ-นามสกุล:" name="fullName">
               <Input disabled />
             </Form.Item>
-
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item label="สังกัด" name="department">
@@ -344,28 +163,37 @@ export default function ManageApproverPage() {
             </Row>
           </Form>
 
+          <hr style={{ margin: '24px 0', border: '0.5px solid #eee' }} />
+
           {[1, 2, 3, 4].map((level) => (
             <div key={level} style={{ marginBottom: 32 }}>
-              <Space style={{ marginBottom: 8 }}>
-                <h4>ผู้อนุมัติ {level}</h4>
-                <Select
-                  style={{ width: 250 }}
-                  placeholder="เลือกผู้อนุมัติ"
-                  onSelect={(val: string | number) => handleAdd(level, Number(val))}
-                >
-                  {allApprovers.map((a) => (
-                    <Select.Option key={a.id} value={a.id}>
-                      {a.positionApprover} - {a.academicPosition ? a.academicPosition + " " : ""}
-                      {a.thaiName}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Space>
+              <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
+                <Col><h4>ผู้อนุมัติลำดับที่ {level}</h4></Col>
+                <Col>
+                  <Select
+                    showSearch
+                    style={{ width: 350 }}
+                    placeholder="ค้นหาและเพิ่มผู้อนุมัติ"
+                    optionFilterProp="children"
+                    onSelect={(val: string | null) => handleAdd(level, val)}
+                    value={null}
+                    filterOption={(input, option) =>
+                      String(option?.children || "").toLowerCase().includes(input.toLowerCase())
+                    }
+                  >
+                    {allPotentialApprovers.map((a) => (
+                      <Select.Option key={a.nontri_account} value={a.nontri_account}>
+                        {`${a.other_prefix}${a.fullname} (${a.position})`}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Col>
+              </Row>
 
               <Table
                 columns={columns(level)}
                 dataSource={levels[level]}
-                rowKey="id"
+                rowKey="nontri_account"
                 pagination={false}
                 size="small"
                 bordered
@@ -373,21 +201,9 @@ export default function ManageApproverPage() {
             </div>
           ))}
 
-          <Row style={{ justifyContent: "space-between", marginTop: 15 }}>
-            <Col>
-              <Button
-                className="chemds-button"
-                type="default"
-                onClick={() => router.push(`/private/admin/manage-approval`)}
-              >
-                ยกเลิก
-              </Button>
-            </Col>
-            <Col>
-              <Button className="chemds-button" type="primary">
-                บันทึก
-              </Button>
-            </Col>
+          <Row gutter={16} justify="end" style={{ marginTop: 24 }}>
+            <Col><Button onClick={() => router.push(`/private/admin/manage-approval`)}>ยกเลิก</Button></Col>
+            <Col><Button type="primary" onClick={() => message.success("ข้อมูลพร้อมบันทึก")}>บันทึกการแก้ไข</Button></Col>
           </Row>
         </div>
       </Space>

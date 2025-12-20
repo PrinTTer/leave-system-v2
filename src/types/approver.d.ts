@@ -1,5 +1,5 @@
 declare type Approver = {
-  id: number;
+  nontri_account: string;
   academicPosition?: string | null;
   pronoun?: string;
   thaiName: string;
