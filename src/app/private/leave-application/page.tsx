@@ -8,32 +8,25 @@ import InternationalLeaveForm from "./general-application/international/page";
 import InternationalFormalLeaveForm from "./formal-application/international/page";
 import { formatThaiDate } from "@/app/utils";
 import router from "next/router";
-import { User } from "@/types/user";
-const users = {
-  nontri_account: "fengptu",
-  other_prefix: "ผศ.ดร.",
-  prefix: "นางสาว",
-  fullname: "วรัญญา อรรถเสนา",
-  gender: "female",
-  position: "",
-  faculty: "วิศวกรรมศาสตร์",
-  department: "วิศวกรรมคอมพิวเตอร์",
-  employment_start_date: "2025-11-09",
-};
+import { useUser } from "@/app/contexts/userContext";
+import { UserInfo } from "@/types/user";
 
 const LeaveSelectionPage: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>("1");
-  const [user, setUser] = useState<User>({} as User);
+  const userContext = useUser();
+  const [user, setUser] = useState<UserInfo>({} as UserInfo);
 
   useEffect(() => {
-    const [firstName, lastName] = users.fullname.split(" ");
+    if (!userContext.user) return;
+
+    const [firstName, lastName] = userContext.user.fullname.split(" ");
 
     setUser({
-      ...users,
+      ...userContext.user,
       firstName,
       lastName,
     });
-  }, []);
+  }, [userContext.user]);
 
   return (
     <div style={{ padding: 24 }}>
