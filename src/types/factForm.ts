@@ -1,5 +1,6 @@
 import { Dayjs } from "dayjs";
 import { Attachment } from "./common";
+import { LeaveType } from "./leaveType";
 
 export interface Assistants {
   nontri_account: string;
@@ -50,8 +51,8 @@ export interface FactFormInput {
   nontri_account: string;
   leave_type_id?: number;
   start_date: Date | Dayjs;
-  start_type: string;
-  end_type?: string;
+  start_type: LeaveTimeType;
+  end_type?: LeaveTimeType;
   end_date: Date | Dayjs;
   total_day: number;
   fiscal_year: number;
@@ -93,3 +94,68 @@ export interface OfficialdutyFactFormInput {
 }
 
 export type LeaveTimeType = "full" | "am" | "pm" | "";
+
+export interface SearchFactformDto {
+  fiscal_year?: string;
+  leave_type_id?: string;
+  search?: string;
+}
+
+export interface FactForm {
+  fact_form_id: number;
+  leave_type_id: number;
+  start_date: Date;
+  end_date: Date;
+  fiscal_year: number;
+  status: Status;
+  approve_date: Date;
+  note: string;
+  file_leave: string;
+  update_at: Date;
+  create_at: Date;
+  nontri_account: string;
+}
+
+export interface FactFormInfo extends FactFormInput {
+  fact_form_id: number;
+  leave_type_id: number;
+  countries: string[];
+  provinces: string[];
+  reason: string;
+  leave_type?: LeaveType;
+  leave_aboard?: string;
+}
+
+export interface LeaveHistoryInfo extends FactForm {
+  leave_aboard: string;
+  leave_type?: LeaveType;
+  approver1: ApproverStep;
+  approver2?: ApproverStep;
+  approver3?: ApproverStep;
+  approver4?: ApproverStep;
+  remark: string;
+}
+
+export interface Approval {
+  nontri_account: string;
+  other_prefix: string;
+  prefix: string;
+  fullname: string;
+  gender: string;
+  position: string;
+  faculty: string;
+  department: string;
+  employment_start_date: string;
+}
+
+export type ApproverStep = [Approval, ApproverStatus];
+
+export interface ApproverStatus {
+  status: "pending" | "approved" | "rejected";
+}
+
+export interface OfficialdutyFactformInfo extends OfficialdutyFactFormInput {
+  fact_form_id: number;
+  leave_type_id: number;
+  leave_type?: LeaveType;
+}
