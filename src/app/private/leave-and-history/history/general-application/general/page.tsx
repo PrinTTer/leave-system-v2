@@ -1,32 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Form,
   DatePicker,
   Input,
   Button,
-  Select,
+  Upload,
   Radio,
   Table,
   Typography,
   Col,
   Row,
-  Upload,
 } from "antd";
-import { Dayjs } from "dayjs";
-import Link from "next/link";
 import type { UploadFile } from "antd/es/upload/interface";
 import { UploadOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
+import Link from "next/link";
+import { FactFormInfo, FactFormInput, Status } from "@/types/factForm";
 import { User } from "@/types/user";
-import { calculateLeaveDays } from "@/app/utils/calculate";
-import { FactFormInput, LeaveTimeType, Status } from "@/types/factForm";
-import { Attachment } from "@/types/common";
 import { getAllFactLeaveCreditLeftByUser } from "@/services/factCreditLeaveApi";
 import { FactCreditLeaveInfo } from "@/types/factCreditLeave";
-import { createFactform } from "@/services/factFormApi";
+import { Attachment } from "@/types/common";
 import { convertFileToBase64 } from "@/app/utils/file";
-import { countries } from "@/mock/countries";
+import { updateFactForm } from "@/services/factFormApi";
+import { calculateLeaveDays } from "@/app/utils/calculate";
 import { CalendarSchedule } from "@/types/calendar";
 import { fetchHolidaysByYear } from "@/services/calendarApi";
 
@@ -34,26 +32,66 @@ const { Text } = Typography;
 
 interface GeneralLeaveFormProps {
   user: User;
+  data: FactFormInfo;
+  is_edit?: boolean;
 }
-const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+
+const GeneralLeaveFormEdit: React.FC<GeneralLeaveFormProps> = ({
+  user,
+  data,
+  is_edit,
+}) => {
+  const [form] = Form.useForm();
 
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [selectedleaveType, setSelectedLeaveType] = useState<number>();
-  const [attachment, setAttachment] = useState<Attachment>({} as Attachment);
+  const [attachment, setAttachment] = useState<Attachment | undefined>(
+    undefined,
+  );
 
-  const [startDate, setStartDate] = useState<Dayjs | null>(null);
-  const [endDate, setEndDate] = useState<Dayjs | null>(null);
+  const startDate = Form.useWatch("startDate", form);
+  const endDate = Form.useWatch("endDate", form);
+  const startType = Form.useWatch("startType", form);
+  const endType = Form.useWatch("endType", form);
 
-  const [startType, setStartType] = useState<LeaveTimeType>("full");
-  const [endType, setEndType] = useState<LeaveTimeType>("full");
+  const [leaveDays, setLeaveDays] = useState<number>(data.total_day || 0);
 
-  const [reason, setReason] = useState<string>("");
-  const [leaveDays, setLeaveDays] = useState<number>(0);
+  const [holiday, setHoliday] = useState<CalendarSchedule[]>([]);
+
   const [factCreditLeave, setFactCreditLeave] = useState<FactCreditLeaveInfo[]>(
     [],
   );
-  const [holiday, setHoliday] = useState<CalendarSchedule[]>([]);
+
+  useEffect(() => {
+    if (!data) return;
+
+    form.setFieldsValue({
+      fact_form_id: data.fact_form_id,
+      countries: data.countries,
+      reason: data.reason,
+      startDate: data.start_date ? dayjs(data.start_date) : null,
+      endDate: data.end_date ? dayjs(data.end_date) : null,
+      startType: data.start_type,
+      endType: data.end_type,
+    });
+  }, [data, form]);
+
+  useEffect(() => {
+    if (data?.attachment?.data) {
+      setAttachment({
+        fileName: data.attachment.fileName,
+        fileType: data.attachment.fileType,
+        data: data.attachment.data,
+      });
+      setFileList([
+        {
+          uid: "-1",
+          name: data.attachment.fileName,
+          status: "done",
+          url: data.attachment.data,
+        },
+      ]);
+    }
+  }, [data]);
 
   useEffect(() => {
     const fetchHolidays = async () => {
@@ -76,22 +114,31 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
   }, [user.nontri_account]);
 
   const selectedleaveTypeObj = factCreditLeave.find(
-    (leave) => leave.leave_type_id === selectedleaveType,
+    (leave) => leave.leave_type_id === data.leave_type_id,
   );
 
-  const handleChange = async (info: { fileList: UploadFile[] }) => {
-    setFileList(info.fileList);
+  const handleChange = async ({
+    file,
+    fileList,
+  }: {
+    file: UploadFile;
+    fileList: UploadFile[];
+  }) => {
+    setFileList(fileList);
 
-    if (info.fileList.length > 0) {
-      const file = info.fileList[0].originFileObj as File;
-      const base64 = await convertFileToBase64(file);
+    if (file.status === "removed") {
+      setAttachment(undefined);
+      return;
+    }
+
+    if (fileList.length > 0) {
+      const f = fileList[0].originFileObj as File;
+      const base64 = await convertFileToBase64(f);
       setAttachment({
-        fileName: file.name,
-        fileType: file.type,
+        fileName: f.name,
+        fileType: f.type,
         data: base64,
       });
-    } else {
-      setAttachment({} as Attachment);
     }
   };
 
@@ -123,7 +170,8 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
     {
       key: "1",
       leaveType: selectedleaveTypeObj?.leave_type?.name || "",
-      countries: selectedCountries,
+
+      countries: "ในประเทศ",
       leaveDays: leaveDays,
       remaining: remainingLeaveDays,
     },
@@ -131,7 +179,6 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
 
   const columns = [
     { title: "ประเภทการลา", dataIndex: "leaveType" },
-    { title: "ประเทศที่เดินทาง", dataIndex: "countries" },
     { title: "จำนวนวันที่ลา", dataIndex: "leaveDays" },
     {
       title: "จำนวนวันลาคงเหลือ",
@@ -143,6 +190,8 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
   ];
 
   const handleSubmit = async (status: string) => {
+    const values = await form.validateFields();
+
     const payload: FactFormInput = {
       nontri_account: user.nontri_account,
       leave_type_id: selectedleaveTypeObj?.leave_type_id || 1,
@@ -151,76 +200,38 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
       end_date: endDate ? endDate.toDate() : new Date(),
       end_type: endType,
       total_day: leaveDays,
-      reason: reason,
+      reason: values.reason,
       status: status as Status,
       fiscal_year: new Date().getFullYear() + 543,
       attachment: attachment,
-      leave_aboard: "ต่างประเทศ",
-      countries: selectedCountries,
+      leave_aboard: "ในประเทศ",
     };
     console.log("payload", payload);
 
-    await createFactform(payload);
+    await updateFactForm(user?.nontri_account, data.fact_form_id, payload);
   };
 
   return (
     <div>
       <Form
+        form={form}
         layout="vertical"
-        className="max-w-2xl p-6 border rounded-lg bg-white shadow-sm"
+        className="max-w-lg p-6 border rounded-lg bg-white shadow-sm"
       >
-        {/* ประเภทการลา */}
-        <Form.Item
-          label="ประเภทการลา"
-          name="leaveType"
-          rules={[{ required: true, message: "กรุณาเลือกประเภทการลา" }]}
-        >
-          <Radio.Group
-            value={selectedleaveType}
-            onChange={(e) => setSelectedLeaveType(e.target.value)}
-          >
-            {factCreditLeave.map((leave) => (
-              <Radio key={leave.leave_type_id} value={leave.leave_type_id}>
-                {leave.leave_type.name}
-              </Radio>
-            ))}
-          </Radio.Group>
-        </Form.Item>
-
-        {/* เลือกประเทศ */}
-        <Form.Item
-          label="ประเทศที่ต้องการเดินทาง"
-          name="countries"
-          rules={[{ required: true, message: "กรุณาเลือกประเทศ" }]}
-        >
-          <Select
-            mode="multiple"
-            allowClear
-            style={{ width: "100%" }}
-            placeholder="ค้นหาและเลือกประเทศ"
-            options={countries.map((c) => ({
-              value: c.name,
-              label: c.name,
-            }))}
-            value={selectedCountries}
-            onChange={setSelectedCountries}
-          />
-        </Form.Item>
-
         {/* เหตุผลการลา */}
         <Form.Item
           label="เหตุผลการลา"
           name="reason"
-          rules={[{ required: true, message: "กรุณาระบุเหตุผลการลา" }]}
+          rules={[{ required: true, message: "กรุณากรอกเหตุผลการลา" }]}
         >
           <Input.TextArea
+            disabled={!is_edit}
             rows={3}
             placeholder="กรอกเหตุผลการลา..."
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
           />
         </Form.Item>
 
+        {/* วันที่เริ่มและสิ้นสุดให้อยู่แถวเดียวกัน */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -228,21 +239,14 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
               name="startDate"
               rules={[{ required: true, message: "กรุณาเลือกวันที่เริ่ม" }]}
             >
-              <DatePicker
-                value={startDate}
-                onChange={(d) => setStartDate(d)}
-                style={{ width: "100%" }}
-              />
+              <DatePicker style={{ width: "100%" }} disabled={!is_edit} />
             </Form.Item>
             {startDate && (
               <Form.Item
                 name="startType"
                 rules={[{ required: true, message: "กรุณาเลือกช่วงเวลา" }]}
               >
-                <Radio.Group
-                  value={startType}
-                  onChange={(e) => setStartType(e.target.value)}
-                >
+                <Radio.Group>
                   <Radio value="full">เต็มวัน</Radio>
                   <Radio value="am">ครึ่งเช้า</Radio>
                   <Radio value="pm">ครึ่งบ่าย</Radio>
@@ -257,21 +261,14 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
               name="endDate"
               rules={[{ required: true, message: "กรุณาเลือกวันที่สิ้นสุด" }]}
             >
-              <DatePicker
-                value={endDate}
-                onChange={(d) => setEndDate(d)}
-                style={{ width: "100%" }}
-              />
+              <DatePicker style={{ width: "100%" }} disabled={!is_edit} />
             </Form.Item>
             {endDate && startDate && !startDate.isSame(endDate, "day") && (
               <Form.Item
                 name="endType"
                 rules={[{ required: true, message: "กรุณาเลือกช่วงเวลา" }]}
               >
-                <Radio.Group
-                  value={endType}
-                  onChange={(e) => setEndType(e.target.value)}
-                >
+                <Radio.Group disabled={!is_edit}>
                   <Radio value="full">เต็มวัน</Radio>
                   <Radio value="am">ครึ่งเช้า</Radio>
                   <Radio value="pm">ครึ่งบ่าย</Radio>
@@ -288,8 +285,20 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
             name="attachments"
             rules={[{ required: true, message: "กรุณาแนบไฟล์เอกสาร" }]}
           >
-            <Upload fileList={fileList} onChange={handleChange}>
-              <Button icon={<UploadOutlined />}>เลือกไฟล์</Button>
+            <Upload
+              disabled={!is_edit}
+              fileList={fileList}
+              beforeUpload={() => false}
+              onChange={handleChange}
+              onRemove={() => {
+                if (!is_edit) return;
+                setAttachment({} as Attachment);
+                return true;
+              }}
+            >
+              <Button icon={<UploadOutlined />} disabled={!is_edit}>
+                เลือกไฟล์
+              </Button>
             </Upload>
           </Form.Item>
         )}
@@ -314,7 +323,14 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
             gap: "12px",
           }}
         >
-          <div style={{ display: "flex", gap: "12px" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              justifyContent: "center",
+              marginTop: 24,
+            }}
+          >
             <Link href="/private">
               <Button
                 style={{
@@ -327,35 +343,38 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
               </Button>
             </Link>
 
-            <Link href="/private">
-              <Button
-                style={{
-                  backgroundColor: "#52c41a",
-                  color: "#fff",
-                  border: "none",
-                }}
-                disabled={remainingLeaveDays < 0}
-                onClick={() => {
-                  handleSubmit(Status.Draft);
-                }}
-              >
-                บันทึกฉบับร่าง
-              </Button>
-            </Link>
-
-            <Link href="/private">
-              {" "}
-              <Button
-                type="primary"
-                style={{ border: "none" }}
-                disabled={remainingLeaveDays < 0}
-                onClick={() => {
-                  handleSubmit(Status.Pending);
-                }}
-              >
-                ส่งใบลา
-              </Button>
-            </Link>
+            {is_edit && (
+              <>
+                <Link href="/private">
+                  <Button
+                    style={{
+                      backgroundColor: "#52c41a",
+                      color: "#fff",
+                      border: "none",
+                    }}
+                    disabled={remainingLeaveDays < 0}
+                    onClick={() => {
+                      handleSubmit(Status.Draft);
+                    }}
+                  >
+                    บันทึกฉบับร่าง
+                  </Button>
+                </Link>
+                <Link href="/private">
+                  {" "}
+                  <Button
+                    type="primary"
+                    style={{ border: "none" }}
+                    disabled={remainingLeaveDays < 0}
+                    onClick={() => {
+                      handleSubmit(Status.Pending);
+                    }}
+                  >
+                    ส่งใบลา
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {remainingLeaveDays < 0 && (
@@ -371,4 +390,4 @@ const InternationalLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
   );
 };
 
-export default InternationalLeaveForm;
+export default GeneralLeaveFormEdit;

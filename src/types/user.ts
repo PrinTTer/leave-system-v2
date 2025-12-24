@@ -34,3 +34,8 @@ export interface UserList {
   department: string;
   employment_start_date: string;
 }
+
+export interface UserInfo extends User {
+  firstName?: string | null;
+  lastName?: string | null;
+}

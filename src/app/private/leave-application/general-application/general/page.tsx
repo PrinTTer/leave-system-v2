@@ -39,6 +39,7 @@ const GeneralLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
   const [attachment, setAttachment] = useState<Attachment>({} as Attachment);
 
   const [selectedleaveType, setSelectedLeaveType] = useState<number>();
+  const [reason, setReason] = useState<string>("");
 
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
@@ -150,7 +151,7 @@ const GeneralLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
       end_date: endDate ? endDate.toDate() : new Date(),
       end_type: endType,
       total_day: leaveDays,
-      reason: "",
+      reason: reason,
       status: status as Status,
       fiscal_year: new Date().getFullYear() + 543,
       attachment: attachment,
@@ -191,7 +192,12 @@ const GeneralLeaveForm: React.FC<GeneralLeaveFormProps> = ({ user }) => {
           name="reason"
           rules={[{ required: true, message: "กรุณากรอกเหตุผลการลา" }]}
         >
-          <Input.TextArea rows={3} placeholder="กรอกเหตุผลการลา..." />
+          <Input.TextArea
+            rows={3}
+            placeholder="กรอกเหตุผลการลา..."
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
         </Form.Item>
 
         {/* วันที่เริ่มและสิ้นสุดให้อยู่แถวเดียวกัน */}

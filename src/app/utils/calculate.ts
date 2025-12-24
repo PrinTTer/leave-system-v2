@@ -1,4 +1,3 @@
-import { fetchHolidaysByYear } from "@/services/calendarApi";
 import { CalendarSchedule } from "@/types/calendar";
 import { LeaveTimeType } from "@/types/factForm";
 import dayjs, { Dayjs } from "dayjs";
@@ -32,7 +31,7 @@ export const calculateLeaveDays = async (
   endDate: Dayjs | null,
   startType: LeaveTimeType,
   endType: LeaveTimeType,
-  holiday: CalendarSchedule[]
+  holiday: CalendarSchedule[],
 ): Promise<number> => {
   const holidaySet = buildHolidaySet(holiday);
 
@@ -99,4 +98,22 @@ export const buildHolidaySet = (holidays: CalendarSchedule[]) => {
   });
 
   return set;
+};
+
+export const buildDaysBetween = (
+  startDate: string,
+  endDate: string,
+): string[] => {
+  const days: string[] = [];
+
+  let current = dayjs(startDate);
+  const end = dayjs(endDate);
+
+  // วนจนถึงวันสุดท้าย (รวมวันสุดท้ายด้วย)
+  while (current.isSameOrBefore(end, "day")) {
+    days.push(current.format("YYYY-MM-DD"));
+    current = current.add(1, "day");
+  }
+
+  return days;
 };
