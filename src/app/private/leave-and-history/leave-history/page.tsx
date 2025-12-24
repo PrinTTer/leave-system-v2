@@ -1,178 +1,182 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { TableProps } from "antd";
-import { Table, Button, Tooltip, Select, Input, Form, Col, TableColumnsType, Tag, Space, Row, Card, Breadcrumb, Typography } from "antd";
 import {
-  PlusOutlined,
-} from "@ant-design/icons";
+  Table,
+  Button,
+  Tooltip,
+  Select,
+  Input,
+  Form,
+  Col,
+  TableColumnsType,
+  Tag,
+  Space,
+  Row,
+  Card,
+  Breadcrumb,
+  Typography,
+} from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import Link from "next/link";
-import { CheckCircle, XCircle, FileText, Printer } from "lucide-react";
+import { XCircle, FileText, SquarePen } from "lucide-react";
 import router from "next/router";
-
-interface LeaveHistory {
-  key: React.Key;
-  submittedDate: string;
-  leaveType: string;
-  startDate: string;
-  endDate: string;
-  totalDays: number;
-  status: string;
-  approver1: string;
-  approver2?: string;
-  remark?: string;
-}
+import { LeaveHistoryInfo, SearchFactformDto, Status } from "@/types/factForm";
+import { searchLeaveHistory } from "@/services/factFormApi";
+import { useUser } from "@/app/contexts/userContext";
+import { FactCreditLeaveInfo } from "@/types/factCreditLeave";
+import { getAllFactLeaveCreditByUser } from "@/services/factCreditLeaveApi";
 
 const { Search } = Input;
 
-type ColumnTypes = Exclude<TableProps<LeaveHistory>["columns"], undefined>;
+type ColumnTypes = Exclude<TableProps<LeaveHistoryInfo>["columns"], undefined>;
 
 const LeaveHistoryPage: React.FC = () => {
-  const [dataSource] = useState<LeaveHistory[]>([
-    {
-      key: "0",
-      leaveType: "ลาป่วย",
-      submittedDate: "2023-10-01",
-      startDate: "2023-10-05",
-      endDate: "2023-10-07",
-      totalDays: 3,
-      status: "รอดำเนินการ",
-      approver1: "ผศ.ดร. วรัญญา",
-      approver2: "ผศ.ดร. วรัญญา",
-      remark: "-",
-    },
-    {
-      key: "1",
-      leaveType: "ลากิจ",
-      submittedDate: "2024-02-15",
-      startDate: "2024-02-20",
-      endDate: "2024-02-21",
-      totalDays: 2,
-      status: "อนุมัติ",
-      approver1: "ผศ.ดร. วรัญญา",
-      approver2: "-",
-      remark: "-",
-    },
-  ]);
+  const { user } = useUser();
 
-  const [filters] = useState({
-    year: "",
-    leaveType: "",
-    search: "",
-  });
+  const [searchParams, setSearchParams] = useState<SearchFactformDto>(
+    {} as SearchFactformDto
+  );
+  const [leaveHistory, setLeaveHistory] = useState<LeaveHistoryInfo[]>([]);
+  const [leaveType, setLeaveType] = useState<FactCreditLeaveInfo[]>([]);
 
-  const filteredData = dataSource.filter((item) => {
-    const matchYear =
-      !filters.year ||
-      new Date(item.submittedDate).getFullYear().toString() === filters.year;
-    const matchLeaveType =
-      !filters.leaveType || item.leaveType === filters.leaveType;
-    const matchSearch =
-      !filters.search ||
-      Object.values(item).some((val) =>
-        String(val).toLowerCase().includes(filters.search.toLowerCase())
+  useEffect(() => {
+    if (!user?.nontri_account) return;
+
+    const fetchLeaveHistory = async () => {
+      const response = await searchLeaveHistory(
+        user.nontri_account,
+        searchParams
       );
 
-    return matchYear && matchLeaveType && matchSearch;
-  });
+      setLeaveHistory(response);
+    };
+    fetchLeaveHistory();
+  }, [user?.nontri_account, searchParams]);
 
+  useEffect(() => {
+    if (!user?.nontri_account) return;
 
+    const fetchLeaveHistory = async () => {
+      const response = await getAllFactLeaveCreditByUser(user.nontri_account);
 
-  const defaultColumns: TableColumnsType<LeaveHistory> = [
+      setLeaveType(response);
+    };
+    fetchLeaveHistory();
+  }, [user?.nontri_account]);
+
+  const defaultColumns: TableColumnsType<LeaveHistoryInfo> = [
     {
-      title: <span className="text-dark dark:text-white">ประเภทการลา</span>,
-      dataIndex: "leaveType",
-      filterSearch: true,
-      sorter: (a, b) => a.leaveType.localeCompare(b.leaveType),
-      render: (text) => <span className="text-dark dark:text-white">{text}</span>,
+      title: "ประเภทการลา",
+      dataIndex: ["leave_type", "name"],
+      render: (name) => name,
     },
     {
-      title: <span className="text-dark dark:text-white">วันที่ยื่นคำร้อง</span>,
-      dataIndex: "submittedDate",
+      title: "วันที่",
+      dataIndex: "start_date",
       align: "center",
-      sorter: (a, b) =>
-        new Date(a.submittedDate).getTime() - new Date(b.submittedDate).getTime(),
-      render: (date) => (
-        <span className="text-dark dark:text-white">
-          {new Date(date).toLocaleDateString("th-TH")}
-        </span>
-      ),
+      render: (date) => new Date(date).toLocaleDateString("th-TH"),
     },
     {
-      title: <span className="text-dark dark:text-white">วันเริ่มลา</span>,
-      dataIndex: "startDate",
+      title: "วันเริ่มลา",
+      dataIndex: "start_date",
       align: "center",
-      sorter: (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-      render: (date) => (
-        <span className="text-dark dark:text-white">
-          {new Date(date).toLocaleDateString("th-TH")}
-        </span>
-      ),
+      render: (date) => new Date(date).toLocaleDateString("th-TH"),
     },
     {
-      title: <span className="text-dark dark:text-white">วันสิ้นสุดการลา</span>,
-      dataIndex: "endDate",
+      title: "วันสิ้นสุดการลา",
+      dataIndex: "end_date",
       align: "center",
-      sorter: (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime(),
-      render: (date) => (
-        <span className="text-dark dark:text-white">
-          {new Date(date).toLocaleDateString("th-TH")}
-        </span>
-      ),
+      render: (date) => new Date(date).toLocaleDateString("th-TH"),
     },
     {
-      title: <span className="text-dark dark:text-white">จำนวนวันลา (วัน)</span>,
-      dataIndex: "totalDays",
+      title: "จำนวนวันลา",
+      dataIndex: "total_day",
       align: "center",
-      sorter: (a, b) => a.totalDays - b.totalDays,
-      render: (text) => <span className="text-dark dark:text-white">{text}</span>,
     },
     {
       title: <span className="text-dark dark:text-white">สถานะ</span>,
       dataIndex: "status",
       align: "center",
-      // filters: statusFilters, // กำหนด filter ของ status
       onFilter: (value, record) => record.status.includes(value as string),
       render: (status) => {
-        let color: "success" | "processing" | "error" | "warning" | "default" = "default";
+        let label = "";
+        let color: "success" | "processing" | "error" | "warning" | "default" =
+          "default";
+
         switch (status) {
-          case "อนุมัติ":
+          case Status.Approve:
+            label = "อนุมัติ";
             color = "success";
             break;
-          case "ไม่อนุมัติ":
-            color = "error";
-            break;
-          case "ยกเลิกอนุมัติ":
-            color = "warning";
-            break;
-          case "รอดำเนินการ":
+
+          case Status.Pending:
+            label = "รอดำเนินการ";
             color = "processing";
             break;
+
+          case Status.Reject:
+            label = "ไม่อนุมัติ";
+            color = "error";
+            break;
+
+          case Status.Cancel:
+            label = "ยกเลิก";
+            color = "warning";
+            break;
+
           default:
+            label = status;
             color = "default";
         }
-        return <Tag color={color}>{status}</Tag>;
+
+        return <Tag color={color}>{label}</Tag>;
       },
     },
     {
-      title: <span className="text-dark dark:text-white">ผู้อนุมัติลำดับที่ 1</span>,
+      title: "ผู้อนุมัติลำดับที่ 1",
       dataIndex: "approver1",
       align: "center",
-      sorter: (a, b) => a.approver1.localeCompare(b.approver1),
-      render: (text) => <span className="text-dark dark:text-white">{text}</span>,
+      render: (approver1) =>
+        approver1?.[0]
+          ? `${approver1?.[0]?.other_prefix} ${approver1?.[0]?.fullname.split(" ")[0]}`
+          : "-",
     },
     {
-      title: <span className="text-dark dark:text-white">ผู้อนุมัติลำดับที่ 2</span>,
+      title: "ผู้อนุมัติลำดับที่ 2",
       dataIndex: "approver2",
       align: "center",
-      sorter: (a, b) => a.approver2?.localeCompare(b.approver2 || "-") || 0,
-      render: (text) => <span className="text-dark dark:text-white">{text || "-"}</span>,
+      render: (approver2) =>
+        approver2?.[0]
+          ? `${approver2?.[0]?.other_prefix} ${approver2?.[0]?.fullname.split(" ")[0]}`
+          : "-",
+    },
+    {
+      title: "ผู้อนุมัติลำดับที่ 3",
+      dataIndex: "approver3",
+      align: "center",
+      render: (approver3) =>
+        approver3?.[0]
+          ? `${approver3?.[0]?.other_prefix} ${approver3?.[0]?.fullname.split(" ")[0]}`
+          : "-",
+    },
+    {
+      title: "ผู้อนุมัติลำดับที่ 4",
+      dataIndex: "approver4",
+      align: "center",
+      render: (approver4) =>
+        approver4?.[0]
+          ? `${approver4?.[0]?.other_prefix} ${approver4?.[0]?.fullname.split(" ")[0]}`
+          : "-",
     },
     {
       title: <span className="text-dark dark:text-white">หมายเหตุ</span>,
       dataIndex: "remark",
       align: "center",
-      render: (text) => <span className="text-dark dark:text-white">{text}</span>,
+      render: (text) => (
+        <span className="text-dark dark:text-white">{text}</span>
+      ),
     },
     {
       title: <span className="text-dark dark:text-white">จัดการ</span>,
@@ -182,60 +186,50 @@ const LeaveHistoryPage: React.FC = () => {
         const { status } = record;
         return (
           <Space>
-            {status === "รอดำเนินการ" && (
+            {status === Status.Pending && (
               <>
-                <Tooltip title="อนุมัติ">
-                  <CheckCircle
-                    onClick={() => console.log("อนุมัติ", record.key)}
-                    style={{ cursor: "pointer", color: "green" }}
-                    size={18}
-                  />
-                </Tooltip>
-                <Tooltip title="ไม่อนุมัติ">
+                <Tooltip title="ยกเลิก">
                   <XCircle
-                    onClick={() => console.log("ไม่อนุมัติ", record.key)}
                     style={{ cursor: "pointer", color: "red" }}
                     size={18}
                   />
                 </Tooltip>
                 <Tooltip title="ดูรายละเอียดลา">
                   <FileText
-                    onClick={() => console.log("ดูรายละเอียดลา", record.key)}
                     style={{ cursor: "pointer", color: "blue" }}
                     size={18}
                   />
                 </Tooltip>
               </>
             )}
-            {status === "อนุมัติ" && (
+
+            {status === Status.Draft && (
               <>
-                <Tooltip title="ยกเลิกอนุมัติ">
+                <Tooltip title="แก้ไข">
+                  <SquarePen
+                    style={{ cursor: "pointer", color: "yellow" }}
+                    size={18}
+                  />
+                </Tooltip>
+                <Tooltip title="ยกเลิก">
                   <XCircle
-                    onClick={() => console.log("ยกเลิกอนุมัติ", record.key)}
-                    style={{ cursor: "pointer", color: "orange" }}
+                    style={{ cursor: "pointer", color: "red" }}
                     size={18}
                   />
                 </Tooltip>
                 <Tooltip title="ดูรายละเอียดลา">
                   <FileText
-                    onClick={() => console.log("ดูรายละเอียดลา", record.key)}
-                    style={{ cursor: "pointer", color: "blue" }}
-                    size={18}
-                  />
-                </Tooltip>
-                <Tooltip title="พิมพ์ใบลา">
-                  <Printer
-                    onClick={() => console.log("พิมพ์ใบลา", record.key)}
                     style={{ cursor: "pointer", color: "blue" }}
                     size={18}
                   />
                 </Tooltip>
               </>
             )}
-            {(status === "ไม่อนุมัติ" || status === "ยกเลิกอนุมัติ") && (
+            {(status === Status.Reject ||
+              status === Status.Cancel ||
+              status === Status.Approve) && (
               <Tooltip title="ดูรายละเอียดลา">
                 <FileText
-                  onClick={() => console.log("ดูรายละเอียดลา", record.key)}
                   style={{ cursor: "pointer", color: "blue" }}
                   size={18}
                 />
@@ -247,13 +241,15 @@ const LeaveHistoryPage: React.FC = () => {
     },
   ];
 
-
   return (
     <div style={{ padding: 24 }}>
       <Space direction="vertical" style={{ width: "100%" }} size={10}>
         <Row>
           <Col span={12}>
-            <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}>
+            <Typography.Title
+              level={4}
+              style={{ marginTop: 0, marginBottom: 0, fontSize: 18 }}
+            >
               ประวัติการลา
             </Typography.Title>
           </Col>
@@ -267,7 +263,8 @@ const LeaveHistoryPage: React.FC = () => {
                     <a
                       onClick={() => {
                         router.push(`/private/leave-and-history/leave-history`);
-                      }}>
+                      }}
+                    >
                       ประวัติการลา
                     </a>
                   ),
@@ -278,21 +275,43 @@ const LeaveHistoryPage: React.FC = () => {
         </Row>
 
         <Card>
-          <div style={{ padding: "24px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div
+            style={{
+              padding: "24px 0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <div className="flex justify-content-end gap-4">
-              <Form layout="vertical" className="flex gap-4" style={{ marginBottom: 10 }}>
-                <Row align="middle" className="text-sm font-medium" style={{ gap: 10 }}>
+              <Form
+                layout="vertical"
+                className="flex gap-4"
+                style={{ marginBottom: 10 }}
+              >
+                <Row
+                  align="middle"
+                  className="text-sm font-medium"
+                  style={{ gap: 10 }}
+                >
                   <Col>
                     <Form.Item label="ปีงบประมาณ" style={{ marginBottom: 0 }}>
                       <Select
                         defaultValue=""
                         style={{ width: 120 }}
+                        value={searchParams.fiscal_year}
                         options={[
-                          { value: '', label: 'ทั้งหมด' },
-                          { value: '2569', label: '2569' },
-                          { value: '2568', label: '2568' },
-                          { value: '2567', label: '2567' },
+                          { value: "", label: "ทั้งหมด" },
+                          { value: "2569", label: "2569" },
+                          { value: "2568", label: "2568" },
+                          { value: "2567", label: "2567" },
                         ]}
+                        onChange={(value) =>
+                          setSearchParams({
+                            ...searchParams,
+                            fiscal_year: value,
+                          })
+                        }
                       />
                     </Form.Item>
                   </Col>
@@ -300,20 +319,39 @@ const LeaveHistoryPage: React.FC = () => {
                   <Col>
                     <Form.Item label="ประเภทการลา" style={{ marginBottom: 0 }}>
                       <Select
-                        defaultValue=""
                         style={{ width: 150 }}
+                        value={searchParams.leave_type_id || ""}
                         options={[
-                          { value: '', label: 'ทั้งหมด' },
-                          { value: 'ลาป่วย', label: 'ลาป่วย' },
-                          { value: 'ลากิจ', label: 'ลากิจ' },
+                          { value: "", label: "ทั้งหมด" },
+                          ...leaveType.map((l) => ({
+                            value: l.leave_type.leave_type_id,
+                            label: l.leave_type.name,
+                          })),
                         ]}
+                        onChange={(value) =>
+                          setSearchParams({
+                            ...searchParams,
+                            leave_type_id: value,
+                          })
+                        }
                       />
                     </Form.Item>
                   </Col>
 
                   <Col>
                     <Form.Item label="ค้นหา" style={{ marginBottom: 0 }}>
-                      <Search placeholder="ค้นหา" allowClear style={{ width: 200 }} />
+                      <Search
+                        placeholder="ค้นหา"
+                        allowClear
+                        style={{ width: 200 }}
+                        value={searchParams.search}
+                        onChange={(e) =>
+                          setSearchParams({
+                            ...searchParams,
+                            search: e.target.value,
+                          })
+                        }
+                      />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -327,13 +365,12 @@ const LeaveHistoryPage: React.FC = () => {
                 </Button>
               </Link>
             </div>
-
           </div>
 
           {/* ตาราง */}
-          <Table<LeaveHistory>
+          <Table<LeaveHistoryInfo>
             bordered
-            dataSource={filteredData}
+            dataSource={leaveHistory}
             columns={defaultColumns as ColumnTypes}
             pagination={{ pageSize: 5 }}
           />
